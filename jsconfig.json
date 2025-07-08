@@ -1,0 +1,8 @@
+/* Allows intellisense to work with esm-module-alias import statements (see "alias" in package.json) */
+{
+  "compilerOptions": {
+    "paths": {
+      "@*": ["./backend/*"]
+    }
+  }
+}

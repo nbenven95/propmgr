@@ -1,0 +1,11 @@
+# npm stuff
+node_modules/
+
+# environment config files
+*.env
+.*env
+
+# project-specific
+static/
+
+
