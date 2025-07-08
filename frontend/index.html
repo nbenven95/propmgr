@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+  <title>File Upload</title>
+
+</head>
+<body>
+
+  <form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" id="fileInput" name="file" required />
+    <br><br>
+    <button type="submit">Upload</button>
+  </form>
+  
+  <script>
+    // This script runs client-side when 'submit' events are detected on element 'uploadForm'
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      
+      e.preventDefault(); // Prevent default form submission
+
+      const form = e.target;
+      const formData = new FormData(form);
+
+      // Make the API call ourselves instead of relying on 'form action="/api/upload" method="POST"'
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        const resultText = await response.text();
+
+        // Show alert with server response
+        alert(resultText);
+
+        // Clear the form only if upload was successful (assuming success if status is 200)
+        if (response.ok) {
+          form.reset();
+        }
+      } catch (error) {
+        alert('Error uploading file!');
+        console.error('Upload error:', error);
+      }
+    });
+  </script>
+</body>
+</html>
