@@ -1,3 +1,5 @@
+TODO: Update this file with final package.json setup
+
 # 1 Environment setup
 
 ## 1.1 NVM (Node Version Manager)
@@ -126,8 +128,6 @@ Reference
   
     cd project
     mkdir -p frontend backend/config backend/models backend/controllers backend/util backend/routes
-    touch backend/server.js
-    touch backend/config/db.js
 
 ### 2.3 Init project root as node project
 
@@ -156,53 +156,6 @@ This should add `package.json`
         "test": "echo \"Error: no test specified\" && exit 1"
     }
 Allows us to use keywords `dev`, `build`, `start`, and `test` as arguments for `npm run [CMD]`.
-
-### <s>2.6 Add "type": "module" to package.json</s>
-Don't need this line anymore; see **2.7**
-
-    // Before
-    {
-        "name": "1_first-project",
-        "version": "1.0.0",
-        "description": "",
-        "main": "index.js",
-        "scripts": {
-            "dev": "NODE_ENV=development nodemon backend/server.js",
-            "build": "npm install && npm install --prefix frontend && npm run build --prefix frontend",
-            "start": "NODE_ENV=production node backend/server.js",
-            "test": "echo \"Error: no test specified\" && exit 1"
-        },
-        "keywords": [],
-        "author": "",
-        "license": "ISC"
-    }
-
-    // After
-    {
-        "name": "1_first-project",
-        "version": "1.0.0",
-        "description": "",
-        "main": "index.js",
-        "scripts": {
-            "dev": "NODE_ENV=development nodemon backend/server.js",
-            "build": "npm install && npm install --prefix frontend && npm run build --prefix frontend",
-            "start": "NODE_ENV=production node backend/server.js",
-            "test": "echo \"Error: no test specified\" && exit 1"
-        },
-        "type" : "module", // Added
-        "keywords": [],
-        "author": "",
-        "license": "ISC"
-    }
-This allows us to use `import express from 'express';` instead of `var express = require('express');`
-
-### 2.7 Add module alias to package.json
-
-    npm i module-alias
-- Remove `"type": "module"` if you haven't already
-- Add the following to your package.json:  `"_moduleAliases": { "@": "backend" }`
-- This allows us to use `@` as an alias for the absolute path to `backend`
-    - Means that we don't need relative imports
 
 # 3 Frontend
 
