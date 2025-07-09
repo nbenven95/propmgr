@@ -1,4 +1,4 @@
-/* Allows intellisense to work with esm-module-alias import statements (see "alias" in package.json) */
+/* Provides intellisense hints for esm-module-alias import statements (see "alias" in package.json) */
 {
   "compilerOptions": {
     "paths": {

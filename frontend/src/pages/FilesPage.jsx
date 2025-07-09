@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 
+const proxy = 'http://localhost:5000'; // backend server
+
 const FilesPage = () => {
 
   /* Stateful array to track staged files, setter to modify.
@@ -21,12 +23,15 @@ const FilesPage = () => {
   const fetchFiles = () => {
     setLoading(true);
     // async call to get files from backend
-    axios.get('/files').then(res => {
-      setUploadedFiles(res.data); // Update state variables on success
+    axios.get(`${proxy}/files`).then(res => {
+      const newState = Array.from(res.data);
+      console.log(newState);
+      setUploadedFiles(newState);
+      setLoading(false);
     }).catch(err => {
-      // TODO: redirect to error page?
-      console.error(err);
-    }).finally(() => setLoading(false)); // loading => false, regardless of success/failure
+      console.error(err); // TODO: redirect to error page?
+      setLoading(false);
+    });
   };
 
   /* The function passed to useEffect runs during initial render;
@@ -34,11 +39,14 @@ const FilesPage = () => {
   be rendered. In this case, we need to get the list of files to
   be able to actually render the page. Arg 2 (optional) is a list
   of deps that require the func to be called again after loading. */
-  useEffect(() => fetchFiles(), []);
+  useEffect(() => { 
+    fetchFiles();
+    console.log(`Fetched files: ${uploadedFiles}`); 
+  }, []);
 
   const handleDelete = (fileId) => {
     // TODO: backend call to get file name by id
-    axios.delete(`/files/${fileId}`).then(res => {
+    axios.delete(`${proxy}/files/${fileId}`).then(res => {
       alert(`Successfully deleted file: id=${fileId}`);
       fetchFiles(); // On successful delete, get the updated file list
     }).catch(err => {
@@ -51,9 +59,13 @@ const FilesPage = () => {
     <div style={{ padding: '20px' }}>
       <h2>Uploaded files</h2>
       {/* TODO: more readable way of checking the loading state? */}
-      {loading ? <p>Loading...</p> : (uploadedFiles.length === 0 ? <p>No files uploaded yet.</p> : (
+      {loading ? (
+        <p>Loading...</p> 
+      ) : uploadedFiles.length === 0 ? (
+        <p>No files uploaded yet.</p>
+      ) : (
         <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-          {uploadedFiles.map((file) => {
+          {uploadedFiles.map((file) => (
             <div
               key={file._id} 
               style={{
@@ -73,8 +85,8 @@ const FilesPage = () => {
                   <div style={{ fontSize: '40px' }}>
                     📄
                   </div>
-                  <div style={{ fontSize: '40px', wordBreak: 'break-all', maxWidth: '80px' }}>
-                    {file.name}
+                  <div style={{ fontSize: '12px', wordBreak: 'break-all', maxWidth: '80px' }}>
+                    {file.filename}
                   </div>
                 </div>
                 {/* Delete button
@@ -98,12 +110,12 @@ const FilesPage = () => {
                   onClick={() => handleDelete(file._id)}
                   title="Delete"
                 >
-                  x
+                  ❌
                 </button>
             </div>
-          })}
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 };

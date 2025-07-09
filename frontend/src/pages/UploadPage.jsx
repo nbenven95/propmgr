@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react'
 import axios from 'axios'
 
+const proxy = 'http://localhost:5000'; // backend server
+
 const UploadPage = () => {
 
   /* Stateful array to track staged files, setter to modify.
@@ -13,9 +15,11 @@ const UploadPage = () => {
   const fileInputRef = useRef();
 
   /* Handle staging new files for upload */
-  const handleFilesAdded = (newFileList) => {
-    const newFiles = Array.from(newFileList); // Init array with files to be added
-    const updatedFiles = [...files]; // Copy current contents of 'files' into temp array
+  const handleFilesAdded = (newFileList) => { // TODO: more concise way of filtering?
+    // List containing files to be staged
+    const newFiles = Array.from(newFileList);
+    // Init update list with currently staged files
+    const updatedFiles = [...files];
     // Append newly staged files to existing staged files
     newFiles.forEach(file => {
       // Only add the file if it is not already staged
@@ -46,7 +50,7 @@ const UploadPage = () => {
       formData.append('files', file);
     });
     // async call to upload files to server
-    axios.post('/upload', formData).then(res => {
+    axios.post(`${proxy}/upload`, formData).then(res => {
       alert('Files uploaded successfully');
       setFiles([]); // Clear staged files
     }).catch(err => {
@@ -110,7 +114,7 @@ const UploadPage = () => {
                 justifyContent: 'center' 
               }}>
               {/* File Icon */}
-              <div style={{ textAlign: 'center' }}>
+              <div style={{ textAlign: 'center', padding: '5px' }}>
                 <div style={{ fontSize: '40px' }}>
                   📄
                 </div>
