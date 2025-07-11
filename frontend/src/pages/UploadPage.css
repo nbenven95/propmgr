@@ -1,0 +1,115 @@
+/* UploadPage.css */
+
+/*
+.upload-container {
+  border: 2px dashed #ccc;
+  padding: 100px;
+  border-radius: 8px;
+  text-align: center;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  background-color: #fff;
+}
+*/
+
+.upload-container {
+  display: flex;
+  justify-content: center;
+  align-items:center;
+  height: 50vh;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  text-align: center;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  background-color: #fff;
+}
+
+/* Style when dragging
+Use a state variable and dynamically change to this class
+when in the 'dragging' state; this will apply the hover 
+effect when a file is dragged over the upload-container. */
+.upload-container.dragging {
+  border-color: #1e40af; /* Deep blue border during drag */
+  box-shadow: 0 0 10px rgba(30, 64, 175, 0.2);
+}
+
+.upload-container:hover {
+  border-color: #1e40af;
+  box-shadow: 0 0 10px rgba(30, 64, 175, 0.2);
+}
+
+.browse-button:hover {
+  border-color: #1e40af;
+  box-shadow: 0 0 10px rgba(30, 64, 175, 0.2);
+  transform: scale(1.025);
+}
+
+.file-preview-grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  gap: 15px;
+}
+
+.file-card {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.file-card:hover {
+  border-color: #1e40af;
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.1);
+}
+
+.file-icon {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+}
+
+.file-name {
+  font-size: 0.75rem;
+  word-break: break-word;
+  text-align: center;
+  max-width: 80px;
+}
+
+.remove-button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid red;
+  background-color: #fff;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  color: red;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.remove-button:hover {
+  background-color: #ffe5e5;
+  transform: scale(1.1);
+}
+
+/* Wrap upload button in a div of this class */
+.upload-button-container {
+  display: flex;
+  justify-content: center;
+  align-items:center;
+  height: 20vh;
+  margin-top: 20px;
+}

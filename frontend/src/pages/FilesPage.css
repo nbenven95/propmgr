@@ -1,0 +1,69 @@
+/* FilesPage.css */
+
+.files-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.files-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.file-card {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.file-card:hover {
+  border-color: #1e40af;
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.1);
+}
+
+.file-icon {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+}
+
+.file-name {
+  font-size: 0.75rem;
+  word-break: break-word;
+  text-align: center;
+  max-width: 80px;
+}
+
+.delete-button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid red;
+  background-color: #fff;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  color: red;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.delete-button:hover {
+  background-color: #ffe5e5;
+  transform: scale(1.1);
+}
