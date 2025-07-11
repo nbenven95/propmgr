@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react'
 import axios from 'axios'
 
-const proxy = 'http://localhost:5000'; // backend server
+// TODO: read these from .env?
+const endpoint = 'http://localhost:5000/api/files'
 
 const UploadPage = () => {
 
@@ -50,7 +51,7 @@ const UploadPage = () => {
       formData.append('files', file);
     });
     // async call to upload files to server
-    axios.post(`${proxy}/upload`, formData).then(res => {
+    axios.post(endpoint + '/upload', formData).then(res => {
       alert('Files uploaded successfully');
       setFiles([]); // Clear staged files
     }).catch(err => {

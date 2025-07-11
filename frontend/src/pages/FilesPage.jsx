@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 
-const proxy = 'http://localhost:5000'; // backend server
+// TODO: read these from .env?
+const endpoint = 'http://localhost:5000/api/files'
 
 const FilesPage = () => {
 
@@ -23,9 +24,8 @@ const FilesPage = () => {
   const fetchFiles = () => {
     setLoading(true);
     // async call to get files from backend
-    axios.get(`${proxy}/files`).then(res => {
+    axios.get(endpoint).then(res => {
       const newState = Array.from(res.data);
-      console.log(newState);
       setUploadedFiles(newState);
       setLoading(false);
     }).catch(err => {
@@ -41,12 +41,12 @@ const FilesPage = () => {
   of deps that require the func to be called again after loading. */
   useEffect(() => { 
     fetchFiles();
-    console.log(`Fetched files: ${uploadedFiles}`); 
+    console.log('hello'); // TODO: why is useEffect being called twice on page reload?
   }, []);
 
   const handleDelete = (fileId) => {
     // TODO: backend call to get file name by id
-    axios.delete(`${proxy}/files/${fileId}`).then(res => {
+    axios.delete(`${endpoint}/${fileId}`).then(res => {
       alert(`Successfully deleted file: id=${fileId}`);
       fetchFiles(); // On successful delete, get the updated file list
     }).catch(err => {
@@ -57,63 +57,65 @@ const FilesPage = () => {
 
   return (
     <div style={{ padding: '20px' }}>
-      <h2>Uploaded files</h2>
       {/* TODO: more readable way of checking the loading state? */}
       {loading ? (
         <p>Loading...</p> 
       ) : uploadedFiles.length === 0 ? (
         <p>No files uploaded yet.</p>
       ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-          {uploadedFiles.map((file) => (
-            <div
-              key={file._id} 
-              style={{
-                position: 'relative', // TODO: look into refactoring styling into element-specific css config, import
-                margin: '10px',
-                width: '100px',
-                height: '100px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden'
-              }}>
-                {/* File icon */}
-                <div style={{ textAlign: 'center', padding: '5px' }}>
-                  <div style={{ fontSize: '40px' }}>
-                    📄
+        <div>
+          <h2>Uploaded files</h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+            {uploadedFiles.map((file) => (
+              <div
+                key={file._id} 
+                style={{
+                  position: 'relative', // TODO: look into refactoring styling into element-specific css config, import
+                  margin: '10px',
+                  width: '100px',
+                  height: '100px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden'
+                }}>
+                  {/* File icon */}
+                  <div style={{ textAlign: 'center', padding: '5px' }}>
+                    <div style={{ fontSize: '40px' }}>
+                      📄
+                    </div>
+                    <div style={{ fontSize: '12px', wordBreak: 'break-all', maxWidth: '80px' }}>
+                      {file.filename}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '12px', wordBreak: 'break-all', maxWidth: '80px' }}>
-                    {file.filename}
-                  </div>
-                </div>
-                {/* Delete button
-                  TODO:
-                    - Add 'confirm delete' popup message
-                    - Change from button to checkbox to allow for bulk delete */}
-                <button
-                  style={{
-                    position: 'absolute',
-                    top: '2px',
-                    right: '2px',
-                    color: 'none',
-                    background: 'white',
-                    border: '1px solid red',
-                    borderRadius: '50%',
-                    width: '24px',
-                    height: '24px',
-                    cursor: 'pointer',
-                    fontSize: '12px'
-                  }}
-                  onClick={() => handleDelete(file._id)}
-                  title="Delete"
-                >
-                  ❌
-                </button>
-            </div>
-          ))}
+                  {/* Delete button
+                    TODO:
+                      - Add 'confirm delete' popup message
+                      - Change from button to checkbox to allow for bulk delete */}
+                  <button
+                    style={{
+                      position: 'absolute',
+                      top: '2px',
+                      right: '2px',
+                      color: 'none',
+                      background: 'white',
+                      border: '1px solid red',
+                      borderRadius: '50%',
+                      width: '24px',
+                      height: '24px',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                    onClick={() => handleDelete(file._id)}
+                    title="Delete"
+                  >
+                    ❌
+                  </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
