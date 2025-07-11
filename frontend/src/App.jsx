@@ -7,11 +7,11 @@ function App() {
   return (
     <Router>
       <nav style={{ padding: '10px', gap: '10px' }}>
-        <Link to='/upload'>Upload files</Link> | <Link to='/'>View uploaded files</Link>
+        <Link to='/api/files'>View uploaded files</Link> | <Link to='/api/files/upload'>Upload files</Link>
       </nav>
       <Routes>
-        <Route path='/upload' element={<UploadPage />} />
-        <Route path='/' element={<FilesPage />} />
+        <Route path='/api/files' element={<FilesPage />} />
+        <Route path='/api/files/upload' element={<UploadPage />} />
       </Routes>
     </Router>
   );
