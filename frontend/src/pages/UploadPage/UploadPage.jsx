@@ -12,7 +12,9 @@ const endpoint = 'http://localhost:5000/api/files'
  * 
  * @returns 
  */
-const UploadPage = () => {
+const UploadPage = ({
+  stagedFilesGrid
+}) => {
   const [files, setFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -29,6 +31,7 @@ const UploadPage = () => {
     newFiles.forEach(file => {
       // Only add the file if it is not already staged
       if (!updatedFiles.some(f => f.name === file.name && f.size === file.size)) {
+        console.log(file);
         updatedFiles.push(file);
       }
     });
@@ -52,9 +55,13 @@ const UploadPage = () => {
   };
 
   /* Handle removing staged files */
+  /*
   const handleRemove = (index) => {
-     // TODO: better/more readable way of doing this?
     setFiles(files.filter((_, i) => i !== index));
+  };
+  */
+  const handleRemove = (file) => {
+    setFiles(files.filter(f => f.name !== file.name));
   };
 
   /* Handle event when files are added/removed from staging */
@@ -99,6 +106,7 @@ const UploadPage = () => {
   return (
     // Pass state and handlers to dumb component
     <UploadPageUI
+      stagedFilesGrid={stagedFilesGrid}
       files={files}
       isDragging={isDragging}
       fileInputRef={fileInputRef}

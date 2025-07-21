@@ -1,0 +1,46 @@
+{
+  "highlight.decorations": { "rangeBehavior": 3 }, // Default decorations from which all others inherit from
+  "highlight.regexFlags": "gi", // Default flags used when building the regexes
+  "highlight.minDelay": 32, // Minimum number of milliseconds to wait before highlighting the document after a change, used for throttling
+  "highlight.maxMatches": 256, // Maximum number of matches to decorate per regex, in order not to crash the app with accidental cathastropic regexes
+  "highlight.regexes": {
+
+    // NOTE: this is a note!
+
+    "((\\/){2}\\s*NOTE.*)": { // Must double escape any escape characters
+      "regexFlags": "gmi", // (g)lobal (don't return after first match), (m)ulti-line, case-(i)nsensitive
+      "decorations": [ // Decos to apply to capture groups
+        {
+          "color": "#0a507e",
+          "backgroundColor": "#66cc7e",
+        },
+      ]
+    },
+
+    /** NOTE:                                                           
+     * 1. Match `/*' with any amount of consecutive `*'                 
+     * 2. Match `NOTE' preceded by arbitrary amount of whitespace       
+     * 3. Match any amount of any character (.*) iff positive lookahead 
+     *    matches block comment close                                   
+     * 4. Capture the match from the lookahead (.*?) so the block       
+     *    comment closer is highlighted                                 
+     */                                                                 
+    "(\\/\\*+\\s*NOTE.*?(?=(\\*+\\/)))": {
+      "regexFlags": "gsi", // Switch 's' to allow multi-line
+      "decorations": [ // Decos to apply to capture groups
+        { 
+          "color": "#0a507e",
+          "backgroundColor": "#66cc7e",
+        },
+        { 
+          "color": "#0a507e",
+          "backgroundColor": "#66cc7e",
+        }
+      ]
+    },
+
+    // foo bar fizz buzz
+
+    /* note: can have multiple blocks without interference :) */
+  }
+}

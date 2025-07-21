@@ -1,15 +1,17 @@
-import express from 'express'
+import { Router } from 'express'
 
-import { uploadFiles, getUploadedFiles, deleteUploadedFile } from '@controllers/file.controller.js'
+import { getFileRefs, createFileRefs, deleteFileRef } from '@controllers/file.controller.js'
 
 // Instantiate first using 'createFileRoutes(upload)', where 'upload' is a multer object
-export default (upload) => {
-  const router = express.Router();
+const FileRouter = (upload) => {
+  const router = Router();
   // Get currently uploaded files
-  router.get('/', getUploadedFiles);
+  router.get('/', getFileRefs);
   // Upload files from request body to disk storage
-  router.post('/upload', upload.array('files'), uploadFiles);
+  router.post('/upload', upload.array('files'), createFileRefs);
   // Delete a file
-  router.delete('/:id', deleteUploadedFile);
+  router.delete('/:id', deleteFileRef);
   return router;
 }
+
+export default FileRouter;

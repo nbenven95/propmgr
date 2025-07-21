@@ -15,7 +15,7 @@ const FilesPage = () => {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  /*  */
+  /*
   const handleDelete = (fileId) => {
     axios.delete(`${endpoint}/${fileId}`).then(res => {
       alert(`Successfully deleted file: id=${fileId}`);
@@ -25,18 +25,30 @@ const FilesPage = () => {
       console.error(err)
     });
   };
+  */
+  const handleDelete = (file) => {
+    axios.delete(`${endpoint}/${file?._id}`).then(res => {
+      alert(`Successfully deleted file ${file?._id}`); // TODO: replace alerts with proper notifications 
+      fetchFiles(); // On successful delete, get the updated file list
+    }).catch(err => {
+      alert(`Error deleting file ${file?._id}`);
+      console.error(err)
+    });
+  };
 
-  /* Get list of uploaded files from backend */
+  
+  /**
+   * Get list of currently uploaded files
+   */
   const fetchFiles = () => {
     setLoading(true);
     // async call to get files from backend
-    // TODO: loading animation, specify timeout period
-    axios.get(endpoint).then(res => {
+    axios.get(endpoint).then(res => { // TODO: loading animation, specify timeout period
       const newState = Array.from(res.data);
       setUploadedFiles(newState);
       setLoading(false);
     }).catch(err => {
-      console.error(err); // TODO: redirect to error page?
+      console.error(err); // TODO: redirect to error page 
       setLoading(false);
     });
   };
@@ -47,7 +59,7 @@ const FilesPage = () => {
   }, []);
 
   return (
-    <FilesPageUI 
+    <FilesPageUI
       loading={loading}
       uploadedFiles={uploadedFiles}
       handleDelete={handleDelete}
