@@ -1,19 +1,22 @@
 import React from 'react'
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
-import FilesPage from './pages/FilesPage'
-import UploadPage from './pages/UploadPage'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { Box } from '@chakra-ui/react'
+
+import FilesPage from './pages/FilesPage/FilesPage'
+import UploadPage from './pages/UploadPage/UploadPage'
+import Navbar from './components/navbar'
 
 function App() {
   return (
-    <Router>
-      <nav style={{ padding: '10px', gap: '10px' }}>
-        <Link to='/upload'>Upload files</Link> | <Link to='/files'>View uploaded files</Link>
-      </nav>
-      <Routes>
-        <Route path='/upload' element={<UploadPage />} />
-        <Route path='/files' element={<FilesPage />} />
-      </Routes>
-    </Router>
+    <Box minH={ "100vh" }>
+      <Router>
+        <Navbar/>
+        <Routes>
+          <Route path='/api/files' element={<FilesPage/>}/>
+          <Route path='/api/files/upload' element={<UploadPage/>}/>
+        </Routes>
+      </Router>
+    </Box>
   );
 }
 

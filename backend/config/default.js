@@ -1,0 +1,1 @@
+/* Default values to use if environment variables are not set */

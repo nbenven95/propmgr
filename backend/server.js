@@ -4,98 +4,103 @@ import dotenvExpand from 'dotenv-expand'
 import express from 'express'
 import multer from 'multer'
 import fs from 'node:fs'
-import path from 'node:path'
+import sysPath from 'node:path'
+
+import connectMongoDB from '@config/mongoConnect.js'
+
+import DocumentRouter from '@routes/document.route.js'
+import FileRouter from '@routes/file.route.js'
+import PropertyRouter from '@routes/property.route.js'
 
 import { logError, clientErrorHandler, errorHandler } from '@util/errorHandler.js'
 
-// Load values from .env into environment variables
-dotenvExpand.expand(dotenv.config());
-
 // Load env variables
-const exprsHost = process.env.EXPRESS_HOST?? 'localhost';
-const exprsPort = parseInt(process.env.EXPRESS_PORT?? 5000);
-const reactHost = process.env.REACT_HOST?? 'localhost';
-const reactPort = parseInt(process.env.REACT_PORT?? 5173);
-const uploadDir = path.resolve(process.env.UPLOAD?? './static/file/uploads'); // TODO: update this with shared storage volume
+const env = dotenvExpand.expand(dotenv.config({ path: sysPath.resolve('../.env') }))?.parsed;
 
-// Check if uploadDir needs to be created (synchrnous check); do nothing if it exists
-!fs.existsSync(uploadDir)? fs.mkdirSync(uploadDir): '';
+// Immediately exit if MONGO_URI is not set (needed for functionality)
+const mongoUri = env.MONGO_URI?? (() => { 
+	console.error('MONGO_URI unset in .env');
+	process.exit(1); 
+})();
 
-// Load middleware
-const app = express();
-app.use(express.json());
-app.use(cors({
-	origin: `http://${reactHost}:${reactPort}`, // CORS config -- only allow requests from frontend
-	optionsSuccessStatus: 200,
-}));
+// Set auth options (if auth is enabled)
+const mongoAuthOpt = parseInt(env.MONGO_AUTH_EN) === 1
+	? (() => {
+		const mongoAuthSrc = env.MONGO_AUTH_SRC;
+		const mongoUser = env.MONGO_USER;
+		const mongoPass = env.MONGO_PASS;
+		return {
+			'authSource': mongoAuthSrc,
+			'auth': {
+				'username': mongoUser, 
+				'password': mongoPass
+			}
+		};
+	})()
+	: null;
 
-// Load error handlers (should be done after middleware, but before main program logic)
-app.use(logError);
-app.use(clientErrorHandler);
-app.use(errorHandler);
+const expressHost = env.EXPRESS_HOST?? 'localhost';
+const expressPort = parseInt(env.EXPRESS_PORT?? 5000); 
+const reactHost = env.REACT_HOST?? 'localhost';
+const reactPort = parseInt(env.REACT_PORT)?? 5173;
+const uploadDir = sysPath.resolve(env.UPLOAD?? '../../data/files');
 
-/* Multer config */
-const localDiskStorage = multer.diskStorage({
+// Create upload directory if it does not exist
+!fs.existsSync(uploadDir)? fs.mkdirSync(uploadDir) : '';
+
+// CORS allows our react app (frontend) to make requests to the backend
+// TODO: how to use CORS to only allow requests from frontend? 
+const corsOpt = { origin: `http://${reactHost}:${reactPort}`, optionsSuccessStatus: 200 };
+
+// multer config for local disk storage
+// TODO: add/enforce file upload limits
+const multerOpt = {
 	destination: (req, file, cb) => cb(null, uploadDir),
-	filename: (req, file, cb) => {
-		// Append timestamp to original filename to prevent conflicts
-		const uniqueSuffix = `${Date.now()}-${Math.round(Math.random()*1E9)}`; // TODO: not sure if the random number is necessary, or the best/most secure way of doing this
-		cb(null, `${file.originalname}-${uniqueSuffix}`);
+	filename: (req, file, cb) => { // Note: this is called by multer middleware, before createFileRefs controller logic
+		// Parse file name, extract the name and extension
+		const parsed = sysPath.parse(sysPath.basename(file.originalname))
+		const tempName = parsed.name;
+  	const ext = parsed.ext;
+		// Replace any number of successive whitespace or '-' characters with '_'
+  	const name = tempName.replace(/[\s-]+/g, '_');
+		// Unique suffix based on random number and timestamp // TODO: better way of doing this?
+		const uniqueSuffix = `${Math.round(Math.random()*1E9)}-${Date.now()}`;
+		// Rename file
+		cb(null, `${name}-${uniqueSuffix}${ext}`) 
 	}
-});
-const upload = multer({ storage: localDiskStorage }); // Can also specify file size limits, etc.
-let uploadedFiles = []; // TODO: temp until DB is implemented to track {fileId: 'filePath'}
+};
+const localDiskStorage = multer.diskStorage(multerOpt);
+const upload = multer({ storage: localDiskStorage });
 
-/* Upload files from request body to disk storage */
-app.post('/upload', upload.array('files'), (req, res) => { // TODO: validate file type, etc.
-	const files = req.files;
-	files.forEach(file => {
-		uploadedFiles.push({ // TODO: replace with db operations
-			_id: file.filename, // Use uniquely-generated filename as its ID -- TODO: may need to specify this behavior in mongo
-			filename: file.originalname,
-			path: file.path
-		});
+// Init app, load middleware, route handlers, error handlers
+const app = express();
+
+app.use(express.json());
+app.use(cors(corsOpt));
+app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
+
+// Get router objects
+const documentRoutes = DocumentRouter(upload); // Pass in multer object to handle file uploads
+const fileRoutes = FileRouter(upload);
+const propertyRoutes = PropertyRouter();
+
+// Assign routes to routers
+app.use('/api/docs', documentRoutes);
+app.use('/api/files', fileRoutes);
+app.use('/api/properties', propertyRoutes);
+
+app.use(logError); // General error handler
+app.use(clientErrorHandler); // Conditional error handler (only handle client-generated errors)
+app.use(errorHandler); // Catch-all error handler
+
+// Connect to database, then start express server
+connectMongoDB(mongoUri, mongoAuthOpt).then(res => {
+	const { host, port, name } = res;
+	console.log('MongoDB server:', 'mongodb://' + host + ':' + port + '/' + name);
+	app.listen(expressPort, expressHost, () => {
+		console.log('Express server:', 'http://' + expressHost + ':' + expressPort);
 	});
-	res.status(200).send({
-		message: 'Successfully uploaded files',
-		files: uploadedFiles // TODO: not sure if we should send the list of file refs in the response; maybe just an updated list of ids?
-	});
-});
-
-/* Get list of currently uploaded files */
-app.get('/files', (req, res) => { 
-	res.status(200).send(uploadedFiles); // TODO: set up mongodb container and track fileId (key) to filePath (value)
-});
-
-/* Delete a file */
-app.delete('/files/:id', (req, res) => {
-	
-	const fileId = req.params.id;
-	const fileIndex = uploadedFiles.findIndex(f => f._id === fileId); // TODO: replace with db operations
-	if (fileIndex === -1) {
-		return res.status(404).send({ // 404 if no file was found for fileId
-			error: 'File not found',
-			data: fileId
-		});
-	}
-
-	// Remove file reference
-	const file = uploadedFiles[fileIndex];
-	uploadedFiles.splice(fileIndex, 1); // TODO: replace with db operations
-
-	// async call to delete file from disk
-	fs.unlink(file.path, (err) => {
-		if (err) {
-			return res.status(500).json({ error: 'Error deleting file', data: fileId})
-		}
-		res.status(200).send({
-			message: 'Successfully deleted file',
-			data: fileId
-		});
-	});
-});
-
-// Start server
-app.listen(exprsPort, exprsHost, () => {
-	console.log(`Server listening on: http://${exprsHost}:${exprsPort}`);
+}).catch(err => {
+	console.error('Unexpected error:', err);
+	process.exit(1);
 });

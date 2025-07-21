@@ -1,0 +1,91 @@
+.flex-container {
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.upload-container {
+  display: flex;
+  justify-content: center;
+  align-items:center;
+  height: 35vh;
+  width: 95vw;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  text-align: center;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  background-color: #fff;
+}
+
+/* Style when dragging file(s) over the drag-and-drop form */
+.upload-container.dragging {
+  border-color: #1e40af; /* Deep blue border during drag */
+  box-shadow: 0 0 10px rgba(30, 64, 175, 0.2);
+}
+
+.upload-container:hover {
+  border-color: #1e40af;
+  box-shadow: 0 0 10px rgba(30, 64, 175, 0.2);
+}
+
+.browse-button:hover {
+  border-color: #1e40af;
+  box-shadow: 0 0 10px rgba(30, 64, 175, 0.2);
+  transform: scale(1.025);
+}
+
+.remove-button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid red;
+  background-color: #fff;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  color: red;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.remove-button:hover {
+  background-color: #ffe5e5;
+  transform: scale(1.1);
+}
+
+/* Wrap your upload button in a div of class upload-button-container */
+.upload-button-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  align-self: center;
+  align-content: center;
+  height: 20vh;
+  width: 20vw;
+  margin-top: 20px;
+}
+
+.upload-button-container:hover {
+  border-color: #1e40af;
+  box-shadow: 0 0 10px rgba(30, 64, 175, 0.2);
+  transform: scale(1.025);
+}
+
+.upload-button-container-disabled {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  align-self: center;
+  align-content: center;
+  height: 20vh;
+  width: 20vw;
+  margin-top: 20px;
+}
