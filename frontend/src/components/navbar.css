@@ -1,0 +1,48 @@
+.navbar {
+  margin-top: 16px;
+  margin-bottom: 16px;
+  align-items: center;
+  justify-content: right;
+  flex-direction: column;
+}
+
+.menu-text-primary {
+  font-size: 22px; /* Default text size for base */
+  font-weight: bold;
+  text-transform: lowercase;
+  text-align: left;
+  background: linear-gradient(to right, #9ae6b4, #ed64a6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: transform 0.2s ease; /* Define transition for smooth scaling of button sizes */
+}
+.menu-text-primary:hover {
+  transform: scale(1.05);
+}
+
+.menu-icon-primary {
+  font-size: 22px;
+  font-weight: bold;
+  -webkit-background-clip: text;
+  background-clip: text;
+  transition: transform 0.2s ease;
+}
+
+/**
+ * Define responsive properties for sm.
+ * The specified classes should dynamically
+ * update their properties when the window
+ * size is `sm' (30em / 480px).
+ */
+@media (min-width: 480px) {
+  .navbar {
+    flex-direction: row;
+  }
+  .menu-text-primary {
+    font-size: 28px;
+  }
+  .menu-icon-primary {
+    font-size: 28px;
+  }
+}

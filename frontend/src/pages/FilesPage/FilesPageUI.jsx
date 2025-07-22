@@ -1,7 +1,7 @@
 import React from 'react'
 
 import './FilesPage.css'
-import FilesGrid from '../../components/filesgrid'
+import FileCard from '../../components/filecard'
 
 /**
  * 
@@ -20,13 +20,18 @@ const FilesPageUI = ({
       ) : uploadedFiles.length === 0 ? (
         <p>No files uploaded yet.</p>
       ) : (
-
-        <div>
-          {/* View and delete uploaded files */}
-          <h2>Uploaded files</h2>
-          <FilesGrid files={uploadedFiles} handleDelete={handleDelete} deleteIcon={'❌'}/>
-        </div>
-
+        // View and delete uploaded files
+        <>
+          <h2>Uploaded files:</h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '20px' }}>
+            {uploadedFiles?.map((file, index) => (
+              <div key={index}>
+                <FileCard file={file} handleDelete={handleDelete}/>
+              </div>
+            ))}
+          </div>
+        </>
+        // End view uploaded files
       )}
     </div>
   );

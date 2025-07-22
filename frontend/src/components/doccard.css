@@ -1,11 +1,4 @@
-.files-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  margin-top: 20px;
-}
-
-.file-card {
+.doc-card {
   position: relative;
   width: 100px;
   height: 100px;
@@ -20,17 +13,22 @@
   transition: box-shadow 0.2s, border-color 0.2s;
 }
 
-.file-card:hover {
+.doc-card:hover {
   border-color: #1e40af;
   box-shadow: 0 4px 12px rgba(30, 64, 175, 0.1);
 }
 
-.file-icon {
+.doc-icon-container {
+  text-align: center;
+  padding: 5px;
+}
+
+.doc-icon {
   font-size: 2.5rem;
   margin-bottom: 8px;
 }
 
-.file-name {
+.doc-name {
   font-size: 0.75rem;
   word-break: break-word;
   text-align: center;
