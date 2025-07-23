@@ -13,16 +13,17 @@ const FilesPageUI = ({
   uploadedFiles,
   handleDelete
 }) => {
+  console.log(loading)
   return (
-    <div className="files-container">
+    <div className='files-container'>
       {loading ? (
-        <p>Loading...</p> 
+        <p>Loading . . .</p> 
       ) : uploadedFiles.length === 0 ? (
-        <p>No files uploaded yet.</p>
+        <p>No Files found.</p>
       ) : (
         // View and delete uploaded files
         <>
-          <h2>Uploaded files:</h2>
+          <h2>Files</h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '20px' }}>
             {uploadedFiles?.map((file, index) => (
               <div key={index}>

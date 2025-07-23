@@ -1,5 +1,5 @@
 import React from 'react'
-import { VStack } from '@chakra-ui/react'
+import { Button, VStack } from '@chakra-ui/react'
 import { WiCloudUp } from "react-icons/wi";
 
 import './UploadPage.css'
@@ -59,21 +59,25 @@ const UploadPageUI = ({
           'Files staged for upload:'
         )}
       </h3>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '20px' }}>
-        {files?.map((file, index) => (
-          <div key={index}>
-            <FileCard file={file} handleDelete={handleRemove}/>
-          </div>
-        ))}
+      <div className='files-container'>
+        <div style={{ alignSelf: 'flex-start', display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '20px' }}>
+          {files?.map((file, index) => (
+            <div key={index}>
+              <FileCard file={file} handleDelete={handleRemove}/>
+            </div>
+          ))}
+        </div>
       </div>
       {/* End preview staged staged files grid */}
 
-      {/* Upload Button */}
-      <div className={`upload-button-container${files.length === 0 ? '-disabled' : ''}`}>
-        <button className='upload-button' onClick={handleUpload} disabled={files.length === 0}>
-          Upload Files
-        </button>
-      </div>
+      {/* TODO: make button not scale on hover when disabled */}
+      <Button
+        className='upload-button'
+        onClick={handleUpload}
+        disabled={files.length === 0}
+      >
+        Upload Files
+      </Button>
       {/* End upload button */}
       
     </div>

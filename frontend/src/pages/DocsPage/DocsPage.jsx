@@ -17,16 +17,16 @@ const DocsPage = () => {
     setLoading(true);
     axios.get(docsRoute).then(res => {
       // Get the list of Document objects from response as an array
-      const newState = Array.from(res.data);
+      //const newState = Array.from(res.data);
       // Update global state
-      setDocuments(newState);
+      setDocuments(res.data);
     }).catch(err => {
       alert('Error fetching Documents'); // FIXME: proper error handling 
       console.error(err);
     }).finally(() => {
       setLoading(false);
     });
-  }
+  };
 
   /**
    * Deletes Document doc (but not the associated File)
@@ -41,13 +41,19 @@ const DocsPage = () => {
       alert(`Error deleting Document ${doc._id}`);
       console.error(err); // FIXME: proper error handling 
     });
-  }
+  };
+
+  // TODO: look into using useEffect() properly; not sure if its appropriate here
+  // Specify functions that need to run before each render
+  useEffect(() => { 
+    fetchDocs();
+  }, []);
 
   return (
     <DocsPageUI
-      loading={{loading}}
-      documents={{documents}}
-      handleDelete={{handleDelete}}
+      loading={loading}
+      documents={documents}
+      handleDelete={handleDelete}
     />
   );
 };

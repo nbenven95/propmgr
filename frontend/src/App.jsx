@@ -1,10 +1,12 @@
 import React from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom'
 import { Box } from '@chakra-ui/react'
 
+import CreateDocPage from './pages/CreateDocPage/CreateDocPage'
+import DocsPage from './pages/DocsPage/DocsPage'
 import FilesPage from './pages/FilesPage/FilesPage'
-import UploadPage from './pages/UploadPage/UploadPage'
 import Navbar from './components/navbar'
+import UploadPage from './pages/UploadPage/UploadPage'
 
 function App() {
   return (
@@ -12,8 +14,11 @@ function App() {
       <Router>
         <Navbar/>
         <Routes>
-          <Route path='/api/files' element={<FilesPage/>}/>
-          <Route path='/api/files/upload' element={<UploadPage/>}/>
+          <Route path='/' element={<Navigate to='/files' replace/>}/> {/* TODO: add an actual landing page */}
+          <Route path='/docs/create' element={<CreateDocPage/>}/>
+          <Route path='/docs' element={<DocsPage/>}/>
+          <Route path='/files' element={<FilesPage/>}/>
+          <Route path='/files/upload' element={<UploadPage/>}/>
         </Routes>
       </Router>
     </Box>

@@ -55,11 +55,6 @@ const UploadPage = ({
   };
 
   /* Handle removing staged files */
-  /*
-  const handleRemove = (index) => {
-    setFiles(files.filter((_, i) => i !== index));
-  };
-  */
   const handleRemove = (file) => {
     setFiles(files.filter(f => f.name !== file.name));
   };

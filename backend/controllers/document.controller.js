@@ -45,6 +45,7 @@ const createDocument = async (req, res) => {
   // If a new file was uploaded, this will be passed by multer middleware
   const file = req.file;
   let fileId = null;
+  console.log(req.body)
   try {
     // Check if new file data or an existing File ref has been provided
     if (file) {
