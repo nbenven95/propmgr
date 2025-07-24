@@ -12,7 +12,7 @@ import DocumentRouter from '@routes/document.route.js'
 import FileRouter from '@routes/file.route.js'
 import PropertyRouter from '@routes/property.route.js'
 
-import { logError, clientErrorHandler, errorHandler } from '@util/errorHandler.js'
+import { logError, clientErrorHandler, errorHandler } from '@util/errHandler.js'
 
 // Load env variables
 const env = dotenvExpand.expand(dotenv.config({ path: sysPath.resolve('../.env') }))?.parsed;

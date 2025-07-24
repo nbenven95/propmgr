@@ -4,22 +4,17 @@ import mongoose from 'mongoose'
 
 import { addressSchema } from '@models/embedded/address.model.js'
 import { contactInfoSchema } from '@models/embedded/contactInfo.model.js'
-import { DocType, documentSchema } from '@models/document.model.js'
+import { documentSchema } from '@models/document.model.js'
 import { geoLocSchema } from '@models/embedded/geoLoc.model.js'
 import { insuranceInfoSchema } from '@models/embedded/insuranceInfo.model.js'
 import { neighborInfoSchema } from '@models/embedded/neighborInfo.model.js'
 import { opSysSchema } from '@models/embedded/opSys.model.js'
 
+import DocTypeEnum from '@util/docType.js'
+
 // Limit the allowed document types to only those relevant to properties
-const allowedDocTypes = [
-  DocType.BLUEPRINT,
-  DocType.CONTRACT,
-  DocType.DEED,
-  DocType.FLOORPLAN,
-  DocType.LEASE,
-  DocType.LIEN,
-  DocType.WORKORDER
-];
+const { BLUEPRINT, CONTRACT, DEED, FLOORPLAN, LEASE, LIEN, WORKORDER } = DocTypeEnum;
+const allowedDocTypes = [BLUEPRINT, CONTRACT, DEED, FLOORPLAN, LEASE, LIEN, WORKORDER];
 
 /* Property profile */
 const propertyScehma = new mongoose.Schema({

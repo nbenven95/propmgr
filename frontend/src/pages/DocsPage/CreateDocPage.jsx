@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useRef, useState } from 'react';
 import {
   Box,
@@ -6,25 +7,47 @@ import {
   Select,
   FormControl,
   FormLabel,
-  Text,
   useToast,
   VStack,
   Flex,
   Heading,
 } from '@chakra-ui/react';
-import axios from 'axios';
 
+// FIXME: probably not a good way of doing this, but guarantees consistency when we add types on the backend 
+import DocTypeEnum from '../../../../backend/util/docType'
+
+// Destructure DocType elements so we can access them directly
+const { 
+  BLUEPRINT,
+  CONTRACT,
+  DEED,
+  FLOORPLAN,
+  LEASE,
+  LIEN,
+  MANUAL,
+  SCHEMATIC,
+  WARRANTY,
+  WORKORDER
+} = DocTypeEnum;
+
+// Define allowed Document types
 const DocTypeOptions = [
-  { label: 'Blueprint', value: 'blueprint' },
-  { label: 'Contract', value: 'contract' },
-  { label: 'Deed', value: 'deed' },
-  { label: 'Floorplan', value: 'floorplan' },
-  { label: 'Lease', value: 'lease' },
-  { label: 'Lien', value: 'lien' },
-  { label: 'Manual', value: 'manual' },
-  { label: 'Schematic', value: 'schematic' },
-  { label: 'Warranty', value: 'warranty' },
-  { label: 'Workorder', value: 'workorder' },
+  { label: 'Blueprint', value: BLUEPRINT },
+  { label: 'Contract',  value: CONTRACT },
+  { label: 'Deed',      value: DEED },
+  { label: 'Floorplan', value: FLOORPLAN },
+  { label: 'Lease',     value: LEASE },
+  { label: 'Lien',      value: LIEN },
+  { label: 'Manual',    value: MANUAL },
+  { label: 'Schematic', value: SCHEMATIC },
+  { label: 'Warranty',  value: WARRANTY },
+  { label: 'Workorder', value: WORKORDER },
+];
+
+// Define allowed file extensions
+// TODO: read from .env for consistency with FileUploadPage 
+const allowedExtensions = [
+  '.txt','.pdf','.doc','.docx','.png','.jpg'
 ];
 
 const docApi = 'http://localhost:5000/api/docs';
@@ -161,7 +184,7 @@ const CreateDocPage = () => {
           <Input
             ref={fileInputRef}
             type='file'
-            accept='.txt,.pdf,.doc,.docx,.png,.jpg' // TODO: refactor 
+            accept={allowedExtensions.toString()}
             onChange={handleFileChange}
           />
         </FormControl>

@@ -1,0 +1,48 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    // New task to run: 'npm run dev' in Backend folder
+    {
+      "label": "backend-dev",
+      "type": "shell",
+      "icon": {
+        "id": "flame",
+        "color": "terminal.ansiRed"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "command": "npm run dev",
+      "presentation": {
+        "echo": true,
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    // New task to run: 'npm run dev' in Frontend folder
+    {
+      "label": "frontend-dev",
+      "type": "shell",
+      "icon": {
+        "id": "home",
+        "color": "terminal.ansiBlue"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "command": "npm run dev",
+      "presentation": {
+        "echo": true,
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Open",
+      "dependsOn": ["backend-dev", "frontend-dev"],
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
+    }
+  ]
+}   

@@ -1,16 +1,28 @@
 import { Router } from 'express'
 
-import { getFileRefs, createFileRefs, deleteFileRef } from '@controllers/file.controller.js'
+import { uploadFiles, downloadFile, getFileRef, getFileRefs, deleteFileRefAndFile } from '@controllers/file.controller.js'
 
-// Instantiate first using 'createFileRoutes(upload)', where 'upload' is a multer object
 const FileRouter = (upload) => {
   const router = Router();
-  // Get currently uploaded files
+
+  /**
+   * Upload file(s) from remote client to local disk storage
+   * and create a FileRef object to store file metadata.
+   */
+  router.post('/upload', upload.array('files'), uploadFiles);
+
+  // Download the file for File object with specified id
+  router.get('/download/:id', downloadFile);
+
+  // Get all File ref objects
   router.get('/', getFileRefs);
-  // Upload files from request body to disk storage
-  router.post('/upload', upload.array('files'), createFileRefs);
-  // Delete a file
-  router.delete('/:id', deleteFileRef);
+
+  // Get the File ref object with specified id
+  router.get('/:id', getFileRef);
+
+  // Delete the File object with specified id and its attached file
+  router.delete('/:id', deleteFileRefAndFile);
+
   return router;
 }
 

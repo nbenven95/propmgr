@@ -1,7 +1,8 @@
 import mongoose from 'mongoose'
 
 import { contactInfoSchema } from '@models/embedded/contactInfo.model.js';
-import { DocType, documentSchema } from '@models/document.model.js'
+import { documentSchema } from '@models/document.model.js'
+import DocTypeEnum from '@util/docType.js'
 
 const insuranceInfoSchema = new mongoose.Schema({
 

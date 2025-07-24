@@ -1,19 +1,7 @@
 import mongoose from 'mongoose'
 
-import File from '@models/file.model.js'
-
-const DocType = Object.freeze({
-  BLUEPRINT:  'blueprint',
-  CONTRACT:   'contract',
-  DEED:       'deed',
-  FLOORPLAN:  'floorplan',
-  LEASE:      'lease',
-  LIEN:       'lien',
-  MANUAL:     'manual',
-  SCHEMATIC:  'schematic',
-  WARRANTY:   'warranty',
-  WORKORDER:  'workorder'
-});
+import DocTypeEnum from '@util/docType.js'
+import FileRef from '@models/fileRef.model.js'
 
 const documentSchema = new mongoose.Schema({
 
@@ -29,7 +17,7 @@ const documentSchema = new mongoose.Schema({
     required: [true, 'Document type is required'],
     validate: {
       validator: function(v) {
-        return Object.values(DocType).includes(v.toLowerCase());
+        return Object.values(DocTypeEnum).includes(v.toLowerCase());
       },
       message: 'Invalid document type {VALUE}'
     }
@@ -41,7 +29,7 @@ const documentSchema = new mongoose.Schema({
   // Object id of attached File; populate with contents of actual File on request
   fileRef: { 
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'File',
+    ref: 'FileRef',
     required: [true, 'File ref is required']
   },
 
@@ -59,7 +47,7 @@ documentSchema.pre('save', async function(next) { // TODO: this should run after
     // If this is a document update and fileRef is unmodified, continue to save()
     if (!this.isModified('fileRef')) return next();
     const fileId = this.fileRef;
-    let fileExistsForId = await File.exists({ _id: fileId });
+    let fileExistsForId = await FileRef.exists({ _id: fileId });
     // If no file exists, throw an error
     if (!fileExistsForId) throw new Error(`Invalid file ref ${fileId}`);
     // File exists, continue to save()
@@ -74,4 +62,4 @@ documentSchema.pre('save', async function(next) { // TODO: this should run after
 const Document = new mongoose.model('Document', documentSchema);
 
 export default Document;
-export { documentSchema, DocType }
+export { documentSchema }
