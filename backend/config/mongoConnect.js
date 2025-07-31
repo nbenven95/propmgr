@@ -12,7 +12,7 @@ import mongoose from 'mongoose'
  */
 export default (uri, options) => {
 
-  // TODO: handle error states; e.g., throw error if not authenticated (db requests will fail)
+  // FIXME: handle error states; e.g., throw error if not authenticated (db requests will fail)
 
   return new Promise((resolve, reject) => {
     mongoose.connect(uri, options).then(result => {

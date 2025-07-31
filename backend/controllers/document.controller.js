@@ -41,7 +41,7 @@ const getDocuments = async (req, res) => {
  */
 const createDocument = async (req, res) => {
   // Destructure name and (optional) fileRef from body data
-  const { docType, fileRef, name } = req.body;
+  const { docType, fileRef, name, dateCreate, dateEff, expiry } = req.body;
   // If a new file was uploaded, this will be passed by multer middleware
   const file = req.file;
   let fileId = null;
@@ -68,9 +68,12 @@ const createDocument = async (req, res) => {
     }
     // Create the Document
     const newDoc = new Document({
-      docType:  docType,
-      fileRef:  fileId,
-      name:     name
+      docType   : docType,
+      fileRef   : fileId,
+      name      : name,
+      dateCreate: dateCreate,
+      dateEff   : dateEff,
+      expiry    : expiry
     });
     console.log(newDoc);
     // Attempt async save

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 
-import DocTypeEnum from '@util/docType.js'
+import DocTypeEnum from '@config/docType.js'
 import FileRef from '@models/fileRef.model.js'
 
 const documentSchema = new mongoose.Schema({
@@ -46,11 +46,27 @@ documentSchema.pre('save', async function(next) { // TODO: this should run after
   try {
     // If this is a document update and fileRef is unmodified, continue to save()
     if (!this.isModified('fileRef')) return next();
-    const fileId = this.fileRef;
-    let fileExistsForId = await FileRef.exists({ _id: fileId });
+    const newFileRef = this.fileRef;
+    let fileExistsForId = await FileRef.exists({ _id: newFileRef });
     // If no file exists, throw an error
     if (!fileExistsForId) throw new Error(`Invalid file ref ${fileId}`);
-    // File exists, continue to save()
+    // Update fileRef associations
+    const DocumentModel = this.constructor;
+    const prevDoc = await DocumentModel.findById(this._id).lean();
+    const oldFileRef = prevDoc ? prevDoc.fileRef : null;
+    // If this is a document update and fileRef is modified, remove this document from oldFileRef's document associations
+    if (oldFileRef && (!this.isNew || oldFileRef.toString() !== newFileRef.toString())) {
+      await mongoose.model('FileRef').updateOne(
+        { _id: oldFileRef },
+        { $pull: { documents: this._id } }
+      )
+    }
+    // Add this document to new FileRef's document associations
+    await mongoose.model('FileRef').updateOne(
+      { _id: newFileRef },
+      { $addToSet: { documents: this._id } }
+    )
+    // Continue to save
     return next();
   } catch (err) {
     // Handle File does not exist, invalid object id, etc.

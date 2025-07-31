@@ -8,7 +8,7 @@ const { INTERNAL_SERVER_ERROR } = HttpStatusCodes;
 The first error handler that you register should contain logic that
 you want to run when processing all error types (e.g., print a log) */
 export const logError = (req, res, err, next) => {
-  console.error('GENERAL ERROR');
+  console.error('logError');
 	err.stack ? console.error(err.stack) : '';
   err.message ? console.error(err.message) : '';
   /* If you have multiple error handlers registered, pass to the next
@@ -40,7 +40,7 @@ export const clientErrorHandler = (err, req, res, next) => {
 /* General/catch-all error handler. */
 export const errorHandler = (err, req, res, next) => {
   //console.error(err); // FIXME: trying to pass this directly in the response generates JSON parse errors 
-  console.log('Default error handler');
+  console.error(err);
   // Don't pass anything to next(), as there is no other middleware to handle the error
   return res.status(INTERNAL_SERVER_ERROR).send({
     success: false,

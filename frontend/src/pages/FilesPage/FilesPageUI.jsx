@@ -13,7 +13,6 @@ const FilesPageUI = ({
   uploadedFiles,
   handleDelete
 }) => {
-  console.log(loading)
   return (
     <div className='files-container'>
       {loading ? (

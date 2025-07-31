@@ -10,7 +10,7 @@ import { insuranceInfoSchema } from '@models/embedded/insuranceInfo.model.js'
 import { neighborInfoSchema } from '@models/embedded/neighborInfo.model.js'
 import { opSysSchema } from '@models/embedded/opSys.model.js'
 
-import DocTypeEnum from '@util/docType.js'
+import DocTypeEnum from '@config/docType.js'
 
 // Limit the allowed document types to only those relevant to properties
 const { BLUEPRINT, CONTRACT, DEED, FLOORPLAN, LEASE, LIEN, WORKORDER } = DocTypeEnum;

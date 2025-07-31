@@ -25,9 +25,11 @@ const fileRefSchema = new mongoose.Schema({
   // Path to the file on remote
   path: { type: String, required: [true, 'File path is required'] },
 
+  documents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Document' }], // Track list of associated documents
+
   // TODO: drop existing FileRefs, make these required 
   mimetype: { type: String, required: false }, 
-  size: { type: Number, required: false}
+  size: { type: Number, required: false }
 
 }, { timestamps: true });
 

@@ -145,6 +145,9 @@ const uploadFiles = async (req, res) => {
  */
 const downloadFile = async (req, res) => {
 	const { id } = req.params;
+
+	console.log(id)
+
 	// Ensure id is valid
 	if (!mongoose.Types.ObjectId.isValid(id)) {
 		return res.status(BAD_REQUEST).send({

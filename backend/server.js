@@ -2,103 +2,93 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import dotenvExpand from 'dotenv-expand'
 import express from 'express'
-import multer from 'multer'
 import fs from 'node:fs'
-import sysPath from 'node:path'
+import multer from 'multer'
 
 import connectMongoDB from '@config/mongoConnect.js'
+import DocTypeEnum from '@config/docType.js'
+import envSchema from '@config/envValidationSchema.js'
+import multerOptions from '@config/multerOpt.js'
+import { clientErrorHandler, errorHandler, logError } from '@config/errHandler.js'
 
 import DocumentRouter from '@routes/document.route.js'
 import FileRouter from '@routes/file.route.js'
+import InfoRouter from '@routes/info.route.js'
 import PropertyRouter from '@routes/property.route.js'
 
-import { logError, clientErrorHandler, errorHandler } from '@util/errHandler.js'
+/* LOAD AND VALIDATE ENVIRONMENT VARIABLES */
 
-// Load env variables
-const env = dotenvExpand.expand(dotenv.config({ path: sysPath.resolve('../.env') }))?.parsed;
+const env = dotenvExpand		// Load environment
+	.expand(dotenv.config()) 	// Expand variables
+	?.parsed;								 	// Get env (use instead of "process.env")
 
-// Immediately exit if MONGO_URI is not set (needed for functionality)
-const mongoUri = env.MONGO_URI?? (() => { 
-	console.error('MONGO_URI unset in .env');
-	process.exit(1); 
-})();
+const { error, value: validatedEnvVars } = envSchema.validate(env); // Validate env with Joi schema
+if (error) {
+	console.error('Environment validation error:', error.details);
+	process.exit(1);
+}
 
-// Set auth options (if auth is enabled)
-const mongoAuthOpt = parseInt(env.MONGO_AUTH_EN) === 1
-	? (() => {
-		const mongoAuthSrc = env.MONGO_AUTH_SRC;
-		const mongoUser = env.MONGO_USER;
-		const mongoPass = env.MONGO_PASS;
-		return {
-			'authSource': mongoAuthSrc,
-			'auth': {
-				'username': mongoUser, 
-				'password': mongoPass
-			}
-		};
-	})()
-	: null;
+const {
+	MONGO_AUTH_EN, MONGO_AUTH_SRC, MONGO_AUTH_USER, MONGO_AUTH_PASS, MONGO_URI, // MongoDB environment variables
+	EXPRESS_HOST, EXPRESS_PORT, REACT_HOST, REACT_PORT,													// Express and React environment variables
+	UPLOAD_DIR, MAX_FILE_SIZE, MAX_FILES_PER_UPLOAD, ALLOWED_FILE_EXT						// Multer environment variables
+} = validatedEnvVars;
 
-const expressHost = env.EXPRESS_HOST?? 'localhost';
-const expressPort = parseInt(env.EXPRESS_PORT?? 5000); 
-const reactHost = env.REACT_HOST?? 'localhost';
-const reactPort = parseInt(env.REACT_PORT)?? 5173;
-const uploadDir = sysPath.resolve(env.UPLOAD?? '../../data/files');
+/* DEFINE MIDDLEWARE OPTIONS */
 
 // Create upload directory if it does not exist
-!fs.existsSync(uploadDir)? fs.mkdirSync(uploadDir) : '';
+!fs.existsSync(UPLOAD_DIR)? fs.mkdirSync(UPLOAD_DIR) : /* do nothing */ '';
 
-// CORS allows our react app (frontend) to make requests to the backend
-// TODO: how to use CORS to only allow requests from frontend? 
-const corsOpt = { origin: `http://${reactHost}:${reactPort}`, optionsSuccessStatus: 200 };
+// Create multer object from 
+const upload = multer(
+  multerOptions({ // Multer config from env var
+    uploadDir         : UPLOAD_DIR,
+    maxFileSize       : MAX_FILE_SIZE,
+    maxFilesPerUpload : MAX_FILES_PER_UPLOAD,
+    allowedFileExt    : ALLOWED_FILE_EXT
+  }
+));
 
-// multer config for local disk storage
-// TODO: add/enforce file upload limits
-const multerOpt = {
-	destination: (req, file, cb) => cb(null, uploadDir),
-	filename: (req, file, cb) => { // Note: this is called by multer middleware, before createFileRefs controller logic
-		// Parse file name, extract the name and extension
-		const parsed = sysPath.parse(sysPath.basename(file.originalname))
-		const tempName = parsed.name;
-  	const ext = parsed.ext;
-		// Replace any number of successive whitespace or '-' characters with '_'
-  	const name = tempName.replace(/[\s-]+/g, '_');
-		// Unique suffix based on random number and timestamp // TODO: better way of doing this?
-		const uniqueSuffix = `${Math.round(Math.random()*1E9)}-${Date.now()}`;
-		// Rename file
-		cb(null, `${name}-${uniqueSuffix}${ext}`) 
-	}
-};
-const localDiskStorage = multer.diskStorage(multerOpt);
-const upload = multer({ storage: localDiskStorage });
+// Set CORS options
+const corsOpt = { origin: `http://${REACT_HOST}:${REACT_PORT}`, optionsSuccessStatus: 200 }; // TODO: how to only allow requests from frontend? 
 
-// Init app, load middleware, route handlers, error handlers
+/* INIT APP; LOAD MIDDLEWARE, ROUTES, AND ERROR HANDLERS */
+
 const app = express();
-
 app.use(express.json());
 app.use(cors(corsOpt));
-app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
+app.use(express.urlencoded({ extended: true }));
 
-// Get router objects
-const documentRoutes = DocumentRouter(upload); // Pass in multer object to handle file uploads
-const fileRoutes = FileRouter(upload);
-const propertyRoutes = PropertyRouter();
+// Init Express routers with required args (e.g., multer object for routes handling file uploads)
+const documentRoutes  = DocumentRouter(upload);
+const fileRoutes      = FileRouter(upload);
+const infoRoutes			= InfoRouter(DocTypeEnum, ALLOWED_FILE_EXT);
+const propertyRoutes  = PropertyRouter();
 
-// Assign routes to routers
-app.use('/api/docs', documentRoutes);
-app.use('/api/files', fileRoutes);
-app.use('/api/properties', propertyRoutes);
+// Register Express routers
+app.use('/api/docs', 				documentRoutes);
+app.use('/api/files', 			fileRoutes);
+app.use('/api/info', 				infoRoutes);
+app.use('/api/properties', 	propertyRoutes);
 
-app.use(logError); // General error handler
-app.use(clientErrorHandler); // Conditional error handler (only handle client-generated errors)
-app.use(errorHandler); // Catch-all error handler
+// Register Express error handlers
+app.use(logError);
+app.use(clientErrorHandler); // TODO: research Express error handler patterns/best practices 
+app.use(errorHandler);
 
-// Connect to database, then start express server
-connectMongoDB(mongoUri, mongoAuthOpt).then(res => {
+/* ATTEMPT DATABASE CONNECTION; START EXPRESS SERVER */
+
+// If MongoDB authentication is enabled, set auth options
+const MONGO_AUTH = MONGO_AUTH_EN
+?	{ authSource: MONGO_AUTH_SRC, auth: { username: MONGO_AUTH_USER, password: MONGO_AUTH_PASS } }
+: null;
+
+// Connect to MongoDB instance; start Express server if successful
+connectMongoDB(MONGO_URI, MONGO_AUTH).then(res => {
 	const { host, port, name } = res;
-	console.log('MongoDB server:', 'mongodb://' + host + ':' + port + '/' + name);
-	app.listen(expressPort, expressHost, () => {
-		console.log('Express server:', 'http://' + expressHost + ':' + expressPort);
+	console.log(`MongoDB server: mongodb://${host}:${port}/${name}`);
+	app.listen(EXPRESS_PORT, EXPRESS_HOST, () => {
+		console.log(`Express server: http://${EXPRESS_HOST}:${EXPRESS_PORT}`);
 	});
 }).catch(err => {
 	console.error('Unexpected error:', err);

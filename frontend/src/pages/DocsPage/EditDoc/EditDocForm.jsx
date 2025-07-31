@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Button,
   Input,
@@ -11,44 +11,16 @@ import {
   useToast
 } from '@chakra-ui/react';
 
-// FIXME: probably not a good way of doing this, but guarantees consistency when we add types on the backend 
-import DocTypeEnum from '../../../../backend/util/docType'
-
-// Destructure DocType elements so we can access them directly
-const { 
-  BLUEPRINT,
-  CONTRACT,
-  DEED,
-  FLOORPLAN,
-  LEASE,
-  LIEN,
-  MANUAL,
-  SCHEMATIC,
-  WARRANTY,
-  WORKORDER 
-} = DocTypeEnum;
-
-// Define allowed Document types
-const DocTypeOptions = [
-  { label: 'Blueprint', value: BLUEPRINT },
-  { label: 'Contract',  value: CONTRACT },
-  { label: 'Deed',      value: DEED },
-  { label: 'Floorplan', value: FLOORPLAN },
-  { label: 'Lease',     value: LEASE },
-  { label: 'Lien',      value: LIEN },
-  { label: 'Manual',    value: MANUAL },
-  { label: 'Schematic', value: SCHEMATIC },
-  { label: 'Warranty',  value: WARRANTY },
-  { label: 'Workorder', value: WORKORDER },
-];
-
-// FIXME: load from env or another common/global file 
+// TODO: load from env 
 const docsApi = 'http://localhost:5000/api/docs';
+const infoApi = 'http://localhost:5000/api/info';
 
 const EditDocForm = ({ document, onClose, onUpdate }) => {
+  const toast = useToast();
   const [name, setName] = useState(document.name);
-  const [fileRef, setFileRef] = useState(document.fileRef);
   const [docType, setDocType] = useState(document.docType);
+  const [docTypes, setDocTypes] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [dateCreate, setDateCreate] = useState(
     document.dateCreate ? new Date(document.dateCreate).toISOString().substr(0,10) : ''
   );
@@ -58,22 +30,60 @@ const EditDocForm = ({ document, onClose, onUpdate }) => {
   const [expiry, setExpiry] = useState(
     document.expiry ? new Date(document.expiry).toISOString().substr(0,10) : ''
   );
-  const [loading, setLoading] = useState(false);
+
+  /* Data to fetch during initial render */
+  useEffect(() => {
+    setLoading(true);
+    axios.get(infoApi + '/document-types').then(res => {
+      let docTypes = [];
+      Object.entries(res.data).forEach(item => {
+        docTypes.push({
+          label: String(item[1]).replace(/^./, ch => ch.toUpperCase()),
+          value: String(item[1])
+        });
+      });
+      setDocTypes(docTypes);
+    }).catch(err => {
+      console.error(err);
+      toast({
+        title: 'Error fetching document types',
+        description: err.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true
+      });
+    }).finally(
+      setLoading(false)
+    );
+  }, []); // Pass empty dependency array to only run during initial render
 
   const handleSave = async () => {
-    console.log(document?._id);
     setLoading(true);
     try {
-      await axios.put(docsApi + '/' + document._id, {
+      const response = await axios.put(docsApi + '/' + document._id, {
         name,
         docType,
         dateCreate,
         dateEff,
         expiry,
       });
-      onUpdate(); // refresh list and close drawer
+      onUpdate(); // Refresh list and close drawer
+      toast({
+        title: 'Document updated',
+        description: `Document "${response.data?.data?.name}" successfully updated.`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true
+      });
     } catch (err) {
-      alert('Error updating document: ' + err.message);
+      console.error(err);
+      toast({
+        title: 'Error updating document',
+        description: err.response?.data?.message || err.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true
+      });
     } finally {
       setLoading(false);
     }
@@ -92,9 +102,11 @@ const EditDocForm = ({ document, onClose, onUpdate }) => {
           value={docType}
           onChange={(e) => setDocType(e.target.value)}
         >
-          {DocTypeOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
+          {loading
+            ? <>Loading document types. . .</>
+            : docTypes?.map(opt =>
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+          )}
         </Select>
       </FormControl>
 
@@ -117,7 +129,7 @@ const EditDocForm = ({ document, onClose, onUpdate }) => {
       </FormControl>
 
       <FormControl>
-        <FormLabel>Expiry Date</FormLabel>
+        <FormLabel>Expiration Date</FormLabel>
         <Input
           type="date"
           value={expiry}

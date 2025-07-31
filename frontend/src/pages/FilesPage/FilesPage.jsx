@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useEffect, useState } from 'react'
+import { useToast } from '@chakra-ui/react'
 
 import FilesPageUI from './FilesPageUI'
 
@@ -10,7 +11,7 @@ const filesRoute = 'http://localhost:5000/api/files' // TODO: read from .env
  * @returns 
  */
 const FilesPage = () => {
-
+  const toast = useToast();
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,8 +25,14 @@ const FilesPage = () => {
       const newState = Array.from(res.data);
       setUploadedFiles(newState);
     }).catch(err => {
-      alert('Error fetching Files');
-      console.error(err); // FIXME: proper error handling
+      console.error(err);
+      toast({
+        title: 'Error fetching files',
+        description: err.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true
+      })
     }).finally(() => {
       setLoading(false);
     });
@@ -36,11 +43,28 @@ const FilesPage = () => {
    * @param {*} file 
    */
   const handleDelete = (file) => {
+    if (Array.isArray(file?.documents) && file.documents.length > 0) {
+      toast({
+        
+      })
+    }
     axios.delete(`${filesRoute}/${file?._id}`).then(res => {
-      alert(`Successfully deleted File ${file?._id}`); // FIXME: replace alerts with proper notifications 
+      toast({
+        title: 'File successfully deleted',
+        description: `File with ID "${file._id}" successfully deleted.`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true
+      })
       fetchFiles(); // On successful delete, get the updated file list
     }).catch(err => {
-      alert(`Error deleting File ${file?._id}`);
+      toast({
+        title: 'Error deleting file',
+        description: `File with ID "${file._id}" could not be deleted`,
+        status: 'error',
+        duration: 3000,
+        isClosable: true
+      })
       console.error(err); // FIXME: proper error handling
     });
   };

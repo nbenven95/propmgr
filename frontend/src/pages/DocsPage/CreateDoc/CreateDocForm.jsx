@@ -1,8 +1,9 @@
-import axios from 'axios';
-import React, { useRef, useState } from 'react';
+import axios from 'axios'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   Box,
   Button,
+  Checkbox,
   Input,
   Select,
   FormControl,
@@ -10,50 +11,23 @@ import {
   useToast,
   VStack,
   Flex,
-  Heading,
-} from '@chakra-ui/react';
-
-// FIXME: probably not a good way of doing this, but guarantees consistency when we add types on the backend 
-import DocTypeEnum from '../../../../backend/util/docType'
-
-// Destructure DocType elements so we can access them directly
-const { 
-  BLUEPRINT,
-  CONTRACT,
-  DEED,
-  FLOORPLAN,
-  LEASE,
-  LIEN,
-  MANUAL,
-  SCHEMATIC,
-  WARRANTY,
-  WORKORDER
-} = DocTypeEnum;
-
-// Define allowed Document types
-const DocTypeOptions = [
-  { label: 'Blueprint', value: BLUEPRINT },
-  { label: 'Contract',  value: CONTRACT },
-  { label: 'Deed',      value: DEED },
-  { label: 'Floorplan', value: FLOORPLAN },
-  { label: 'Lease',     value: LEASE },
-  { label: 'Lien',      value: LIEN },
-  { label: 'Manual',    value: MANUAL },
-  { label: 'Schematic', value: SCHEMATIC },
-  { label: 'Warranty',  value: WARRANTY },
-  { label: 'Workorder', value: WORKORDER },
-];
+  Heading
+} from '@chakra-ui/react'
 
 // Define allowed file extensions
-// TODO: read from .env for consistency with FileUploadPage 
+// TODO: either read from env or setup endpoint to serve 
 const allowedExtensions = [
   '.txt','.pdf','.doc','.docx','.png','.jpg'
 ];
 
-const docApi = 'http://localhost:5000/api/docs';
+const baseUrl   = 'http://localhost:5000';
+const docsApi   = `${baseUrl}/api/docs`;
+const infoApi   = `${baseUrl}/api/info`;
 
-const CreateDocPage = () => {
+const CreateDocForm = () => {
   const toast = useToast();
+
+  const [docTypes, setDocTypes] = useState([]);
 
   // State variables for form fields
   const [name, setName] = useState('');
@@ -61,13 +35,53 @@ const CreateDocPage = () => {
   const [dateCreate, setDateCreate] = useState('');
   const [dateEff, setDateEff] = useState('');
   const [expiry, setExpiry] = useState('');
-  const [file, setFile] = useState(null);
+  const [file, setFile] = useState(null); // State for when user uploads a new file
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [useDefaultName, setUseDefaultName] = useState(true);
 
   const fileInputRef = useRef(); // Ref so we can clear file input on form submission
 
+  /* Data to fetch during initial render */
+  useEffect(() => {
+    setLoading(true);
+    axios.get(infoApi + '/document-types').then(res => {
+      let docTypes = [];
+      Object.entries(res.data).forEach(item => {
+        docTypes.push({
+          label: String(item[1]).replace(/^./, ch => ch.toUpperCase()),
+          value: String(item[1])
+        })
+      });
+      setDocTypes(docTypes);
+    }).catch(err => {
+      console.error(err);
+      toast({
+        title: 'Error fetching document types',
+        description: err.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true
+      });
+    }).finally(
+      setLoading(false)
+    );
+  }, []); // Pass empty dependency array to only run during initial render
+
+  /* Event handler to toggle 'use default name' checkbox */
+  const toggleUseDefaultName = (e) => {
+    const prev = useDefaultName;
+    setUseDefaultName(!prev);
+    setName(
+      !prev && file // If toggling from off to on and there is a staged file
+        ? file.name // True: autofill with staged file's name (user can still overwrite this)
+        : ''        // False: display form placeholder text
+    )
+  }
+
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
+    if (useDefaultName) setName(e.target.files[0].name);
   };
 
   const handleSubmit = async () => {
@@ -88,35 +102,32 @@ const CreateDocPage = () => {
     if (dateCreate) formData.append('dateCreate', dateCreate);
     if (dateEff) formData.append('dateEff', dateEff);
     if (expiry) formData.append('expiry', expiry);
-    formData.append('file', file);
+    // TODO: add check to see if user uploaded a new file, or selected an existing FileRef object 
+    formData.append('file', file); // Note: this field is expected by multer (backend middleware); multer processes the data and places it in req.file 
 
     setIsSubmitting(true);
     try {
-      const response = await axios.post(docApi + '/create', formData, {
+      const response = await axios.post(docsApi + '/create', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
       toast({
         title: 'Document created.',
-        description: `Document "${response.data.name}" has been created.`,
+        description: `Document "${response.data?.data?.name}" has been created.`,
         status: 'success',
         duration: 3000,
         isClosable: true,
       });
       // Reset form after success
-      setName('');
-      setDocType('');
-      setDateCreate('');
-      setDateEff('');
-      setExpiry('');
-      setFile(null);
+      setName(''); setDocType(''); setDateCreate(''); setDateEff(''); setExpiry(''); setFile(null);
+      // Must explicitly clear the file input field
       fileInputRef.current.value = null;
     } catch (err) {
       console.error(err);
       toast({
-        title: 'Error creating document.',
-        description: err.response?.data?.message || err.message,
+        title: 'Error creating document',
+        description: err.response?.data?.message || err.message, // TODO: not sure if this is necessary 
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -139,6 +150,15 @@ const CreateDocPage = () => {
           />
         </FormControl>
 
+        <FormControl>
+          <Checkbox
+            defaultChecked={true}
+            onChange={(e) => toggleUseDefaultName(e.target.value)}
+          >
+            Use file name as document name
+          </Checkbox>
+        </FormControl>
+
         <FormControl isRequired>
           <FormLabel>Document Type</FormLabel>
           <Select
@@ -146,9 +166,11 @@ const CreateDocPage = () => {
             value={docType}
             onChange={(e) => setDocType(e.target.value)}
           >
-            {DocTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
+            {loading
+              ? <>Loading document types. . .</>
+              : docTypes?.map(opt =>
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+            )}
           </Select>
         </FormControl>
 
@@ -171,7 +193,7 @@ const CreateDocPage = () => {
         </FormControl>
 
         <FormControl>
-          <FormLabel>Expiry Date</FormLabel>
+          <FormLabel>Expiration Date</FormLabel>
           <Input
             type='date'
             value={expiry}
@@ -205,4 +227,4 @@ const CreateDocPage = () => {
   );
 };
 
-export default CreateDocPage;
+export default CreateDocForm;

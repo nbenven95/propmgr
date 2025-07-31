@@ -10,6 +10,7 @@ const DocTypeEnum = Object.freeze({
   LIEN:       'lien',
   MANUAL:     'manual',
   SCHEMATIC:  'schematic',
+  TEXT:       'text',
   WARRANTY:   'warranty',
   WORKORDER:  'workorder'
 });

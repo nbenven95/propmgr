@@ -1,40 +1,49 @@
 import axios from 'axios'
-import React, { useState, useEffect } from 'react'
-import {
-  Box,
-  Button,
-  Checkbox,
-  Flex,
-  Heading,
-  IconButton,
-  Spacer,
-  Stack,
-  Text,
-  useDisclosure,
-  useToast,
-  Drawer,
-  DrawerOverlay,
-  DrawerContent,
-  DrawerHeader,
-  DrawerBody
-} from '@chakra-ui/react'
-import { DeleteIcon, EditIcon } from '@chakra-ui/icons'
+import { useState, useEffect } from 'react'
+import { useDisclosure, useToast, Text } from '@chakra-ui/react'
 
-import EditDocForm from './EditDocForm'
+import DocsPageUI from './DocsPageUI'
+import CreateDocForm from './CreateDoc/CreateDocForm'
+import EditDocForm from './EditDoc/EditDocForm'
 
-const docsApi = 'http://localhost:5000/api/docs';
+// TODO: read baseUrl and API endpoints from env 
+const baseUrl   = 'http://localhost:5000';
+const docsApi   = `${baseUrl}/api/docs`;
+const filesApi  = `${baseUrl}/api/files`;
 
+/**
+ * Documents page controller logic
+ * 
+ * @returns a rendered documents page UI component
+ */
 const DocsPage = () => {
   const toast = useToast();
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen, onOpen, onClose } = useDisclosure();  // Drawer menu open/close state
+  const [loading, setLoading] = useState(true);         // Page loading state (waiting for API request, etc.)
+  const [drawerHeader, setDrawerHeader] = useState(''); // Drawer menu header content
+  const [drawerBody, setDrawerBody] = useState(null);   // Drawer menu body content; render edit or create view based on operating mode
+  const [documents, setDocuments] = useState([]);       // List of documents retrieved from backend
+  const [bulkMode, setBulkMode] = useState(false);      // Bulk delete mode/single delete mode
+  const [selectedDocs, setSelectedDocs] = useState([]); // Documents selected for bulk delete
+  const [currentDoc, setCurrentDoc] = useState(null);   // Document selected for editing
 
-  const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [bulkMode, setBulkMode] = useState(false);
-  const [selectedDocs, setSelectedDocs] = useState([]);
+  /**
+   * Helper function for generating chakra-ui success toasts
+   * @param {*} title 
+   * @param {*} desc 
+   */
+  const toastSuccess = (title, desc) => {
+    toast({ title: title, description: desc, status: 'success', duration: 3000, isClosable: true });
+  };
 
-  // State for the document currently being edited
-  const [currentDoc, setCurrentDoc] = useState(null);
+  /**
+   * Helper function for generating chakra-ui error toasts
+   * @param {*} title 
+   * @param {*} desc 
+   */
+  const toastError = (title, desc) => {
+    toast({ title: title, description: desc, status: 'error', duration: 3000, isClosable: true });
+  };
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -42,13 +51,8 @@ const DocsPage = () => {
       const res = await axios.get(docsApi);
       setDocuments(res.data);
     } catch (err) {
-      toast({
-        title: 'Error fetching documents.',
-        description: err.message,
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      console.error(err);
+      toastError('Error fetching documents', err.message);
     } finally {
       setLoading(false);
     }
@@ -61,22 +65,11 @@ const DocsPage = () => {
   const handleDelete = async (id) => {
     try {
       await axios.delete(docsApi + '/' + id);
-      toast({
-        title: 'Document deleted.',
-        description: `Document successfully deleted.`,
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
+      toastSuccess('Document deleted', `Document with ID "${id}" successfully deleted.`);
       fetchDocuments();
     } catch (err) {
-      toast({
-        title: 'Error deleting document.',
-        description: err.message,
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      console.error(err);
+      toastError('Error deleting document', err.message);
     }
   };
 
@@ -86,23 +79,34 @@ const DocsPage = () => {
       await Promise.all(
         selectedDocs.map((id) => axios.delete(docsApi + '/' + id))
       );
-      toast({
-        title: 'Documents deleted.',
-        description: `${selectedDocs.length} documents deleted.`,
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
+      toastSuccess('Documents deleted', `${selectedDocs.length} documents deleted.`);
       setSelectedDocs([]);
+      setBulkMode(false);
       fetchDocuments();
     } catch (err) {
-      toast({
-        title: 'Error deleting documents.',
-        description: err.message,
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      console.error(err);
+      toastError('Error deleting documents', err.message);
+    }
+  };
+
+  const handleDownloadFile = async (id, filename) => {
+    try {
+      const response = await axios.get(
+        `${filesApi}/download/${id}`,
+        { responseType: 'blob' } // Must specify response type as blob (binary object)
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data])); // Create URL for blob
+      const link = document.createElement('a'); // Create temporary link element for blob
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link); // Cleanup
+      window.URL.revokeObjectURL(url);
+      toastSuccess('File download successful', `Successfully downloaded file "${filename}"`);
+    } catch (err) {
+      console.error(err);
+      toastError('Error downloading file', err.message);
     }
   };
 
@@ -112,106 +116,52 @@ const DocsPage = () => {
     );
   };
 
-  const handleEditClick = (doc) => {
-    setCurrentDoc(doc); // set the document to edit
-    onOpen(); // open the drawer
-  };
-
-  if (loading) {
-    return (
-      <Flex justify="center" align="center" minH="100vh">
-        <Text fontSize="xl">Loading documents...</Text>
-      </Flex>
-    );
+  const handleCreateClick = () => {
+    setCurrentDoc(null);
+    setDrawerHeader('Create New Document');
+    setDrawerBody(<CreateDocForm />);
+    onOpen();
   }
 
+  // TODO: fix bug where you have to click edit once to set the currentDoc and then click again to actually render the page properly 
+  const handleEditClick = (doc) => {
+    setCurrentDoc(doc);
+    setDrawerHeader('Edit Document');
+    setDrawerBody(
+      currentDoc ?
+        <EditDocForm
+          document={currentDoc}
+          onClose={onClose}
+          onUpdate={() => {
+            fetchDocuments();
+            onClose();
+          }}
+        />
+      : <Text>No document selected!</Text> // In theory, this should never happen
+    )
+    onOpen();
+  };
+
+  // Return the UI element with our injected controller elements
   return (
-    <Box maxW="1000px" mx="auto" p={4}>
-      <Flex mb={4} align="center">
-        <Heading size="lg">Documents</Heading>
-        <Spacer />
-        {bulkMode ? (
-          <>
-            <Button size="sm" colorScheme="red" onClick={() => { setBulkMode(false); setSelectedDocs([]); }}>
-              Cancel Bulk Delete
-            </Button>
-            <Button size="sm" ml={2} colorScheme="red" onClick={handleBulkDelete} isDisabled={selectedDocs.length === 0}>
-              Delete Selected
-            </Button>
-          </>
-        ) : (
-          <Button size="sm" onClick={() => setBulkMode(true)} colorScheme="blue">
-            Enable Bulk Delete
-          </Button>
-        )}
-      </Flex>
-
-      {documents.length === 0 ? (
-        <Text>No documents found.</Text>
-      ) : (
-        <Stack spacing={4}>
-          {documents.map((doc) => (
-            <Box key={doc._id} position="relative" p={4} borderWidth="1px" borderRadius="8px" bg="white" shadow="sm">
-              {bulkMode && (
-                <Checkbox
-                  position="absolute"
-                  top={2}
-                  left={2}
-                  isChecked={selectedDocs.includes(doc._id)}
-                  onChange={() => toggleSelect(doc._id)}
-                />
-              )}
-              <Flex direction="column" align="start" pl={bulkMode ? 6 : 0}>
-                <Text fontWeight="bold">Name: {doc.name}</Text>
-                <Text>Type: {doc.docType}</Text>
-                {doc.dateCreate && <Text>Date Created: {new Date(doc.dateCreate).toLocaleDateString()}</Text>}
-                {doc.dateEff && <Text>Date Effective: {new Date(doc.dateEff).toLocaleDateString()}</Text>}
-                {doc.expiry && <Text>Expiry: {new Date(doc.expiry).toLocaleDateString()}</Text>}
-                {doc.fileRef && <Text>Attached file: {doc.fileRef.name}</Text>} {/* TODO: add a download button */}
-                {/* Add other fields as needed */}
-                <Flex mt={2} width="full" justify="space-between" align="center">
-                  <Button
-                    size="sm"
-                    leftIcon={<EditIcon />}
-                    colorScheme="teal"
-                    onClick={() => handleEditClick(doc)}
-                  >
-                    Edit
-                  </Button>
-                  <IconButton
-                    icon={<DeleteIcon />}
-                    size="sm"
-                    aria-label="Delete"
-                    colorScheme="red"
-                    onClick={() => handleDelete(doc._id)}
-                  />
-                </Flex>
-              </Flex>
-            </Box>
-          ))}
-        </Stack>
-      )}
-
-      {/* Drawer for editing */}
-      <Drawer isOpen={isOpen} placement="top" onClose={onClose} size="lg">
-        <DrawerOverlay />
-        <DrawerContent>
-          <DrawerHeader borderBottomWidth="1px">Edit Document</DrawerHeader>
-          <DrawerBody p={4}>
-            {currentDoc && (
-              <EditDocForm
-                document={currentDoc}
-                onClose={onClose}
-                onUpdate={() => {
-                  fetchDocuments();
-                  onClose();
-                }}
-              />
-            )}
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
-    </Box>
+    <DocsPageUI
+      isOpen={isOpen}
+      onClose={onClose}
+      documents={documents}
+      loading={loading}
+      bulkMode={bulkMode}
+      setBulkMode={setBulkMode}
+      selectedDocs={selectedDocs}
+      setSelectedDocs={setSelectedDocs}
+      handleDelete={handleDelete}
+      handleBulkDelete={handleBulkDelete}
+      handleDownloadFile={handleDownloadFile}
+      toggleSelect={toggleSelect}
+      handleEditClick={handleEditClick}
+      handleCreateClick={handleCreateClick}
+      drawerHeader={drawerHeader}
+      drawerBody={drawerBody}
+    />
   );
 };
 
