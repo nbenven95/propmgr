@@ -25,7 +25,7 @@ const {
 const getFileRefs = async (req, res) => {
 	try {
 		// Await get all FileRefs
-		const fileRefs = await FileRef.find();
+		const fileRefs = await FileRef.find().populate('documents').exec();
 		// Request failed, no FileRefs
 		if (!fileRefs) {
 			return res.status(NOT_FOUND).send({
@@ -52,7 +52,7 @@ const getFileRefs = async (req, res) => {
  * @param {*} res 
  * @returns 
  */
-const getFileRef = async (req, res) => {
+const getFileRefById = async (req, res) => {
 	const { id } = req.params;
 	// Ensure id is valid
 	if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -63,7 +63,7 @@ const getFileRef = async (req, res) => {
 	}
 	try {
 		// Await get FileRef
-		const fileRef = await FileRef.findById(id);
+		const fileRef = await FileRef.findById(id).populate('documents').exec();
 		// Request failed, no FileRef for id
 		if (!fileRef) {
 			return res.status(NOT_FOUND).send({
@@ -80,7 +80,7 @@ const getFileRef = async (req, res) => {
 			success: false,
 			message: 'Internal server error',
 			error: err
-		})
+		});
 	}
 };
 
@@ -145,9 +145,6 @@ const uploadFiles = async (req, res) => {
  */
 const downloadFile = async (req, res) => {
 	const { id } = req.params;
-
-	console.log(id)
-
 	// Ensure id is valid
 	if (!mongoose.Types.ObjectId.isValid(id)) {
 		return res.status(BAD_REQUEST).send({
@@ -206,6 +203,14 @@ const deleteFileRefAndFile = async (req, res) => {
 	}
 	// Await delete FileRef
 	try {
+		// First, ensure the file is not linked to any documents
+		const fileToBeDeleted = await FileRef.findById(id).populate('documents').exec();
+		if (fileToBeDeleted.documents?.length !== 0) {
+			return res.status(CONFLICT).send({
+				success: false,
+				message: `Could not delete FileRef with id ${id}: FileRef is linked to other resources`
+			});
+		}
 		const deletedFile = await FileRef.findByIdAndDelete(id);
 		// Request failed, no FileRef for id
 		if (!deletedFile) {
@@ -239,4 +244,4 @@ const deleteFileRefAndFile = async (req, res) => {
 	}
 };
 
-export { uploadFiles, downloadFile, getFileRef, getFileRefs, deleteFileRefAndFile };
+export { uploadFiles, downloadFile, getFileRefById, getFileRefs, deleteFileRefAndFile };

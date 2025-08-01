@@ -67,7 +67,7 @@ const EditDocForm = ({ document, onClose, onUpdate }) => {
         dateEff,
         expiry,
       });
-      onUpdate(); // Refresh list and close drawer
+      onUpdate();
       toast({
         title: 'Document updated',
         description: `Document "${response.data?.data?.name}" successfully updated.`,

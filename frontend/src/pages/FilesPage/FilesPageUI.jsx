@@ -1,4 +1,5 @@
 import React from 'react'
+import { Tooltip } from '@chakra-ui/react'
 
 import './FilesPage.css'
 import FileCard from '../../components/filecard'
@@ -20,18 +21,22 @@ const FilesPageUI = ({
       ) : uploadedFiles.length === 0 ? (
         <p>No Files found.</p>
       ) : (
-        // View and delete uploaded files
         <>
           <h2>Files</h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '20px' }}>
             {uploadedFiles?.map((file, index) => (
-              <div key={index}>
-                <FileCard file={file} handleDelete={handleDelete}/>
-              </div>
+              <Tooltip key={index} label={
+                file.documents?.length === 0
+                  ? 'No linked documents'
+                  : `Linked documents (${file.documents?.length}): ` + file.documents.map(doc => doc?.name).join(', ')
+              }>
+                <div key={index}>
+                  <FileCard file={file} handleDelete={handleDelete} />
+                </div>
+              </Tooltip>
             ))}
           </div>
         </>
-        // End view uploaded files
       )}
     </div>
   );

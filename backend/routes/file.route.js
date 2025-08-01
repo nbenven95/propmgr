@@ -1,6 +1,6 @@
 import { Router } from 'express'
 
-import { uploadFiles, downloadFile, getFileRef, getFileRefs, deleteFileRefAndFile } from '@controllers/file.controller.js'
+import { uploadFiles, downloadFile, getFileRefById, getFileRefs, deleteFileRefAndFile } from '@controllers/file.controller.js'
 
 const FileRouter = (upload) => {
   const router = Router();
@@ -18,7 +18,7 @@ const FileRouter = (upload) => {
   router.get('/', getFileRefs);
 
   // Get the File ref object with specified id
-  router.get('/:id', getFileRef);
+  router.get('/:id', getFileRefById);
 
   // Delete the File object with specified id and its attached file
   router.delete('/:id', deleteFileRefAndFile);

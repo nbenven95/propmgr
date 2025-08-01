@@ -30,6 +30,34 @@ const getDocuments = async (req, res) => {
   }
 }
 
+const getDocumentById = async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(BAD_REQUEST).send({
+      success: false,
+      message: `Invalid object id: ${id}`
+    });
+  }
+  try {
+    const doc = await Document.findById(id).populate('fileRef').exec();
+    if (!doc) {
+      return res.status(NOT_FOUND).send({
+        success: false,
+        message: `Could not find FileRef with id ${id}`,
+        error: err
+      });
+    }
+    return res.status(OK).send(fileRef);
+  } catch (err) {
+    // Handle general server side request failures
+    return res.status(INTERNAL_SERVER_ERROR).send({
+      success: false,
+      message: 'Internal server error',
+      error: err
+    });
+  }
+}
+
 /**
  * 
  * Note: if both a new file and existing fileRef are provided,
@@ -92,40 +120,6 @@ const createDocument = async (req, res) => {
   }
 }
 
-const deleteDocument = async (req, res) => {
-  // Unpack id from from request header params
-  const { id } =  req.params;
-  // Ensure id is valid
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(BAD_REQUEST).send({
-      success: false,
-      message: `Invalid object id ${id}`
-    });
-  }
-  // Attempt async delete the Property object
-  try {
-    const deletedDoc = await Document.findByIdAndDelete(id);
-    // Check for non-existent Document
-    if (isNull(deletedDoc)) {
-      return res.status(NOT_FOUND).send({
-        success: false,
-        message: `Document ${id} not found`
-      });
-    }
-    return res.status(OK).send({
-      success: true,
-      message: `Deleted Document ${id}`,
-      data: deletedDoc
-    });
-  } catch (err) {
-    return res.status(INTERNAL_SERVER_ERROR).send({
-      success: false,
-      message: `Could not delete Document ${id}`,
-      error: err
-    });
-  }
-}
-
 /**
  * 
  * @param {*} req 
@@ -134,10 +128,8 @@ const deleteDocument = async (req, res) => {
  */
 const updateDocument = async (req, res) => {
   const { id } = req.params;
-  // TODO: pass optional multipart form data with newly uploaded file if the user wants to upload a new file when editing 
-  //const newFile = req.file;
-  // TODO: handle user selecting a new (existing) file when editing 
-  //const { name, dateCreate, dateEff, docType, expiry, fileRef } = req.body; // Expected
+  //const file = req.file;
+
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(BAD_REQUEST).send({
       success: false,
@@ -180,4 +172,38 @@ const updateDocument = async (req, res) => {
   }
 }
 
-export { createDocument, deleteDocument, getDocuments, updateDocument }
+const deleteDocument = async (req, res) => {
+  // Unpack id from from request header params
+  const { id } =  req.params;
+  // Ensure id is valid
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(BAD_REQUEST).send({
+      success: false,
+      message: `Invalid object id ${id}`
+    });
+  }
+  // Attempt async delete the Property object
+  try {
+    const deletedDoc = await Document.findByIdAndDelete(id);
+    // Check for non-existent Document
+    if (isNull(deletedDoc)) {
+      return res.status(NOT_FOUND).send({
+        success: false,
+        message: `Document ${id} not found`
+      });
+    }
+    return res.status(OK).send({
+      success: true,
+      message: `Deleted Document ${id}`,
+      data: deletedDoc
+    });
+  } catch (err) {
+    return res.status(INTERNAL_SERVER_ERROR).send({
+      success: false,
+      message: `Could not delete Document ${id}`,
+      error: err
+    });
+  }
+}
+
+export { createDocument, deleteDocument, getDocumentById, getDocuments, updateDocument }

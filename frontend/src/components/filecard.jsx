@@ -1,5 +1,5 @@
 import React from 'react'
-import { defaultStyles, FileIcon} from 'react-file-icon'
+import { defaultStyles, FileIcon } from 'react-file-icon'
 import { CloseIcon } from '@chakra-ui/icons'
 
 import iconFromExtension from './iconMap.js'
@@ -24,20 +24,18 @@ const FileCard = ({
   const backupStyle = iconFromExtension(ext);
 
   return (
-    <div className='file-card'>
-
-      {/* File icon + name; TODO: fix this formatting */}
+      <div className='file-card'>
+      {/* File icon + name */}
       <div className='file-icon-container'>
         <div className='file-icon'>
           {defaultStyle === undefined ? (
-            <FileIcon extension={ext} {...backupStyle}/>
+            <FileIcon extension={ext} {...backupStyle} />
           ) : (
-            <FileIcon extension={ext} {...defaultStyle}/>
+            <FileIcon extension={ext} {...defaultStyle} />
           )}
         </div>
       </div>
       <div className='file-name'>{file.name}</div>
-
       {/* File delete/remove from staging button */}
       <button className='delete-button' title='Delete' onClick={() => handleDelete(file)}>
         <CloseIcon/>

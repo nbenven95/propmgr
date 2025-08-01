@@ -43,30 +43,36 @@ const FilesPage = () => {
    * @param {*} file 
    */
   const handleDelete = (file) => {
-    if (Array.isArray(file?.documents) && file.documents.length > 0) {
-      toast({
-        
-      })
-    }
-    axios.delete(`${filesRoute}/${file?._id}`).then(res => {
-      toast({
-        title: 'File successfully deleted',
-        description: `File with ID "${file._id}" successfully deleted.`,
-        status: 'success',
-        duration: 3000,
-        isClosable: true
-      })
-      fetchFiles(); // On successful delete, get the updated file list
-    }).catch(err => {
+    if (file.documents?.length > 0) { // (Array.isArray(file.documents) && file.documents.length > 0)
       toast({
         title: 'Error deleting file',
-        description: `File with ID "${file._id}" could not be deleted`,
+        description: `File "${file.name}" could not be deleted because it is linked to Documents`,
         status: 'error',
         duration: 3000,
         isClosable: true
-      })
-      console.error(err); // FIXME: proper error handling
-    });
+      });
+    } else {
+      // No linked documents, attempt async delete
+      axios.delete(`${filesRoute}/${file?._id}`).then(res => {
+        toast({
+          title: 'File successfully deleted',
+          description: `File with ID "${file._id}" successfully deleted.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true
+        });
+        fetchFiles(); // On successful delete, get the updated file list
+      }).catch(err => {
+        toast({
+          title: 'Error deleting file',
+          description: `File with ID "${file._id}" could not be deleted`,
+          status: 'error',
+          duration: 3000,
+          isClosable: true
+        })
+        console.error(err); // FIXME: proper error handling
+      });
+    }
   };
 
   // TODO: look into using useEffect() properly; not sure if its appropriate here

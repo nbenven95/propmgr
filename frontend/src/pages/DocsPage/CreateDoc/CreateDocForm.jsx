@@ -24,9 +24,10 @@ const baseUrl   = 'http://localhost:5000';
 const docsApi   = `${baseUrl}/api/docs`;
 const infoApi   = `${baseUrl}/api/info`;
 
-const CreateDocForm = () => {
+const CreateDocForm = ({
+  onUpdate
+}) => {
   const toast = useToast();
-
   const [docTypes, setDocTypes] = useState([]);
 
   // State variables for form fields
@@ -112,6 +113,7 @@ const CreateDocForm = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
+      onUpdate(); // Refresh Documents list and close drawer
       toast({
         title: 'Document created.',
         description: `Document "${response.data?.data?.name}" has been created.`,
@@ -119,10 +121,10 @@ const CreateDocForm = () => {
         duration: 3000,
         isClosable: true,
       });
-      // Reset form after success
-      setName(''); setDocType(''); setDateCreate(''); setDateEff(''); setExpiry(''); setFile(null);
+      // Old form reset logic
+      //setName(''); setDocType(''); setDateCreate(''); setDateEff(''); setExpiry(''); setFile(null);
       // Must explicitly clear the file input field
-      fileInputRef.current.value = null;
+      //fileInputRef.current.value = null;
     } catch (err) {
       console.error(err);
       toast({

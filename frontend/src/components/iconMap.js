@@ -276,7 +276,7 @@ const IconMap = Object.freeze({
  * @param {*} ext 
  * @returns
  */
-const iconFromExtension = (ext) => {
+const IconFromExtension = (ext) => {
   const extension = String(ext).toLowerCase().replace('.', '').trim();
   for (const [_, val] of Object.entries(IconMap)) {
     const extensions = val.ext;
@@ -286,4 +286,4 @@ const iconFromExtension = (ext) => {
   return null;
 };
 
-export default iconFromExtension;
+export default IconFromExtension;

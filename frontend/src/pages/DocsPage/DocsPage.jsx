@@ -119,7 +119,10 @@ const DocsPage = () => {
   const handleCreateClick = () => {
     setCurrentDoc(null);
     setDrawerHeader('Create New Document');
-    setDrawerBody(<CreateDocForm />);
+    setDrawerBody(<CreateDocForm onUpdate={() => {
+      fetchDocuments();
+      onClose();
+    }} />);
     onOpen();
   }
 
@@ -128,9 +131,9 @@ const DocsPage = () => {
     setCurrentDoc(doc);
     setDrawerHeader('Edit Document');
     setDrawerBody(
-      currentDoc ?
+      doc ?
         <EditDocForm
-          document={currentDoc}
+          document={doc}
           onClose={onClose}
           onUpdate={() => {
             fetchDocuments();
