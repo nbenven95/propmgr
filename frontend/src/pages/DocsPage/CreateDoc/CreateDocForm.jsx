@@ -1,102 +1,174 @@
 import axios from 'axios'
-import React, { useEffect, useRef, useState } from 'react'
-import {
-  Box,
-  Button,
-  Checkbox,
-  Input,
-  Select,
-  FormControl,
-  FormLabel,
-  useToast,
-  VStack,
-  Flex,
-  Heading
-} from '@chakra-ui/react'
+import { useEffect, useRef, useState } from 'react'
+import { useToast } from '@chakra-ui/react'
 
-// Define allowed file extensions
-// TODO: either read from env or setup endpoint to serve 
-const allowedExtensions = [
-  '.txt','.pdf','.doc','.docx','.png','.jpg'
-];
+import CreateDocFormUI from './CreateDocFormUI.jsx'
 
-const baseUrl   = 'http://localhost:5000';
-const docsApi   = `${baseUrl}/api/docs`;
-const infoApi   = `${baseUrl}/api/info`;
+const baseUrl     = 'http://localhost:5000';
+const docsApi     = `${baseUrl}/api/docs`;
+const infoApi     = `${baseUrl}/api/info`;
+const toolTipsApi = `${infoApi}/tool-tips`;
+
+// TODO: add clear form button 
 
 const CreateDocForm = ({
   onUpdate
 }) => {
   const toast = useToast();
-  const [docTypes, setDocTypes] = useState([]);
+
+  const [allowedFileExt, setAllowedFileExt] = useState([]);
+  const [docTypes, setDocTypes]             = useState([]);
+  const [toolTips, setToolTips]             = useState({});
+
+  const dateTime = () => {
+    const now     = new Date(); // Get current date/time as ISO timestamp
+    const year    = String(now.getFullYear());
+    const month   = String(now.getMonth()).padStart(2,'0');
+    const day     = String(now.getDate()).padStart(2,'0');
+    const hours   = String(now.getHours()).padStart(2,'0');
+    const minutes = String(now.getMinutes()).padStart(2,'0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
 
   // State variables for form fields
-  const [name, setName] = useState('');
-  const [docType, setDocType] = useState('');
-  const [dateCreate, setDateCreate] = useState('');
-  const [dateEff, setDateEff] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [file, setFile] = useState(null); // State for when user uploads a new file
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [name, setName]                     = useState('');
+  const [docType, setDocType]               = useState('');
+  const [dateCreate, setDateCreate]         = useState(dateTime());
+  const [dateEff, setDateEff]               = useState('');
+  const [expiry, setExpiry]                 = useState('');
+  const [file, setFile]                     = useState(null); // State to track new file upload
   const [useDefaultName, setUseDefaultName] = useState(true);
+  const [isSubmitting, setIsSubmitting]     = useState(false);
+  const [isLoading, setIsLoading]           = useState({
+    allowedFileExt: false,
+    docTypes      : false,
+    toolTips      : false
+  });
 
-  const fileInputRef = useRef(); // Ref so we can clear file input on form submission
+  // Element references
+  const dateCreateRef = useRef();
+  const dateEffRef    = useRef();
+  const expiryRef     = useRef();
+  const nameRef       = useRef();
 
-  /* Data to fetch during initial render */
+  const toastSuccess = (title, desc) => {
+    toast({
+      title: title,
+      description: desc,
+      status: 'success',
+      duration: 3000,
+      isClosable: true
+    });
+  };
+
+  const toastError = (title, desc) => {
+    toast({
+      title: title,
+      description: desc,
+      status: 'error',
+      duration: 3000,
+      isClosable: true
+    });
+  }
+
+  /**
+   * Fetch data during initial render
+   */
   useEffect(() => {
-    setLoading(true);
+    // Get document types from backend
     axios.get(infoApi + '/document-types').then(res => {
+      setIsLoading(isLoading['docTypes'] = true);
       let docTypes = [];
       Object.entries(res.data).forEach(item => {
         docTypes.push({
           label: String(item[1]).replace(/^./, ch => ch.toUpperCase()),
           value: String(item[1])
-        })
+        });
       });
       setDocTypes(docTypes);
+      console.log('Done fetching docTypes');
     }).catch(err => {
       console.error(err);
-      toast({
-        title: 'Error fetching document types',
-        description: err.message,
-        status: 'error',
-        duration: 3000,
-        isClosable: true
-      });
+      toastError('Error fetching document types', err.message);
     }).finally(
-      setLoading(false)
+      setIsLoading(isLoading['docTypes'] = false)
+    );
+    // Get allowed file types from backend
+    axios.get(infoApi + '/allowed-file-ext').then(res => {
+      setIsLoading(isLoading['allowedFileExt'] = true);
+      setAllowedFileExt(res.data);
+      console.log('Done fetching allowedFileExt');
+    }).catch(err => {
+      console.error(err);
+      toastError('Error fetching allowed file types/extensions', err.message);
+    }).finally(
+      setIsLoading(isLoading['allowedFileExt'] = false)
+    );
+    // Get tool tips for this view from backend
+    axios.get(toolTipsApi + '/CreateDocForm').then(res => {
+      setIsLoading(isLoading['toolTips'] = true)
+      setToolTips(res.data);
+      console.log('Done fetching toolTips for CreateDocForm');
+    }).catch(err => {
+      console.error(err);
+      toastError('Error fetching tool tips for CreateDocForm', err.message);
+    }).finally(
+      setIsLoading(isLoading['toolTips'] = false)
     );
   }, []); // Pass empty dependency array to only run during initial render
 
-  /* Event handler to toggle 'use default name' checkbox */
-  const toggleUseDefaultName = (e) => {
-    const prev = useDefaultName;
-    setUseDefaultName(!prev);
-    setName(
-      !prev && file // If toggling from off to on and there is a staged file
-        ? file.name // True: autofill with staged file's name (user can still overwrite this)
-        : ''        // False: display form placeholder text
-    )
-  }
-
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-    if (useDefaultName) setName(e.target.files[0].name);
+  /**
+   * Given a filename, returns the filename with the final extension truncated.
+   * e.g., fileNameNoExt('hello.txt') => 'hello'
+   * 
+   * @param {} filename 
+   * @returns 
+   */
+  const fileNameNoExt = (filename) => {
+    const lastDotIndex = filename?.lastIndexOf('.');
+    if (lastDotIndex === -1) return filename; // No extension
+    return filename?.substring(0, lastDotIndex);
   };
 
-  const handleSubmit = async () => {
+  /**
+   * Event handler to toggle 'use default name' checkbox
+   * 
+   * @param {*} e 
+   */
+  const toggleUseDefaultName = (e) => {
+    const prev = useDefaultName;
+    const defaultName = fileNameNoExt(file.name);
+    setUseDefaultName(!prev);
+    setName(
+      !prev && file                             // If toggling from off to on and there is a staged file
+        ? defaultName                           // True: use filename with extension truncated
+        : defaultName !== nameRef.current.value // False: toggling from on to off; check if user has edited the default name before clearing form
+          ? nameRef.current.value               // True: don't clear the form when toggling on to off
+          : ''                                  // False: clear the form
+    );
+  };
+
+  /**
+   * 
+   * @param {*} e 
+   */
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+    if (useDefaultName) setName(
+      fileNameNoExt(e.target.files[0]?.name)
+    );
+  };
+
+  /**
+   * 
+   * @param {*} e 
+   * @returns 
+   */
+  const handleSubmit = async (e) => {
     if (!name || !docType || !file) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please fill all required fields.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      toastError('Validation Error', 'Please fill all required fields.');
       return;
     }
-
     const formData = new FormData();
     formData.append('name', name);
     formData.append('docType', docType);
@@ -105,7 +177,6 @@ const CreateDocForm = ({
     if (expiry) formData.append('expiry', expiry);
     // TODO: add check to see if user uploaded a new file, or selected an existing FileRef object 
     formData.append('file', file); // Note: this field is expected by multer (backend middleware); multer processes the data and places it in req.file 
-
     setIsSubmitting(true);
     try {
       const response = await axios.post(docsApi + '/create', formData, {
@@ -114,118 +185,65 @@ const CreateDocForm = ({
         },
       });
       onUpdate(); // Refresh Documents list and close drawer
-      toast({
-        title: 'Document created.',
-        description: `Document "${response.data?.data?.name}" has been created.`,
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-      // Old form reset logic
-      //setName(''); setDocType(''); setDateCreate(''); setDateEff(''); setExpiry(''); setFile(null);
-      // Must explicitly clear the file input field
-      //fileInputRef.current.value = null;
+      toastSuccess('Document Created', `Document "${response.data?.data?.name}" successfully created.`);
     } catch (err) {
       console.error(err);
-      toast({
-        title: 'Error creating document',
-        description: err.response?.data?.message || err.message, // TODO: not sure if this is necessary 
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      toastError('Error Creating Document', err.response?.data?.message || err.message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  /**
+   * Handle onFocus events for datetime picker elements (datetime picker opened).
+   * DT picker should set the date/time that are selected by default when the
+   * picker opens to the one specified by the callback function setDefaultValueOnOpen.
+   * If the user has already chosen a date, that value is used instead.
+   * 
+   * @param {*} e 
+   */
+  const handleDTPickerFocus = (e) => {
+    
+  }
+
+  /**
+   * Handle blur (focusLost) events for datetime picker elements (datetime picker closed).
+   * DT picker should display the chosen date as the preview value, or use the placeholder
+   * '--:-- --' if no date was chosen.
+   * 
+   * @param {} e 
+   */
+  const handleDTPickerFocusLost = (e) => {
+
+  }
+
   return (
-    <Box maxW='600px' mx='auto' p={4} borderWidth='1px' borderRadius='8px' boxShadow='xl' bg='white'>
-      <Heading mb={4} textAlign='center'>Create New Document</Heading>
-      <VStack spacing={4} align='stretch'>
-        <FormControl isRequired>
-          <FormLabel>Name</FormLabel>
-          <Input
-            placeholder='Document Name'
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </FormControl>
-
-        <FormControl>
-          <Checkbox
-            defaultChecked={true}
-            onChange={(e) => toggleUseDefaultName(e.target.value)}
-          >
-            Use file name as document name
-          </Checkbox>
-        </FormControl>
-
-        <FormControl isRequired>
-          <FormLabel>Document Type</FormLabel>
-          <Select
-            placeholder='Select Document Type'
-            value={docType}
-            onChange={(e) => setDocType(e.target.value)}
-          >
-            {loading
-              ? <>Loading document types. . .</>
-              : docTypes?.map(opt =>
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-            )}
-          </Select>
-        </FormControl>
-
-        <FormControl>
-          <FormLabel>Date Created</FormLabel>
-          <Input
-            type='date'
-            value={dateCreate}
-            onChange={(e) => setDateCreate(e.target.value)}
-          />
-        </FormControl>
-
-        <FormControl>
-          <FormLabel>Date Effective</FormLabel>
-          <Input
-            type='date'
-            value={dateEff}
-            onChange={(e) => setDateEff(e.target.value)}
-          />
-        </FormControl>
-
-        <FormControl>
-          <FormLabel>Expiration Date</FormLabel>
-          <Input
-            type='date'
-            value={expiry}
-            onChange={(e) => setExpiry(e.target.value)}
-          />
-        </FormControl>
-
-        <FormControl isRequired>
-          <FormLabel>Upload File</FormLabel>
-          <Input
-            ref={fileInputRef}
-            type='file'
-            accept={allowedExtensions.toString()}
-            onChange={handleFileChange}
-          />
-        </FormControl>
-
-        <Flex justify="center" mt={4}>
-          <Button
-            colorScheme="teal"
-            onClick={handleSubmit}
-            isLoading={isSubmitting}
-            loadingText="Submitting"
-            width="100%"
-          >
-            Create Document
-          </Button>
-        </Flex>
-      </VStack>
-    </Box>
+    <CreateDocFormUI 
+      name={name}
+      nameRef={nameRef}
+      setName={setName}
+      toggleUseDefaultName={toggleUseDefaultName}
+      docType={docType}
+      setDocType={setDocType}
+      isLoading={isLoading}
+      docTypes={docTypes}
+      handleDTPickerFocus={handleDTPickerFocus}
+      handleDTPickerFocusLost={handleDTPickerFocusLost}
+      dateCreate={dateCreate}
+      dateCreateRef={dateCreateRef}
+      setDateCreate={setDateCreate}
+      dateEff={dateEff}
+      dateEffRef={dateEffRef}
+      setDateEff={setDateEff}
+      expiry={expiry}
+      expiryRef={expiryRef}
+      setExpiry={setExpiry}
+      allowedFileExt={allowedFileExt}
+      handleFileChange={handleFileChange}
+      isSubmitting={isSubmitting}
+      handleSubmit={handleSubmit}
+      toolTips={toolTips}
+    />
   );
 };
 

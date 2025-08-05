@@ -18,8 +18,6 @@ import {
 } from '@chakra-ui/react'
 import { DeleteIcon, DownloadIcon, EditIcon, PlusSquareIcon } from '@chakra-ui/icons'
 
-
-
 const DocsPageUI = ({
   isOpen,
   onClose,
@@ -96,9 +94,9 @@ if (loading) {
               <Flex direction="column" align="start" pl={bulkMode ? 6 : 0}>
                 <Text fontWeight="bold">Name: {doc.name}</Text>
                 <Text>Type: { String(doc.docType).replace(/^./, ch => ch.toUpperCase()) }</Text>
-                {doc.dateCreate && <Text>Date Created: {new Date(doc.dateCreate).toLocaleDateString()}</Text>}
-                {doc.dateEff && <Text>Date Effective: {new Date(doc.dateEff).toLocaleDateString()}</Text>}
-                {doc.expiry && <Text>Expires: {new Date(doc.expiry).toLocaleDateString()}</Text>}
+                {doc.dateCreate && <Text>Date Created: {new Date(doc.dateCreate).toDateString()}</Text>}
+                {doc.dateEff && <Text>Date Effective: {new Date(doc.dateEff).toDateString()}</Text>}
+                {doc.expiry && <Text>Expires: {new Date(doc.expiry).toDateString()}</Text>}
                 <Flex mt={2} width='full' justify='space-between' aligh='center'>
                   <Text>Attached file: {doc.fileRef ? doc.fileRef.name : 'NONE'}</Text>
                   <IconButton
@@ -126,6 +124,7 @@ if (loading) {
                     onClick={() => handleDelete(doc._id)}
                   />
                 </Flex>
+                {doc.updatedAt && <Text>Last Updated: {new Date(doc.updatedAt).toDateString()}</Text>}
               </Flex>
             </Box>
           ))}

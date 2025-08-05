@@ -1,8 +1,8 @@
 import { Router } from 'express'
 
-import HttpStatusCodes from '@util/httpStatus.js';
+import HttpStatusCodes from '@util/httpStatus.js'
 
-const { OK } = HttpStatusCodes;
+const { BAD_REQUEST, NOT_FOUND, OK } = HttpStatusCodes;
 
 /**
  * Define helper routes for providing non-confidential information
@@ -13,13 +13,31 @@ const { OK } = HttpStatusCodes;
  * not a huge concern. This is essentially just a convenience to
  * avoid horrible relative imports from backend to frontend.
  */
-const InfoRouter = (docTypes, allowedFileTypes) => {
+const InfoRouter = ({
+  allowedFileExt,
+  docTypes,
+  toolTipDict
+}) => {
   
   const infoRouter = new Router();
 
   infoRouter.get('/document-types', (req, res) => res.status(OK).send(docTypes));
 
-  infoRouter.get('/allowed-file-types', (req, res) => res.status(OK).send(allowedFileTypes));
+  infoRouter.get('/allowed-file-ext', (req, res) => res.status(OK).send(allowedFileExt));
+
+  infoRouter.get('/tool-tips/:view', (req, res) => {
+    const { view } = req.params;
+    const toolTips = toolTipDict[view];
+    if (!view) return res.status(BAD_REQUEST).send({
+      success: false,
+      message: 'Missing request parameter `view`'
+    });
+    if (!toolTips) return res.status(NOT_FOUND).send({
+      success: false,
+      message: `Could not find tool tips for view \`${view}\``
+    })
+    return res.status(OK).send(toolTips);
+  });
 
   return infoRouter;
 

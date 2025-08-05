@@ -9,6 +9,7 @@ import connectMongoDB from '@config/mongoConnect.js'
 import DocTypeEnum from '@config/docType.js'
 import envSchema from '@config/envValidationSchema.js'
 import multerOptions from '@config/multerOpt.js'
+import ToolTipDict from '@config/toolTip.js'
 import { clientErrorHandler, errorHandler, logError } from '@config/errHandler.js'
 
 import DocumentRouter from '@routes/document.route.js'
@@ -62,7 +63,11 @@ app.use(express.urlencoded({ extended: true }));
 // Init Express routers with required args (e.g., multer object for routes handling file uploads)
 const documentRoutes  = DocumentRouter(upload);
 const fileRoutes      = FileRouter(upload);
-const infoRoutes			= InfoRouter(DocTypeEnum, ALLOWED_FILE_EXT);
+const infoRoutes			= InfoRouter({ 
+	allowedFileExt	: ALLOWED_FILE_EXT,
+	toolTipDict			: ToolTipDict,
+	docTypes				: DocTypeEnum
+});
 const propertyRoutes  = PropertyRouter();
 
 // Register Express routers

@@ -59,6 +59,7 @@ const EditDocForm = ({ document, onClose, onUpdate }) => {
 
   const handleSave = async () => {
     setLoading(true);
+    console.log(dateCreate);
     try {
       const response = await axios.put(docsApi + '/' + document._id, {
         name,
@@ -89,6 +90,24 @@ const EditDocForm = ({ document, onClose, onUpdate }) => {
     }
   };
 
+  /**
+   * 
+   * @param {*} isoString 
+   * @returns 
+   */
+  const formatISO = (isoString) => {
+    if (!isoString || isoString === '') return; // Return on null/empty input (date fields are optional)
+    const date = new Date(isoString);
+    // Extract date parts
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    // Format: YYYY-MM-DDTHH:MM
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+
   return (
     <VStack spacing={4} align="stretch">
       <FormControl isRequired>
@@ -113,8 +132,8 @@ const EditDocForm = ({ document, onClose, onUpdate }) => {
       <FormControl>
         <FormLabel>Date Created</FormLabel>
         <Input
-          type="date"
-          value={dateCreate}
+          type="datetime-local"
+          value={formatISO(dateCreate)}
           onChange={(e) => setDateCreate(e.target.value)}
         />
       </FormControl>
@@ -122,8 +141,8 @@ const EditDocForm = ({ document, onClose, onUpdate }) => {
       <FormControl>
         <FormLabel>Date Effective</FormLabel>
         <Input
-          type="date"
-          value={dateEff}
+          type="datetime-local"
+          value={formatISO(dateEff)}
           onChange={(e) => setDateEff(e.target.value)}
         />
       </FormControl>
@@ -131,8 +150,8 @@ const EditDocForm = ({ document, onClose, onUpdate }) => {
       <FormControl>
         <FormLabel>Expiration Date</FormLabel>
         <Input
-          type="date"
-          value={expiry}
+          type="datetime-local"
+          value={formatISO(expiry)}
           onChange={(e) => setExpiry(e.target.value)}
         />
       </FormControl>
