@@ -1,8 +1,8 @@
 import { Router } from 'express'
 
-import { uploadFiles, downloadFile, getFileRefById, getFileRefs, deleteFileRefAndFile } from '@controllers/file.controller.js'
+import { uploadFiles, downloadFile, getFileRefById, getFileRefs, deleteFileRefAndFile } from '@controllers/fileRef.controller.js'
 
-const FileRouter = (upload) => {
+const FileRefRouter = (upload) => {
   const router = Router();
 
   /**
@@ -26,4 +26,4 @@ const FileRouter = (upload) => {
   return router;
 }
 
-export default FileRouter;
+export default FileRefRouter;

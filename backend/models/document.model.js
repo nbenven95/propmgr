@@ -5,13 +5,16 @@ import FileRef from '@models/fileRef.model.js'
 
 const documentSchema = new mongoose.Schema({
 
+  // Document name
+  name: { type: String, required: [true, 'Document name is required'] },
+
   // Document creation date
   dateCreate: { type: Date, required: false },
 
-  // Date the document took effect (if relevant)
+  // Date document takes effect (if applicable)
   dateEff: { type: Date, required: false },
 
-  // Document type -- validate against values in DocType enum
+  // Document type
   docType: {
     type: String,
     required: [true, 'Document type is required'],
@@ -19,21 +22,19 @@ const documentSchema = new mongoose.Schema({
       validator: function(v) {
         return Object.values(DocTypeEnum).includes(v.toLowerCase());
       },
-      message: 'Invalid document type {VALUE}'
+      message: props => `Invalid document type: ${props.value}`
     }
   },
 
-  // Document expiration date (if relevant)
+  // Document expiration date (if applicable)
   expiry: { type: Date, required: false },
 
-  // Object id of attached File; populate with contents of actual File on request
+  // Attached file (stores the object ID; populate with object data on request)
   fileRef: { 
     type: mongoose.Schema.Types.ObjectId,
     ref: 'FileRef',
     required: [true, 'File ref is required']
-  },
-
-  name: { type: String, required: [true, 'Document name is required'] }
+  }
 
 }, { timestamps: true });
 
@@ -49,7 +50,7 @@ documentSchema.pre('save', async function(next) { // TODO: this should run after
     const newFileRef = this.fileRef;
     let fileExistsForId = await FileRef.exists({ _id: newFileRef });
     // If no file exists, throw an error
-    if (!fileExistsForId) throw new Error(`Invalid file ref ${fileId}`);
+    if (!fileExistsForId) throw new Error(`Invalid file ref: ${fileId}`);
     // Update fileRef associations
     const DocumentModel = this.constructor;
     const prevDoc = await DocumentModel.findById(this._id).lean();
@@ -78,4 +79,3 @@ documentSchema.pre('save', async function(next) { // TODO: this should run after
 const Document = new mongoose.model('Document', documentSchema);
 
 export default Document;
-export { documentSchema }

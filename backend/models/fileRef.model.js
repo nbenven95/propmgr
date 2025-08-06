@@ -16,7 +16,7 @@ const fileRefSchema = new mongoose.Schema({
       return true; // File name is not in use, return true
 
     },
-    message: 'Invalid unique name {VALUE}: file already exists'
+    message: props => `Invalid unique name ${props.value}: file already exists`
   }},
 
   // Client file original name

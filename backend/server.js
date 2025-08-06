@@ -13,9 +13,9 @@ import ToolTipDict from '@config/toolTip.js'
 import { clientErrorHandler, errorHandler, logError } from '@config/errHandler.js'
 
 import DocumentRouter from '@routes/document.route.js'
-import FileRouter from '@routes/file.route.js'
+import FileRefRouter from '@routes/fileRef.route.js'
 import InfoRouter from '@routes/info.route.js'
-import PropertyRouter from '@routes/property.route.js'
+import PropertyProfileRouter from '@routes/propertyProfile.route.js'
 
 /* LOAD AND VALIDATE ENVIRONMENT VARIABLES */
 
@@ -62,13 +62,13 @@ app.use(express.urlencoded({ extended: true }));
 
 // Init Express routers with required args (e.g., multer object for routes handling file uploads)
 const documentRoutes  = DocumentRouter(upload);
-const fileRoutes      = FileRouter(upload);
+const fileRoutes      = FileRefRouter(upload);
 const infoRoutes			= InfoRouter({ 
-	allowedFileExt	: ALLOWED_FILE_EXT,
-	toolTipDict			: ToolTipDict,
-	docTypes				: DocTypeEnum
+	allowedFileExt	: ALLOWED_FILE_EXT, // Allowed file types for upload (define in env)
+	toolTipDict			: ToolTipDict, // Tooltips to display when hovering over certain elements on frontend
+	docTypes				: DocTypeEnum // Allowed document types // TODO: create way for user to define custom document types and set which are allowed to be used for properties, insurance, etc. 
 });
-const propertyRoutes  = PropertyRouter();
+const propertyRoutes  = PropertyProfileRouter();
 
 // Register Express routers
 app.use('/api/docs', 				documentRoutes);
