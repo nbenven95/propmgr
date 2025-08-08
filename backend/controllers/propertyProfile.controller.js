@@ -3,12 +3,9 @@ import fetch from 'node-fetch'
 
 import PropertyProfile from '@models/propertyProfile.model.js'
 
-import { isNull } from '@util/util.js' // TODO: deprecate this; redundant 
 import HttpStatusCodes from '@util/httpStatus.js'
 
-// Destructure enum object to access elements directly
-const { BAD_REQUEST, CREATED, INTERNAL_SERVER_ERROR, NOT_FOUND, OK } = HttpStatusCodes;
-
+const { BAD_REQUEST, CREATED, INTERNAL_SERVER_ERROR, NOT_FOUND, OK } = HttpStatusCodes; // Destructure elements for direct access
 const appVersion  = '1.0';                           // TODO: how to set/get dynamically? 
 const authorEmail = 'nbenveniste@riseservices.org';
 
@@ -21,7 +18,7 @@ const authorEmail = 'nbenveniste@riseservices.org';
 const getProperties = async (req, res) => {
   try {
     // Await get properties promise
-    const properties = await PropertyProfile.find();
+    const properties = await PropertyProfile.find().populate('subunits').exec();
     // No properties found 
     if (!Array.isArray(properties) || properties.length === 0) {
       console.error('No Property Profiles found');
@@ -95,13 +92,14 @@ const getGeoCodeFromAddr = async (addr) => {
  */
 const createProperty = async (req, res) => {
   // Destructure property fields from request body
-  const { name, dateAcq, phone, notes } = req.body; 
+  const { name, dateAcq, phone, notes, subunits } = req.body; 
   // Create mongoose Property object
   const newProperty = new PropertyProfile({
     name: name,
     dateAcq: dateAcq ? new Date(dateAcq) : null,
     phone: phone,
-    notes: notes
+    notes: notes,
+    subunits: subunits // Array of object IDs corresponding to subunit database entries
   });
   // Attempt async save
   try {
@@ -139,7 +137,7 @@ const deleteProperty = async (req, res) => {
   try {
     const deletedProperty = await PropertyProfile.findByIdAndDelete(id);
     // Invalid object id
-    if (isNull(deletedProperty)) {
+    if (!deletedProperty) {
       return res.status(NOT_FOUND).send({
         success: false,
         message: `Property with ID ${id} not found`
@@ -157,7 +155,7 @@ const deleteProperty = async (req, res) => {
       success: false,
       message: `Failed to delete Property with ID ${id}`,
       error: err
-    })
+    });
   }
 };
 
@@ -178,21 +176,21 @@ const updateProperty = async (req, res) => {
   }
   // Proceed with update
   try {
-    // Filter null values in req.body
+    // Filter null values in request body
     const propertyUpdate = {};
     for (const key of Object.keys(req.body)) {
       const value = req.body[key];
-      // If the req.body field is not null, add it to the update object
+      // Only add non-null values to the update object
       if (value !== undefined && value !== null) {
-        propertyUpdate[key]= value;
+        propertyUpdate[key] = value;
       }
     }
     // Await update promise
-    const updatedProperty = await Property.findByIdAndUpdate(
+    const updatedProperty = await PropertyProfile.findByIdAndUpdate(
       id,
       propertyUpdate,
       { new: true, runValidators: true } // Return updated document, validate updated fields
-    )
+    );
     // Property not found => 404
     if (!updatedProperty) {
       return res.status(NOT_FOUND).send({
@@ -205,14 +203,17 @@ const updateProperty = async (req, res) => {
       success: true,
       message: `Property with ID ${id} updated successfully`,
       data: updatedProperty
-    })
+    });
   } catch (err) { // TODO: verify that only server-side errors will be caught here 
     // General errors
+    console.error(
+      `Failed to update Property with ID \'${id}\': ${err.message?? err.name?? err.code?? '<no internal error message provided>'}`
+    );
     return res.status(INTERNAL_SERVER_ERROR).send({
       success: false,
-      message: `Failed to update Property with ID ${id}: ${err.message??'<no internal error message provided>'}`,
+      message: `Failed to update Property with ID \'${id}\'`,
       error: err
-    })
+    });
   }
 };
 

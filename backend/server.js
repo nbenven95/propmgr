@@ -16,6 +16,7 @@ import DocumentRouter from '@routes/document.route.js'
 import FileRefRouter from '@routes/fileRef.route.js'
 import InfoRouter from '@routes/info.route.js'
 import PropertyProfileRouter from '@routes/propertyProfile.route.js'
+import SubunitRouter from '@routes/subunit.route.js'
 
 /* LOAD AND VALIDATE ENVIRONMENT VARIABLES */
 
@@ -69,12 +70,14 @@ const infoRoutes			= InfoRouter({
 	docTypes				: DocTypeEnum // Allowed document types // TODO: create way for user to define custom document types and set which are allowed to be used for properties, insurance, etc. 
 });
 const propertyRoutes  = PropertyProfileRouter();
+const subunitRoutes 	= SubunitRouter();
 
 // Register Express routers
 app.use('/api/docs', 				documentRoutes);
 app.use('/api/files', 			fileRoutes);
 app.use('/api/info', 				infoRoutes);
 app.use('/api/properties', 	propertyRoutes);
+app.use('/api/subunits', 		subunitRoutes);
 
 // Register Express error handlers
 app.use(logError);

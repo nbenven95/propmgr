@@ -4,6 +4,8 @@ import { createProperty, deleteProperty, getProperties, getPropertyByID, updateP
 
 const PropertyProfileRouter = () => {
   const router = Router();
+  
+  /* Property profile routes */
 
   router.get('/', getProperties); // Get all Properties
 

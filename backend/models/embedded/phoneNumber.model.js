@@ -12,7 +12,7 @@ const phoneNumberSchema = new mongoose.Schema({
     required: [true, 'Phone number is required']
   },
   /**
-   * The extracted area code and digits of the phone number as a string
+   * The extracted area code and digits of the phone number, as a string
    */
   digits: {
     type    : String,
@@ -44,8 +44,7 @@ phoneNumberSchema.pre('save', function(next) {
   // Strip all non-digit characters (greedy match)
   const extractedDigits = this.number.replace(/\D/g, '');
   
-  // Check for country code
-  // Note: this assumes a 10-11 digit phone number with a 1-digit country code 
+  // Check for country code (assumes a 10-digit phone number, or 11 with 1-digit country code)
   if (extractedDigits.length === 11) { 
     this.countryCode = extractedDigits.substring(0, 1);
     this.digits = extractedDigits.substring(1, 11);

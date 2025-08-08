@@ -1,8 +1,18 @@
 import mongoose from 'mongoose'
 
+import DocTypeEnum from '@config/docType.js'
+
 import { noteSchema } from '@models/embedded/note.model.js'
 import { phoneNumberSchema } from '@models/embedded/phoneNumber.model.js'
 
+const { BLUEPRINT, CONTRACT, DEED, FLOORPLAN, LEASE, LIEN, SCHEMATIC, TEXT, WORKORDER } = DocTypeEnum;
+const allowedDocTypes = [BLUEPRINT, CONTRACT, DEED, FLOORPLAN, LEASE, LIEN, SCHEMATIC, TEXT, WORKORDER];
+
+// TODO: add field for garbage pickup schedule; should include day(s) of the week, time, and frequency (e.g., weekly, biweekly, etc.)
+
+/**
+ * Schema encapsulating property profile information
+ */
 const propertyProfileSchema = new mongoose.Schema({
   /**
    * Property name
@@ -14,7 +24,7 @@ const propertyProfileSchema = new mongoose.Schema({
   /**
    * Property date of acquisition
    */
-  dateacq: {
+  dateAcq: {
     type    : Date,
     required: false
   },
@@ -41,7 +51,10 @@ const propertyProfileSchema = new mongoose.Schema({
    * e.g., important neighbor information, etc.
    * Note: use embedded schema to store data directly in parent object.
    */
-  notes: [noteSchema]
+  notes: [{
+    type    : noteSchema,
+    required: false
+  }]
   /**
    * List of associated property documents
    * Note: store object IDs, populate w/ data from documents collection on request.
@@ -59,8 +72,16 @@ const propertyProfileSchema = new mongoose.Schema({
 const subunitSchema = new mongoose.Schema({ ...propertyProfileSchema.obj }, { timestamps: true });
 const Subunit = new mongoose.model('Subunit', subunitSchema);
 
-// Add subunits property after defining subunitSchema to prevent subunit recursion
-propertyProfileSchema.add({ subunits: { type: [subunitSchema], required: false } });
+// Add subunits after defining subunitSchema to prevent recursion bugs
+propertyProfileSchema.add({
+
+  subunits: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Subunit',
+    required: false
+  }]
+
+});
 const PropertyProfile = new mongoose.model('PropertyProfile', propertyProfileSchema);
 
 export default PropertyProfile;
