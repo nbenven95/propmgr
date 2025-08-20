@@ -5,12 +5,12 @@ import express from 'express'
 import fs from 'node:fs'
 import multer from 'multer'
 
-import connectMongoDB from '@config/mongoConnect.js'
+import connectMongoDB from '@middleware/mongoConnect.js'
 import DocTypeEnum from '@config/docType.js'
 import envSchema from '@config/envValidationSchema.js'
 import multerOptions from '@config/multerOpt.js'
-import ToolTipDict from '@config/toolTip.js'
-import { clientErrorHandler, errorHandler, logError } from '@config/errHandler.js'
+import ToolTipDict from '@config/ToolTip.js'
+import errorHandler from '@middleware/errorHandler.js'
 
 import DocumentRouter from '@routes/document.route.js'
 import FileRefRouter from '@routes/fileRef.route.js'
@@ -79,9 +79,7 @@ app.use('/api/info', 				infoRoutes);
 app.use('/api/properties', 	propertyRoutes);
 app.use('/api/subunits', 		subunitRoutes);
 
-// Register Express error handlers
-app.use(logError);
-app.use(clientErrorHandler); // TODO: research Express error handler patterns/best practices 
+// Register custom error handler (must be last registered middleware!)
 app.use(errorHandler);
 
 /* ATTEMPT DATABASE CONNECTION; START EXPRESS SERVER */

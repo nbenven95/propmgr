@@ -20,6 +20,10 @@ const CreateDocForm = ({
   const [docTypes, setDocTypes]             = useState([]);
   const [toolTips, setToolTips]             = useState({});
 
+  /**
+   * Helper method for generating full timestamps
+   * @returns
+   */
   const dateTime = () => {
     const now     = new Date(); // Get current date/time as ISO timestamp
     const year    = String(now.getFullYear());

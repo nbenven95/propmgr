@@ -1,7 +1,7 @@
 import mongoose from 'mongoose'
 
 import DocTypeEnum from '@config/docType.js'
-import OpSysTypeEnum, { ApplianceTypeEnum } from '@config/opSysType.js'
+import OpSysTypeEnum, { ApplianceTypeEnum } from '@config/OpSysType.js'
 
 const { CONTRACT, MANUAL, SCHEMATIC, TEXT, WARRANTY, WORKORDER } = DocTypeEnum;
 const allowedDocTypes = [CONTRACT, MANUAL, SCHEMATIC, TEXT, WARRANTY, WORKORDER];
@@ -27,7 +27,7 @@ const opSysSchema = new mongoose.Schema({
       validator: function(v) {
         return Object.values(OpSysTypeEnum).includes(v.toLowerCase());
       },
-      message: props => `Invalid operating system type: ${props.value}`
+      message: props => `Invalid operating system type: ${props.value} -- allowed types: ${Object.values(OpSysTypeEnum).join(',')}`
     }
   },
   /**
@@ -42,7 +42,7 @@ const opSysSchema = new mongoose.Schema({
       validator: function(v) {
         return Object.values(ApplianceTypeEnum).includes(v.toLowerCase());
       },
-      message: props => `Invalid operating system sub-type: ${props.value}`
+      message: props => `Invalid operating system sub-type: ${props.value} -- allowed types: ${Object.values(ApplianceTypeEnum).join(',')}`
     }
   },
   /**
@@ -63,7 +63,7 @@ const opSysSchema = new mongoose.Schema({
    * Contact information for OpSys servicer
    */
   servicePointOfContact: {
-    type    : mongoose.Schema.Types.ObjectId,
+    type    : mongoose.Schema.Types.ObjectId, // TODO: add presave middleware to validate (async) 
     ref     : 'Contact',
     required: false
   },
@@ -78,9 +78,20 @@ const opSysSchema = new mongoose.Schema({
    * Any documents associated with operating systems
    */
   documents: [{
-    type    : mongoose.Schema.Types.ObjectId,
+    type    : mongoose.Schema.Types.ObjectId, // TODO: validate in presave middleware (async); see propertyProfile.model.js
     ref     : 'Document',
-    required: false
+    required: false,
+    validate: {
+      validator: function(v) {
+        const docs = v;
+        if (docs === undefined || docs === null || !Array.isArray(docs)) return false; // TODO: might be redundant 
+        return docs.every(doc =>
+          allowedDocTypes.includes(doc.docType) // Ensure that all of our documents are of the allowed type
+        )
+      },
+      // TODO: not sure if this will return the correct error message format 
+      message: props => `Invalid Document type \'${props.value}\' for OpSys -- allowed types: ${allowedDocTypes.join(',')}`
+    }
   }]
   
 }, { timestamps: true });

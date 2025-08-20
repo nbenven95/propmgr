@@ -36,12 +36,12 @@ const DocsPageUI = ({
   handleEditClick,
   handleCreateClick
 }) => {
-
-// TODO: replace with a chakra UI animated loading icon 
-if (loading) {
+  
+  // TODO: replace with a chakra UI animated loading icon 
+  if (loading) {
     return (
       <Flex justify="center" align="center" minH="100vh">
-        <Text fontSize="xl">Loading documents. . .</Text>
+        <Text fontSize="xl">Loading Documents. . .</Text>
       </Flex>
     );
   }

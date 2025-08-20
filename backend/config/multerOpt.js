@@ -1,6 +1,8 @@
 import multer from 'multer'
 import sysPath from 'node:path'
 
+// TODO: make this a class instead of a single exported method (change file name to MulterOpt)
+
 const multerOptFromEnvVar = ({
   uploadDir,
   maxFileSize,

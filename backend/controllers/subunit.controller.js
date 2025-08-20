@@ -2,7 +2,7 @@ import mongoose from 'mongoose'
 
 import { Subunit } from '@models/propertyProfile.model.js'
 
-import HttpStatusCodes from '@util/httpStatus.js'
+import HttpStatusCodes from '@util/HttpStatus.js'
 
 const { BAD_REQUEST, CREATED, INTERNAL_SERVER_ERROR, NOT_FOUND, OK } = HttpStatusCodes; // Destructure elements for direct access
 

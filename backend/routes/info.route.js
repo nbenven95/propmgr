@@ -1,6 +1,6 @@
 import { Router } from 'express'
 
-import HttpStatusCodes from '@util/httpStatus.js'
+import HttpStatusCodes from '@util/HttpStatus.js'
 
 const { BAD_REQUEST, NOT_FOUND, OK } = HttpStatusCodes;
 

@@ -4,8 +4,7 @@ import sysPath from 'node:path'
 import Document from '@models/document.model.js'
 import File from '@models/fileRef.model.js'
 
-import { isNull } from '@util/util.js'; // TODO: deprecate; redundant 
-import HttpStatusCodes from '@util/httpStatus.js'
+import HttpStatusCodes from '@util/HttpStatus.js'
 
 const {
   OK,
@@ -140,7 +139,7 @@ const deleteDocument = async (req, res) => {
   try {
     const deletedDoc = await Document.findByIdAndDelete(id);
     // Check for non-existent Document
-    if (isNull(deletedDoc)) {
+    if (!deletedDoc) {
       return res.status(NOT_FOUND).send({
         success: false,
         message: `Document ${id} not found`

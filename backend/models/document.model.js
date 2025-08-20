@@ -3,35 +3,44 @@ import mongoose from 'mongoose'
 import DocTypeEnum from '@config/docType.js'
 import FileRef from '@models/fileRef.model.js'
 
+// TODO: implement some way to get list of all PropertyProfile, Subunit, OpSys, and InsurancePolicy documents that are associated with a given Document document
+
 const documentSchema = new mongoose.Schema({
-
-  // Document name
+  /**
+   * Document name
+   */
   name: { type: String, required: [true, 'Document name is required'] },
-
-  // Document creation date
+  /**
+   * Document creation date
+   */
   dateCreate: { type: Date, required: false },
-
-  // Date document takes effect (if applicable)
+  /**
+   * Date document takes effect, if applicable
+   */
   dateEff: { type: Date, required: false },
-
-  // Document type
+  /**
+   * Document expiration date, if applicable
+   */
+  expiry: { type: Date, required: false },
+  /**
+   * Document type (e.g. contract, lease, warranty, floorplan, etc.)
+   */
   docType: {
     type: String,
     required: [true, 'Document type is required'],
     validate: {
       validator: function(v) {
-        return Object.values(DocTypeEnum).includes(v.toLowerCase());
+        // TODO: implement ability for user to add new document types 
+        return Object.values(DocTypeEnum).includes(v.toLowerCase()); // Ensure doc type is one of the pre-defined types
       },
       message: props => `Invalid document type: ${props.value}`
     }
   },
-
-  // Document expiration date (if applicable)
-  expiry: { type: Date, required: false },
-
-  // Attached file (stores the object ID; populate with object data on request)
+  /**
+   * Attached file
+   */
   fileRef: { 
-    type: mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId, // Store the object ID, populate with data on request
     ref: 'FileRef',
     required: [true, 'File ref is required']
   }
@@ -39,19 +48,19 @@ const documentSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 /**
- * Pre-save middleware; handles async validation logic.
- * Executes before the Document object is saved to the
- * database. Ensures that a File exists for fileRef.
+ * Pre-save middleware to handle async validation.
+ * Ensures that the object ID for fileRef is valid
+ * and that a corresponding FileRef object exists.
  */
-documentSchema.pre('save', async function(next) { // TODO: this should run after createWithFile (if it is called), but before .save(); verify this
+documentSchema.pre('save', async function(next) {
   try {
-    // If this is a document update and fileRef is unmodified, continue to save()
+    // Check for object update; if no modification, continue to save
     if (!this.isModified('fileRef')) return next();
 
     // If no file exists, throw an error
     const newFileRef = this.fileRef;
     let fileExistsForId = await FileRef.exists({ _id: newFileRef });
-    if (!fileExistsForId) throw new Error(`Invalid file ref: ${fileId}`);
+    if (!fileExistsForId) throw new Error(`Invalid FileRef object ID: ${fileId}`);
 
     // Update fileRef associations
     const DocumentModel = this.constructor;
@@ -77,7 +86,9 @@ documentSchema.pre('save', async function(next) { // TODO: this should run after
 
   } catch (err) {
     // Handle File does not exist, invalid object id, etc.
-    console.error('Error in documentSchema presave validation:', err.message?? '<no internal error message provided>');
+    console.error(
+      `Error in ${this.type} pre-save validation: ${err.message?? err.name?? err.code?? '<no internal error message provided>'}`
+    );
     next(err);
   }
 });

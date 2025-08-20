@@ -126,7 +126,6 @@ const DocsPage = () => {
     onOpen();
   }
 
-  // TODO: fix bug where you have to click edit once to set the currentDoc and then click again to actually render the page properly 
   const handleEditClick = (doc) => {
     setCurrentDoc(doc);
     setDrawerHeader('Edit Document');

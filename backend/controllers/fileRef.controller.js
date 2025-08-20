@@ -2,7 +2,7 @@ import mongoose from 'mongoose'
 import fs from 'node:fs/promises'
 import sysPath from 'node:path'
 
-import HttpStatusCodes from '@util/httpStatus.js'
+import HttpStatusCodes from '@util/HttpStatus.js'
 
 import FileRef from '@models/fileRef.model.js'
 

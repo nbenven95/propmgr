@@ -1,181 +1,206 @@
 import mongoose from 'mongoose'
-import fetch from 'node-fetch'
 
 import PropertyProfile from '@models/propertyProfile.model.js'
 
-import HttpStatusCodes from '@util/httpStatus.js'
+import HttpStatusCodes from '@util/HttpStatus.js'
 
 const { BAD_REQUEST, CREATED, INTERNAL_SERVER_ERROR, NOT_FOUND, OK } = HttpStatusCodes; // Destructure elements for direct access
-const appVersion  = '1.0';                           // TODO: how to set/get dynamically? 
-const authorEmail = 'nbenveniste@riseservices.org';
 
 /**
+ * Get all PropertyProfiles.
  * 
  * @param {*} req 
  * @param {*} res 
  * @returns 
  */
 const getProperties = async (req, res) => {
-  try {
-    // Await get properties promise
-    const properties = await PropertyProfile.find().populate('subunits').exec();
-    // No properties found 
-    if (!Array.isArray(properties) || properties.length === 0) {
-      console.error('No Property Profiles found');
+  try { // Attempt async GET request
+
+    const properties = await PropertyProfile.find() // Await find all PropertyProfiles promise; populate fields that store ObjectIDs
+      .populate('insurancePolicy')
+      .populate('opSystems')
+      .populate('documents')
+      .populate('subunits')
+      .exec();
+    
+    if (!Array.isArray(properties) || properties.length === 0) { // Check for no PropertyProfiles found
+      console.error('No PropertyProfiles found');
       return res.status(NOT_FOUND).send({
         success: false,
-        message: 'No Property Profiles found'
+        message: 'No PropertyProfiles found'
       });
     }
-    // Found properties; use `res.data` to get properties from API request on frontend
-    return res.status(OK).send(properties);
+    
+    return res.status(OK).send(properties); // Found properties; use `res.data` to get properties from API request on frontend
+  
   } catch (err) {
+    
     // Handle general server-side errors (missing database collection, etc.)
-    console.error('Error fetching Property Profiles', err.name, err.code, err.message); // TODO: standardize error handling 
+    console.error(
+      `Error fetching PropertyProfiles: ${err.message?? err.name?? err.code?? '<no internal error message provided>'}`
+    );
     return res.status(INTERNAL_SERVER_ERROR).send({
       success: false,
-      message: 'Error fetching Property Profiles',
+      message: 'Error fetching PropertyProfiles',
       error: err
     });
   }
 };
 
-const getPropertyByID = async (req, res) => {
-
-};
-
 /**
- * Helper function for retrieving the latitude/longitude of a
- * given address from the Nominatim/OpenStreetMaps (OSM) API.
+ * Get a PropertyProfile given its object ID.
  * 
  * @param {*} req 
- * @param {*} res
- * @returns the latitude/longitude as an array of two numbers
+ * @param {*} res 
  */
-// TODO: implement request caching 
-const getGeoCodeFromAddr = async (addr) => {
-  const addrStr = `${addr.number}+${addr.street}+${addr.city}`;
-  // Construct request URL for OpenStreetMaps (OSM) API
-  const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addrStr)}&limit=1`;
-  let data = null;
+const getPropertyByID = async (req, res) => {
+  const { id } = req.params;
   try {
-    // Await response to API request
-    const response = await fetch(nominatimUrl, { // TODO: will this ever return null, or just throw an error? 
-      headers: { 'User-Agent': `propmgr/${appVersion} (${authorEmail})` }
-    });
-    // Await get JSON data from response // TODO: why is this async? 
-    data = await response.json(); // TODO: will this ever return null, or just throw an error? 
-    if (!Array.isArray(data) || data.length === 0) {
-      return res.status(NOT_FOUND).send({
-        success: false,
-        message: `Failed to locate geocode for address ${addrStr}`
-      });
-    }
-  } catch (err) {
-    // Catch errors due to failed API requests // TODO: may also want to handle cases for failed authentication (e.g. missing headers), etc. 
-    console.error(`Error fetching data from ${nominatimUrl}`, err.message?? err);
-    return res.status(BAD_REQUEST).send({
+    const property = await PropertyProfile.find({ _id: id });
+    if (!property) return res.status(NOT_FOUND).send({
       success: false,
-      message: 'Error fetching data from OSM API',
-      error: err
+      message: `PropertyProfile not found: ObjectID \'${id}\'`
     });
+  } catch(err) {
+    console.error(
+      `Error fetching PropertyProfile: ObjectID \'${id}\': ${
+        err.message?? err.name?? err.code?? '<no internal error message provided>'
+      }`
+    );
   }
-  const { lat, lon } = data[0];
-  return [lat, lon];
 };
 
 /**
+ * Create a PropertyProfile from request body data.
  * 
  * @param {*} req 
  * @param {*} res 
  * @returns 
  */
 const createProperty = async (req, res) => {
-  // Destructure property fields from request body
-  const { name, dateAcq, phone, notes, subunits } = req.body; 
-  // Create mongoose Property object
+  /* Destructure fields from request body */
+  const {
+    name,
+    address,
+    geoCode,          // Set on frontend via react-maplibre geocoder
+    apn,              // Assessor's Parcel Number (Tax ID)
+    phone,
+    dateAcq,
+    wastePickupSched,
+    notes,            // List of note key/value pairs (embedded)
+    insurancePolicy,  // Object ID corresponding to an InsurancePolicy document
+    opSystems,        // Array of object IDs corresponding to OpSys documents
+    documents,        // Array of object IDs corresponding to Document documents (hehe)
+    subunits          // Array of object IDs corresponding to Subunit documents
+  } = req.body;
+
+  /* Create mongoose PropertyProfile document instance */
   const newProperty = new PropertyProfile({
-    name: name,
-    dateAcq: dateAcq ? new Date(dateAcq) : null,
-    phone: phone,
-    notes: notes,
-    subunits: subunits // Array of object IDs corresponding to subunit database entries
+    name            : name,
+    address         : address,
+    geoCode         : geoCode,
+    apn             : apn,
+    phone           : phone,
+    dateAcq         : dateAcq
+      ? new Date(dateAcq) // Init Date object from ISO date string passed in request body
+      : null,
+    wastePickupSched: wastePickupSched,
+    notes           : notes,
+    insurancePolicy : insurancePolicy,
+    opSystems       : opSystems,
+    documents       : documents,
+    subunits        : subunits
   });
-  // Attempt async save
+
+  /* Attempt async save */
   try {
     await newProperty.save();
     return res.status(CREATED).send({
       success: true,
-      message: `Successfully created Property '${name}'`,
+      message: `Successfully created PropertyProfile \'${newProperty.name}\'`,
       data: newProperty
     })
   } catch (err) {
     return res.status(INTERNAL_SERVER_ERROR).send({
       success: false,
-      message: `Failed to create Property '${name}': ${err.message?? '<no internal error message provided>'}`,
+      message: `Failed to create PropertyProfile \'${name}\': ${
+        err.message?? err.name?? err.code?? '<no internal error message provided>'
+      }`,
       error: err
     });
   }
 };
 
 /**
- * Delete a property by its object id
- * 
- * @param {*} req 
- * @param {*} res 
+ * Delete a PropertyProfile given its MongoDB ObjectID.
+ * // TODO: verify the types of req and res 
+ * @param {Request} req The HTTP request object.
+ *  Contains the ObjectID of the PropertyProfile
+ *  to delete in req.params.id
+ * @param {Response} res The HTTP response object.
  */
 const deleteProperty = async (req, res) => {
-  const { id } = req.params;
-  // Ensure id is valid (shortcut 404 check)
-  if (!mongoose.Types.ObjectId.isValid(id)) {
+  const { id } = req.params; // Destructure URL parameters // TODO: what if req.params is null/undefined?
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) { // Ensure valid ObjectID
     return res.status(BAD_REQUEST).send({
       success: false,
-      message: `Invalid object ID ${id}`
+      message: (() => {
+        if (!id || id === '') return 'Missing ObjectID'
+        else                  return `Invalid ObjectID: \'${id}\'`
+      })()
     });
   }
   // Attempt async delete of database object
   try {
     const deletedProperty = await PropertyProfile.findByIdAndDelete(id);
-    // Invalid object id
+    // Not found => 404
+    console.error(`PropertyProfile not found: ObjectID \'${id}\'`);
     if (!deletedProperty) {
       return res.status(NOT_FOUND).send({
         success: false,
-        message: `Property with ID ${id} not found`
+        message: `PropertyProfile not found: ObjectID \'${id}\'`
       });
     }
     // Successful deletion
     return res.status(OK).send({
       success: true,
-      message: `Successfully deleted Property with ID ${id}`,
+      message: `Successfully deleted PropertyProfile \'${deletedProperty.name}\'`,
       data: deletedProperty 
     });
   } catch (err) {
     // Handle general server errors
+    console.error(
+      `Failed to delete PropertyProfile with ObjectID \'${id}\': ${
+        err.message?? err.name?? err.code?? '<no internal error message provided>'
+      }`
+    );
     return res.status(INTERNAL_SERVER_ERROR).send({
       success: false,
-      message: `Failed to delete Property with ID ${id}`,
+      message: `Failed to delete PropertyProfile with ObjectID \'${id}\'}`,
       error: err
     });
   }
 };
 
 /**
+ * Update a PropertyProfile given its object ID and request body data.
  * 
  * @param {*} req 
  * @param {*} res 
  */
 const updateProperty = async (req, res) => {
-  // Unpack request URI parameters
-  const { id } = req.params;
-  // Check for valid object ID
-  if (!mongoose.Types.ObjectId.isValid(id)) {
+  
+  const { id } = req.params; // Unpack request URL parameters
+  
+  if (!mongoose.Types.ObjectId.isValid(id)) { // Check for valid object ID
     return res.status(BAD_REQUEST).send({
       success: false,
-      message: `Invalid object ID ${id}`
+      message: `Invalid PropertyProfile ObjectID: ${id}`
     });
   }
-  // Proceed with update
-  try {
+  
+  try { // Attempt async update
+    
     // Filter null values in request body
     const propertyUpdate = {};
     for (const key of Object.keys(req.body)) {
@@ -191,23 +216,24 @@ const updateProperty = async (req, res) => {
       propertyUpdate,
       { new: true, runValidators: true } // Return updated document, validate updated fields
     );
-    // Property not found => 404
-    if (!updatedProperty) {
-      return res.status(NOT_FOUND).send({
-        success: false,
-        message: `Property with ID ${id} not found`
-      });
-    }
+    // Not found => 404
+    console.error(`PropertyProfile with ObjectID \'${id}\' not found`);
+    if (!updatedProperty) return res.status(NOT_FOUND).send({
+      success: false,
+      message: `PropertyProfile with ObjectID \'${id}\' not found`
+    });
     // Update successful => 200
     return res.status(OK).send({
       success: true,
-      message: `Property with ID ${id} updated successfully`,
+      message: `PropertyProfile with ObjectID \'${id}\' updated successfully`,
       data: updatedProperty
     });
-  } catch (err) { // TODO: verify that only server-side errors will be caught here 
-    // General errors
+  } catch (err) { // TODO: test edge cases, verify that only server-side errors are caught here 
+    // Handle server-side errors
     console.error(
-      `Failed to update Property with ID \'${id}\': ${err.message?? err.name?? err.code?? '<no internal error message provided>'}`
+      `Failed to update PropertyProfile with ObjectID \'${id}\': ${
+        err.message?? err.name?? err.code?? '<no internal error message provided>'
+      }`
     );
     return res.status(INTERNAL_SERVER_ERROR).send({
       success: false,

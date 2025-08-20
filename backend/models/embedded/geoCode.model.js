@@ -10,7 +10,7 @@ const geoCodeSchema = new mongoose.Schema({
 
   coordinates: {
     type    : [Number],
-    required: [true, 'Geocode']
+    required: [true, 'Geocode'] // TODO: add validator that ensures this array has exactly 2 elements 
   }
 
 }, { _id: false }); // No unique ID for embedded schema
