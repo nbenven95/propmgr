@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 
 import EditPropertyProfileFormUI from './EditPropertyProfileFormUI'
 
-import formatISO from '../../../util/util'
+import { formatISO } from '../../../util/util'
 
 const baseUrl     = 'http://localhost:5000';
 const propProfApi = `${baseUrl}/api/properties`;

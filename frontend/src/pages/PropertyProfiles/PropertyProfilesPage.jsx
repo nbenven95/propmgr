@@ -6,51 +6,67 @@ import PropertyProfilesPageUI from './PropertyProfilesPageUI'
 import EditPropertyProfileForm from './Edit/EditPropertyProfileForm'
 import CreatePropertyProfileForm from './Create/CreatePropertyProfileForm'
 
-const baseUrl     = 'http://localhost:5000';
-const propsApi = `${baseUrl}/api/properties`;
+const baseUrl = 'http://localhost:5000';
+const propertiesApi = `${baseUrl}/api/properties`;
+const docsApi = `${baseUrl}/api/docs`;
+const subunitsApi = `${baseUrl}/api/subunits`;
+// TODO: add endpoints for insurance and opsys
 
 /**
  * 
  * @returns 
  */
-const PropertyProfilesPage = () => {
+const PropertyProfilesPage = () => { // TODO: document these better
   /**
-   * Drawer open state
-   *    Stores the state of the drawer menu (true: open, false: closed).
-   * onOpen
-   *    Event handler to be called when drawer menu should open.
-   * onClose
-   *    Event handler to be called when drawer menu should close.
+   * Drawer open/close state
    */
   const { isOpen, onOpen, onClose } = useDisclosure();
   /**
-   * Drawer header state
-   *    Set the title of the drawer menu based on the current operating mode.
+   * Drawer header content state and setter
    */
   const [drawerHeader, setDrawerHeader] = useState('');
   /**
-   * Drawer body state
-   *    Render a given component (e.g. Create, Edit, etc.) based on the current operating mode.
+   * Drawer body content state and setter
    */
   const [drawerBody, setDrawerBody] = useState(null);
    /**
-   * Page loading state
+   * Page loading state and setter
    */
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState({
+    docs: false,
+    opSys: false,
+    policies: false,
+    subunits: false,
+    properties: false
+  });
     /**
-   * Bulk operation state
+   * Bulk operation state and setter
    */
   const [bulkMode, setBulkMode] = useState(false);
   /**
-   * PropertyProfiles state
-   *    Stores the result of the most recent GET request (list of PropertyProfiles).
+   * List of all current Documents in database
    */
-  const [profiles, setProfiles] = useState([]);
+  const [docs, setDocs] = useState([]); // TODO: how to write a request that will filter all non-property documents?
   /**
-   * Bulk operation selected items state
-   *    Stores ObjectIDs of items to be bulk deleted.
+   * List of all current Insurance Policies in database
    */
-  const [selectedProfiles, setSelectedProfiles] = useState([]);
+  const [policies, setPolicies] = useState([]);
+  /**
+   * List of all current Operating Systems in database
+   */
+  const [opSys, setOpSys] = useState([]);
+  /**
+   * List of all current Subunits in database
+   */
+  const [subunits, setSubunits] = useState([]);
+  /**
+   * List of all current Property Profiles in database
+   */
+  const [properties, setProperties] = useState([]);
+    /**
+   * List of ObjectIDs of Property Profiles currently selected for bulk delete
+   */
+  const [selectedProperties, setSelectedProperties] = useState([]);
 
   // Init object for displaying toast messages
   const toast = useToast();
@@ -74,35 +90,45 @@ const PropertyProfilesPage = () => {
   };
 
   /**
-   * Get all PropertyProfiles
+   * 
+   * @param {*} resource 
+   * @param {*} url 
+   * @param {*} setState 
    */
-  const fetchProfiles = async () => {
-    setLoading(true);
+  const fetch = async (resource, url, setState) => {
     try {
+      setLoading(loading[resource] = true);
       // On success, update state variable with response data
-      const res = await axios.get(propsApi);
-      setProfiles(res.data);
+      const res = await axios.get(url);
+      setState(res.data);
+      console.log(`Done fetching resource: ${url}`);
     } catch (err) {
-      // Handle failed API request
+      // API request failed: notify user
       console.error(err);
-      toastError('Error fetching Property Profiles', err.message);
+      toastError(`Failed to fetch resource: ${url}`, err.message);
     } finally {
-      // Set loading to false after handling success/failure
-      setLoading(false);
+      // Clean up
+      setLoading(loading[resource] = false);
     }
   };
 
-  // Fetch PropertyProfiles during initial render
-  useEffect(() => fetchProfiles(), []);
+  // Fetch resources from database during initial render
+  useEffect(() => {
+    fetch('properties', propertiesApi, setProperties);
+    fetch('subunits', subunitsApi, setSubunits);
+    fetch('docs', docsApi, setDocs);
+    // TODO: fetch opSys
+    // TODO: fetch policies
+  }, []);
 
   /**
-   * Delete a PropertyProfile given its ObjectID
+   * Delete a Property Profile given its ObjectID
    * @param {*} id 
    */
   const handleDelete = async (id) => {
     try {
       // On success, display a message with the deleted profile's name
-      const res = await axios.delete(`${propsApi}/${id}`);
+      const res = await axios.delete(`${propertiesApi}/${id}`);
       toastSuccess('Property Profile deleted', `Successfully deleted Property Profile: \'${res.data?.data?.name}\'`)
     } catch (err) {
       // Handle failed API request
@@ -112,46 +138,13 @@ const PropertyProfilesPage = () => {
   };
 
   /**
-   * Delete all currently selected PropertyProfiles
-   */
-  const handleDeleteBulk = async () => {};
-
-  /**
-   * Open drawer menu and render create component
-   */
-  const handleClickCreate = async () => {
-    setDrawerHeader('Create Property Profile');
-    setDrawerBody(
-      <CreatePropertyProfileForm 
-
-      />
-    );
-    // Open the drawer
-    onOpen();
-  };
-  
-  /**
-   * Open drawer menu and render edit component with the specified PropertyProfile
-   * @param {*} profile 
-   */
-  const handleClickEdit = async (profile) => {
-    setDrawerHeader(`Edit Property Profile: ${profile.name}`);
-    setDrawerBody(
-      <EditPropertyProfileForm 
-
-      />
-    );
-    // Open the drawer
-    onOpen();
-  };
-
-  /**
-   * Given a PropProf ObjectID, toggles its 'selected' status for bulk operations.
+   * Given a Property Profile ObjectID, toggles its 'selected'
+   * status for bulk operations (bulk delete).
    * @param {*} id 
    */
   const toggleSelect = (id) => {
     // Update state variable for selected PropertyProfiles
-    setSelectedProfiles(prev => {
+    setSelectedProperties(prev => {
       // Check if the specified profile was previously selected
       prev.includes(id)
         // Profile was previously selected: remove it from the list (toggle off)
@@ -161,9 +154,84 @@ const PropertyProfilesPage = () => {
     });
   }
 
+  /**
+   * Delete all Property Profiles selected for bulk delete.
+   */
+  const handleDeleteBulk = async () => {
+    if (selectedProperties.length === 0) return;
+    try {
+      // Collect responses for delete requests into array
+      const responses = await Promise.all(
+        selectedProperties.map(id => axios.delete(`${propertiesApi}/${id}`))
+      );
+      // Get names of deleted Property Profiles from response data
+      const deletedProperties = responses.map(res => res.data?.data?.name);
+      toastSuccess(
+        'Deleted Property Profiles',
+        `Successfully deleted Property Profiles: ${deletedProperties.join(', ')}`
+      );
+    } catch (err) {
+      // Bulk delete failed
+      console.error(err);
+      toastError('Error deleting Property Profiles', err.message);
+    }
+  };
+
+  /**
+   * Event handler for drawer menu close
+   */
+  const onUpdate = () => {
+    // Only refresh Property Profiles and Subunits (others shouldn't have changed)
+    fetch('parcels', propertiesApi, setParcels);
+    fetch('subunits', subunitsApi, setSubunits);
+    onClose();
+  }
+
+  /**
+   * Open drawer menu and render create component
+   */
+  const handleClickCreate = async () => {
+    setDrawerHeader('Create Property Profile');
+    setDrawerBody(
+      <CreatePropertyProfileForm 
+        onUpdate={onUpdate}
+      />
+    );
+    // Open the drawer
+    onOpen();
+  };
+  
+  /**
+   * Open drawer menu and render edit component with the specified Property Profile
+   * @param {*} property
+   */
+  const handleClickEdit = async (property) => {
+    setDrawerHeader(`Edit Property Profile: ${property.name}`);
+    setDrawerBody(
+      <EditPropertyProfileForm 
+        onUpdate={onUpdate}
+      />
+    );
+    // Open the drawer
+    onOpen();
+  };
+
   return (
     <PropertyProfilesPageUI 
-
+      loading={loading}
+      properties={properties}
+      selectedProperties={selectedProperties}
+      handleDelete={handleDelete}
+      bulkMode={bulkMode}
+      setBulkMode={setBulkMode}
+      toggleSelect={toggleSelect}
+      handleDeleteBulk={handleDeleteBulk}
+      handleClickCreate={handleClickCreate}
+      handleClickEdit={handleClickEdit}
+      isOpen={isOpen}
+      onClose={onClose}
+      drawerHeader={drawerHeader}
+      drawerBody={drawerBody}
     />
   );
 };

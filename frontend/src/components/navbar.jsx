@@ -123,7 +123,7 @@ const Navbar = () => {
                  </Button>
                 </Link>
 
-                {/* View documents */}
+                {/* Create documents */}
                 <Link as={RouterLink} to='/docs/create' width='100%'>
                   <Button
                     _hover={{ transform: 'scale(1.05)', boxShadow: '3px 3px red,-1em 0 0.4em olive' }} 
@@ -133,6 +133,18 @@ const Navbar = () => {
                   >
                     <Text>Create Document</Text>
                  </Button>
+                </Link>
+
+                {/* View Property Profiles */}
+                <Link as={RouterLink} to='/properties' width='100%'>
+                  <Button 
+                    _hover={{ transform: 'scale(1.05)', boxShadow: '3px 3px red,-1em 0 0.4em olive' }}
+                    style={{ transition: 'transform 0.2s ease' }}
+                    onClick={onClose}
+                    width='100%'
+                  >
+                    <Text>Property Profiles</Text>
+                  </Button>
                 </Link>
               </VStack>
             </DrawerBody>

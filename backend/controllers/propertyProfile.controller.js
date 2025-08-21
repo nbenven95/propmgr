@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import fetch from 'node-fetch'
 
 import PropertyProfile from '@models/propertyProfile.model.js'
 
@@ -71,18 +72,61 @@ const getPropertyByID = async (req, res) => {
 };
 
 /**
+ * Get geocode from address using OpenStreetMap/Nominatim API
+ * @param {*} address
+ */
+const getGeoCode = async (address, next) => {
+  if (!address) throw new Error('address cannot be null');
+  const {
+    streetNumber,
+    streetName,
+    city,
+    state,
+    postalCode,
+    country
+  } = address;
+  const baseUrl = 'https://nominatim.openstreetmap.org/search';
+  const params = new URLSearchParams({
+    format        : 'json',
+    limit         : '1',
+    addressdetails: '1',
+    q             : `${streetNumber}, ${streetName}, ${city}, ${state}, ${postalCode}, ${country}`
+  });
+  const uri = `${baseUrl}?${params.toString()}`
+  try {
+    const res = await fetch(uri, {
+      headers: {
+        'User-Agent': 'RisePropertyManager/1.0 (nbenveniste@riseservices.org)'
+      }
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to get geocode for address: ${addr}: Nominatum API responded with status: ${res.status}`);
+    }
+    // Get response data in JSON
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new Error(`Address not found: ${addr}`);
+    }
+    // Get latitude and longitude from response data (should only be one element in 'data')
+    return [data[0].lat, data[0].lon];
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
+
+/**
  * Create a PropertyProfile from request body data.
  * 
  * @param {*} req 
  * @param {*} res 
  * @returns 
  */
-const createProperty = async (req, res) => {
+const createProperty = async (req, res, next) => {
   /* Destructure fields from request body */
   const {
     name,
     address,
-    geoCode,          // Set on frontend via react-maplibre geocoder
     apn,              // Assessor's Parcel Number (Tax ID)
     phone,
     dateAcq,
@@ -94,11 +138,21 @@ const createProperty = async (req, res) => {
     subunits          // Array of object IDs corresponding to Subunit documents
   } = req.body;
 
+  // Try to get geocode from address
+  let coords = null;
+  try {
+    // On success, returns a 2-element array: [lat, lon]
+    coords = await getGeoCode(address, next);
+  } catch(err) {
+    console.error(err);
+    next(err);
+  }
+
   /* Create mongoose PropertyProfile document instance */
   const newProperty = new PropertyProfile({
     name            : name,
     address         : address,
-    geoCode         : geoCode,
+    geoCode         : coords ? { type: 'Point', coordinates: coords } : null,
     apn             : apn,
     phone           : phone,
     dateAcq         : dateAcq

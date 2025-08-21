@@ -188,7 +188,7 @@ const CreateDocForm = ({
           'Content-Type': 'multipart/form-data',
         },
       });
-      onUpdate(); // Refresh Documents list and close drawer
+      onUpdate(); // Refresh Documents list and close drawer // TODO: await this
       toastSuccess('Document Created', `Document "${response.data?.data?.name}" successfully created.`);
     } catch (err) {
       console.error(err);

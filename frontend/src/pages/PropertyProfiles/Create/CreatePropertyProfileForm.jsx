@@ -1,16 +1,10 @@
 import axios from 'axios'
 import { useEffect, useState } from 'react'
+import { useToast } from '@chakra-ui/react'
 
 import CreatePropertyProfileFormUI from './CreatePropertyProfileFormUI'
 
-import formatISO from '../../../util/util'
-import { set } from 'mongoose';
-
-const baseUrl = 'http://localhost:5000';
-const docsApi = `${baseUrl}/api/docs`;
-const propsApi = `${baseUrl}/api/properties`;
-const subunitsApi = `${baseUrl}/api/subunits`;
-// TODO: add endpoints for insurance and opsys
+import { formatISO } from '../../../util/util'
 
 const CreatePropertyProfileForm = ({
   onUpdate
@@ -32,32 +26,6 @@ const CreatePropertyProfileForm = ({
   const [documents, setDocuments] = useState([]);
   const [subunits, setSubunits] = useState([]);
 
-  /**
-   * Stores list of all Documents in backend database
-   */
-  const [allDocuments, setAllDocuments] = useState([]); // TODO: how to write a request that will filter all non-property documents?
-  /**
-   * Stores list of all InsurancePolicies in backend database
-   */
-  const [allInsurancePolicies, setAllInsurancePolicies] = useState([]);
-  /**
-   * Stores list of all current OpSys in backend database
-   */
-  const [allOpSystems, setAllOpSystems] = useState([]);
-  /**
-   * Stores list of all current Subunits in backend database
-   */
-  const [allSubunits, setAllSubunits] = useState([]);
-
-  /**
-   * Stores loading states resources being fetched
-   */
-  const [isLoading, setIsLoading] = useState({
-    docs              : true,
-    subunits          : true,
-    opSystems         : true,
-    insurancePolicies : true
-  });
   /**
    * Stores form submission state
    */
@@ -83,43 +51,6 @@ const CreatePropertyProfileForm = ({
   const toastError = (title, desc) => {
     toast({ title: title, description: desc, status: 'error', duration: 3000, isClosable: true });
   };
-
-  /* Fetch data during initial render */
-  useEffect(() => {
-
-    // Fetch all Documents
-    setIsLoading(isLoading.docs = true);
-    axios.get(docsApi).then(res => {
-      // Get Documents request success
-      setAllDocuments(res.data);
-      console.log('Done fetching Documents');
-    }).catch(err => {
-      // Get Documents request failure
-      console.error(err);
-      toastError('Error fetching Documents', err.message);
-    }).finally(
-      // Clean up
-      setIsLoading(isLoading.docs = false)
-    );
-
-    // Fetch all Subunits
-    setIsLoading(isLoading.subunits = true);
-    axios.get(subunitsApi).then(res => {
-      // Get Subunits request success
-      setAllSubunits(res.data);
-      console.log('Done fetching Subunits');
-    }).catch(err => {
-      // Get Subunits request failure
-      console.error(err);
-      toastError('Error fetching Subunits', err.message);
-    }).finally(
-      // Clean up
-      setIsLoading(isLoading.subunits = false)
-    );
-
-    // Fetch all InsurancePolicies // TODO: create backend endpoint
-    // Fetch all OpSystems // TODO: create backend endpoint
-  }, []);
 
   /**
    * Event handler for form submission events
