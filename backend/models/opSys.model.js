@@ -3,6 +3,8 @@ import mongoose from 'mongoose'
 import DocTypeEnum from '@config/docType.js'
 import OpSysTypeEnum, { ApplianceTypeEnum } from '@config/OpSysType.js'
 
+import { contactSchema } from '@models/embedded/contact.model.js'
+
 const { CONTRACT, MANUAL, SCHEMATIC, TEXT, WARRANTY, WORKORDER } = DocTypeEnum;
 const allowedDocTypes = [CONTRACT, MANUAL, SCHEMATIC, TEXT, WARRANTY, WORKORDER];
 
@@ -63,8 +65,7 @@ const opSysSchema = new mongoose.Schema({
    * Contact information for OpSys servicer
    */
   servicePointOfContact: {
-    type    : mongoose.Schema.Types.ObjectId, // TODO: add presave middleware to validate (async) 
-    ref     : 'Contact',
+    type    : contactSchema, 
     required: false
   },
   /**

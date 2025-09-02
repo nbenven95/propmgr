@@ -10,7 +10,6 @@ const baseUrl = 'http://localhost:5000';
 const propertiesApi = `${baseUrl}/api/properties`;
 const docsApi = `${baseUrl}/api/docs`;
 const subunitsApi = `${baseUrl}/api/subunits`;
-// TODO: add endpoints for insurance and opsys
 
 /**
  * 
