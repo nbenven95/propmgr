@@ -127,6 +127,47 @@ const propertyProfileSchema = new mongoose.Schema({
   
 }, { timestamps: true });
 
+propertyProfileSchema.set('toObject', { virtuals: true });
+propertyProfileSchema.set('toJSON', { virtuals: true });
+
+/**
+ * Given a Property's date of construction, get its age (virtual property)
+ */
+propertyProfileSchema.virtual('age').get(function() { // Note: need to use a non-arrow function so we have our own 'this' context 
+  if (!this.dateBuilt) return null;
+  const dateBuilt = new Date(this.dateBuilt);
+  const dateNow = new Date(Date.now());
+  // Get the time delta between the two dates in milliseconds
+  const millis = dateNow - dateBuilt;
+  // Define conversion factors
+  const convert = {
+    milliToSec: 1 / 1000,
+    secToMin  : 1 / 60,
+    minToHr   : 1 / 60,
+    hrToDay   : 1 / 24,
+    dayToYr   : 1 / 365
+  };
+  const seconds = Math.floor(millis * convert.milliToSec);
+  const minutes = Math.floor(seconds * convert.secToMin);
+  const hours   = Math.floor(minutes * convert.minToHr);
+  const days    = Math.floor(hours * convert.hrToDay);
+  const years   = Math.floor(days * convert.dayToYr);
+  // Convert any overflow into the next smallest unit of time
+  const dayOverflow   = days % 365; // e.g. if days is 366 => years = 1, daysRemain = 1
+  const hrOverflow    = hours % 24;
+  const minOverflow   = minutes % 60;
+  const secOverflow   = seconds % 60;
+  const milliOverflow = millis % 1000;
+  return {
+    years   : years,
+    days    : dayOverflow,
+    hours   : hrOverflow,
+    minutes : minOverflow,
+    seconds : secOverflow,
+    millis  : milliOverflow
+  }
+});
+
 /**
  * Define subunitSchema: inherits all current fields from propertyProfileSchema
  */
@@ -228,14 +269,6 @@ const preSaveValidator = async function(next) { // Note: need to use a non-arrow
     );
     next(err);
   }
-};
-/**
- * Helper function to be used with virtual field for getting a Property's age
- */
-const getAgeFromDateAcq = function() { // Note: need to use a non-arrow function so we have our own 'this' context 
-  let dateBuilt = this.dateBuilt;
-  if (!dateBuilt) return '';
-  
 };
 
 // Register pre-save middleware with schemas

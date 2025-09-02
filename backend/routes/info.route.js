@@ -16,18 +16,28 @@ const { BAD_REQUEST, NOT_FOUND, OK } = HttpStatusCodes;
 const InfoRouter = ({
   allowedFileExt,
   docTypes,
-  toolTipDict
+  toolTips,
+  opSysTypes,
+  applianceTypes
 }) => {
   
   const infoRouter = new Router();
 
+  // Route for valid document types
   infoRouter.get('/document-types', (req, res) => res.status(OK).send(docTypes));
 
+  // Route for valid file extensions
   infoRouter.get('/allowed-file-ext', (req, res) => res.status(OK).send(allowedFileExt));
+
+  // Route for valid operating system types 
+  infoRouter.get('/opsys-types', (req, res) => res.status(OK).send(opSysTypes));
+
+  // Route for valid appliance types
+  infoRouter.get('/appliance-types', (req, res) => res.status(OK).send(applianceTypes));
 
   infoRouter.get('/tool-tips/:view', (req, res) => {
     const { view } = req.params;
-    const toolTips = toolTipDict[view];
+    const toolTips = toolTips[view];
     if (!view) return res.status(BAD_REQUEST).send({
       success: false,
       message: 'Missing request parameter `view`'

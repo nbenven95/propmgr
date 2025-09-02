@@ -17,8 +17,12 @@ import {
   Text
 } from '@chakra-ui/react'
 import { DeleteIcon, DownloadIcon, EditIcon, PlusSquareIcon } from '@chakra-ui/icons'
+import { Map } from '@vis.gl/react-maplibre'
 
-import DocCard from '../../components/doccard'
+import AddressCard from '../../components/AddressCard'
+
+// Replace with your MapLibre style URL
+const mapStyle = 'https://tiles.openfreemap.org/styles/liberty';
 
 const PropertyProfilesPageUI = ({
   loading,
@@ -124,14 +128,33 @@ const PropertyProfilesPageUI = ({
               {/* Display Property Profiles */}
               <Flex direction='column' align='start' pl={bulkMode ? 6 : 0}>
                 {/* Property name */}
-                <Text fontWeight='bold'>Name: {property.name}</Text>
+                <Text fontWeight='bold'>{property.name}</Text>
+                <Text>{property._id}</Text>
+                {/* Render map */}
+                {!property.geoCode && <Map 
+                  initialViewState={{
+                    longitude: property.geoCode.coordinates[1],
+                    latitude: property.geoCode.coordinates[0],
+                    zoom: 15
+                  }}
+                  style={{ width: 200, height: 200 }}
+                  mapStyle={mapStyle}
+                  attributionControl={false}
+                />}
                 {/* Property address */}
-                {property.address && <Text>Address: </Text>}
-                {/* Property geocode */}
-                {property.geoCode && <Text>Latitude: {property.geoCode.coordinates[0]}</Text>}
-                {property.geoCode && <Text>Longitude: {property.geoCode.coordinates[1]}</Text>}
+                {!property.address && (
+                  <AddressCard address={property.address} />
+                )}
+                {/* Property age */}
+                {!property.age && (
+                  <>
+                    <Text fontWeight='bold'>Age: </Text><Text>
+                      {property.age.years} years, {property.age.days} days, {property.age.minutes} minutes, {property.age.seconds} seconds, {property.age.millis} millis
+                    </Text>
+                  </>
+                )}
                 {/* Property documents */}
-                {property.documents && <Text>Documents: {property.documents.length}</Text>}
+                {/*{property.documents && <Text>Documents: {property.documents.length}</Text>}*/}
               </Flex>
             </Box>
           ))}

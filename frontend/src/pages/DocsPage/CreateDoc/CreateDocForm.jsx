@@ -24,6 +24,7 @@ const CreateDocForm = ({
    * Helper method for generating full timestamps
    * @returns
    */
+  // TODO: try replacing all of this with just `new Date(Date.now())`
   const dateTime = () => {
     const now     = new Date(); // Get current date/time as ISO timestamp
     const year    = String(now.getFullYear());

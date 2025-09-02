@@ -5,11 +5,13 @@ import express from 'express'
 import fs from 'node:fs'
 import multer from 'multer'
 
-import connectMongoDB from '@middleware/mongoConnect.js'
 import DocTypeEnum from '@config/docType.js'
+import OpSysTypeEnum, { ApplianceTypeEnum } from '@config/OpSysType.js'
+import ToolTipDict from '@config/ToolTip.js'
+
+import connectMongoDB from '@middleware/mongoConnect.js'
 import envSchema from '@config/envValidationSchema.js'
 import multerOptions from '@config/multerOpt.js'
-import ToolTipDict from '@config/ToolTip.js'
 import errorHandler from '@middleware/errorHandler.js'
 
 import DocumentRouter from '@routes/document.route.js'
@@ -65,9 +67,11 @@ app.use(express.urlencoded({ extended: true }));
 const documentRoutes  = DocumentRouter(upload);
 const fileRoutes      = FileRefRouter(upload);
 const infoRoutes			= InfoRouter({ 
-	allowedFileExt	: ALLOWED_FILE_EXT, // Allowed file types for upload (define in env)
-	toolTipDict			: ToolTipDict, // Tooltips to display when hovering over certain elements on frontend
-	docTypes				: DocTypeEnum // Allowed document types // TODO: create way for user to define custom document types and set which are allowed to be used for properties, insurance, etc. 
+	allowedFileExt	: ALLOWED_FILE_EXT, // Valid file types for upload (define in env)
+	toolTips  			: ToolTipDict, // Tooltips to display when hovering over certain elements on frontend
+	docTypes				: DocTypeEnum, // Valid document types
+	opSysTypes      : OpSysTypeEnum,
+	applianceTypes  : ApplianceTypeEnum
 });
 const propertyRoutes  = PropertyProfileRouter();
 const subunitRoutes 	= SubunitRouter();

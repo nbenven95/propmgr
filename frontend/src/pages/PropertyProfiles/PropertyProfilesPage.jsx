@@ -39,7 +39,7 @@ const PropertyProfilesPage = () => { // TODO: document these better
     subunits: false,
     properties: false
   });
-    /**
+  /**
    * Bulk operation state and setter
    */
   const [bulkMode, setBulkMode] = useState(false);
@@ -101,11 +101,10 @@ const PropertyProfilesPage = () => { // TODO: document these better
       // On success, update state variable with response data
       const res = await axios.get(url);
       setState(res.data);
-      console.log(`Done fetching resource: ${url}`);
+      console.log(`Done fetching resource: ${resource}`);
     } catch (err) {
       // API request failed: notify user
       console.error(err);
-      toastError(`Failed to fetch resource: ${url}`, err.message);
     } finally {
       // Clean up
       setLoading(loading[resource] = false);
@@ -178,22 +177,24 @@ const PropertyProfilesPage = () => { // TODO: document these better
   };
 
   /**
-   * Event handler for drawer menu close
+   * Refresh Property Profiles and Subunits, close drawer menu.
+   * Call after creating a new Property Profile/Subunit.
    */
   const onUpdate = () => {
     // Only refresh Property Profiles and Subunits (others shouldn't have changed)
-    fetch('parcels', propertiesApi, setParcels);
+    fetch('properties', propertiesApi, setProperties);
     fetch('subunits', subunitsApi, setSubunits);
     onClose();
   }
 
   /**
-   * Open drawer menu and render create component
+   * Open drawer menu and render CreatePropertyProfileForm
    */
   const handleClickCreate = async () => {
-    setDrawerHeader('Create Property Profile');
+    setDrawerHeader('Create New Property Profile');
     setDrawerBody(
-      <CreatePropertyProfileForm 
+      <CreatePropertyProfileForm
+        api={`${propertiesApi}/create`}
         onUpdate={onUpdate}
       />
     );
@@ -202,13 +203,14 @@ const PropertyProfilesPage = () => { // TODO: document these better
   };
   
   /**
-   * Open drawer menu and render edit component with the specified Property Profile
+   * Open drawer menu and render EditPropertyProfileForm with specified property
    * @param {*} property
    */
   const handleClickEdit = async (property) => {
     setDrawerHeader(`Edit Property Profile: ${property.name}`);
     setDrawerBody(
-      <EditPropertyProfileForm 
+      <EditPropertyProfileForm
+        api={`${propertiesApi}/${property._id}`}
         onUpdate={onUpdate}
       />
     );

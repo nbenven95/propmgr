@@ -106,7 +106,7 @@ const CreateDocFormUI = ({
 
         <FormControl>
           <Tooltip label={toolTips['expiry']}>
-            <FormLabel>Expiration Date1</FormLabel>
+            <FormLabel>Expiration Date</FormLabel>
           </Tooltip>
           <Input
             type='datetime-local'

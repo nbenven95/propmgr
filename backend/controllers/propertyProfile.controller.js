@@ -130,6 +130,7 @@ const createProperty = async (req, res, next) => {
     apn,              // Assessor's Parcel Number (Tax ID)
     phone,
     dateAcq,
+    dateBuilt,
     wastePickupSched,
     notes,            // List of note key/value pairs (embedded)
     insurancePolicy,  // Object ID corresponding to an InsurancePolicy document
@@ -157,6 +158,9 @@ const createProperty = async (req, res, next) => {
     phone           : phone,
     dateAcq         : dateAcq
       ? new Date(dateAcq) // Init Date object from ISO date string passed in request body
+      : null,
+    dateBuilt       : dateBuilt
+      ? new Date(dateBuilt)
       : null,
     wastePickupSched: wastePickupSched,
     notes           : notes,
@@ -252,18 +256,19 @@ const updateProperty = async (req, res) => {
       message: `Invalid PropertyProfile ObjectID: ${id}`
     });
   }
-  
-  try { // Attempt async update
-    
-    // Filter null values in request body
-    const propertyUpdate = {};
-    for (const key of Object.keys(req.body)) {
-      const value = req.body[key];
-      // Only add non-null values to the update object
-      if (value !== undefined && value !== null) {
-        propertyUpdate[key] = value;
-      }
+
+  // Filter null values in request body
+  const propertyUpdate = {};
+  for (const key of Object.keys(req.body)) {
+    const value = req.body[key];
+    // Only add non-null values to the update object
+    if (value !== undefined && value !== null) {
+      propertyUpdate[key] = value;
     }
+  }
+
+  try { // Attempt async update
+
     // Await update promise
     const updatedProperty = await PropertyProfile.findByIdAndUpdate(
       id,
@@ -271,11 +276,13 @@ const updateProperty = async (req, res) => {
       { new: true, runValidators: true } // Return updated document, validate updated fields
     );
     // Not found => 404
-    console.error(`PropertyProfile with ObjectID \'${id}\' not found`);
-    if (!updatedProperty) return res.status(NOT_FOUND).send({
-      success: false,
-      message: `PropertyProfile with ObjectID \'${id}\' not found`
-    });
+    if (!updatedProperty) {
+      console.error(`PropertyProfile with ObjectID \'${id}\' not found`);
+      return res.status(NOT_FOUND).send({
+        success: false,
+        message: `PropertyProfile with ObjectID \'${id}\' not found`
+      });
+    }
     // Update successful => 200
     return res.status(OK).send({
       success: true,
