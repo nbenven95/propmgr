@@ -1,8 +1,9 @@
 import React from 'react'
 import { Tooltip } from '@chakra-ui/react'
 
-import './FilesPage.css'
-import FileCard from '../../components/filecard'
+import FileCard from '../../components/FileCard'
+
+import '../../styles/filecard.css'
 
 /**
  * 

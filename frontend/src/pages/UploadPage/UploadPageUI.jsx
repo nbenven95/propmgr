@@ -1,9 +1,10 @@
+import '../../styles/uploadpage.css'
+
 import React from 'react'
 import { Button, VStack } from '@chakra-ui/react'
 import { WiCloudUp } from "react-icons/wi";
 
-import './UploadPage.css'
-import FileCard from '../../components/filecard'
+import FileCard from '../../components/FileCard'
 
 /**
  * Dumb (presentational) component for UploadPage.

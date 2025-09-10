@@ -1,8 +1,6 @@
-import React from 'react'
+import React from 'react';
 import {
   Box,
-  Button,
-  Checkbox,
   Drawer,
   DrawerBody,
   DrawerCloseButton,
@@ -10,35 +8,35 @@ import {
   DrawerHeader,
   DrawerOverlay,
   Flex,
-  Heading,
-  IconButton,
-  Spacer,
   Stack,
   Text
-} from '@chakra-ui/react'
-import { DeleteIcon, DownloadIcon, EditIcon, PlusSquareIcon } from '@chakra-ui/icons'
+} from '@chakra-ui/react';
+
+import UIHeader from '../../components/UIHeader';
+import DocCard from '../../components/cards/DocCard';
 
 const DocsPageUI = ({
   isOpen,
-  onClose,
-  drawerHeader,
-  drawerBody,
-  documents,
+  handleClose,
+  drawerContent,
+  fetched,
   loading,
   bulkMode,
-  setBulkMode,
-  selectedDocs,
-  setSelectedDocs,
-  handleDelete,
-  handleBulkDelete,
-  handleDownloadFile,
-  toggleSelect,
-  handleEditClick,
-  handleCreateClick
+  enableBulkMode,
+  disableBulkMode,
+  toggleBulkSelect,
+  handleBulkDeleteDocs,
+  handleDeleteDoc,
+  handleClickEditDoc,
+  handleClickCreateDoc,
+  handleDownloadFile
 }) => {
+
+  const { docs } = fetched;
   
-  // TODO: replace with a chakra UI animated loading icon 
-  if (loading) {
+  {/* Display loading indicator while fetching */}
+  if (loading.docs) {
+    // TODO: replace text with an animated loading icon
     return (
       <Flex justify="center" align="center" minH="100vh">
         <Text fontSize="xl">Loading Documents. . .</Text>
@@ -46,102 +44,52 @@ const DocsPageUI = ({
     );
   }
 
+  {/* Display fetched Documents */}
   return (
     <Box maxW='100vw' mx='auto' p={4}>
-      <Flex mb={4} align='center'>
-        <Heading size='lg'>Documents</Heading>
-        <Box px={6} transform={'scale(2)'}>
-          <IconButton
-            colorScheme='blue'
-            aria-label='Create New Document'
-            size='xs'
-            icon={<PlusSquareIcon />} 
-            onClick={handleCreateClick}
-          />
-        </Box>
-        <Spacer />
-        {bulkMode ? (
-          <>
-            <Button size="sm" colorScheme="red" onClick={() => { setBulkMode(false); setSelectedDocs([]); }}>
-              Cancel Bulk Delete
-            </Button>
-            <Button size="sm" ml={2} colorScheme="red" onClick={handleBulkDelete} isDisabled={selectedDocs.length === 0}>
-              Delete Selected
-            </Button>
-          </>
-        ) : (
-          <Button size="sm" onClick={() => setBulkMode(true)} colorScheme="blue">
-            Enable Bulk Delete
-          </Button>
-        )}
-      </Flex>
-
-      {documents.length === 0 ? (
-        <Text>No documents found.</Text>
+      
+      {/* Display UI header text and bulk operation controls */}
+      {/* TODO: refactor this to separate the title and + button from the bulk delete controls */}
+      <UIHeader
+        title='Documents'
+        bulkMode={bulkMode}
+        enableBulkMode={enableBulkMode}
+        disableBulkMode={disableBulkMode}
+        handleBulkDelete={handleBulkDeleteDocs}
+        handleClickCreate={handleClickCreateDoc}
+      />
+      
+      {/* Main Documents view */}
+      {docs.length === 0 ? (
+        <Text>No Documents Found</Text>
       ) : (
         <Stack spacing={4}>
-          {documents.map((doc) => (
-            <Box key={doc._id} position="relative" p={4} borderWidth="1px" borderRadius="8px" bg="white" shadow="sm">
-              {bulkMode && (
-                <Checkbox
-                  position="absolute"
-                  top={2}
-                  left={2}
-                  isChecked={selectedDocs.includes(doc._id)}
-                  onChange={() => toggleSelect(doc._id)}
-                />
-              )}
-              <Flex direction="column" align="start" pl={bulkMode ? 6 : 0}>
-                <Text fontWeight="bold">Name: {doc.name}</Text>
-                <Text>Type: { String(doc.docType).replace(/^./, ch => ch.toUpperCase()) }</Text>
-                {doc.dateCreate && <Text>Date Created: {new Date(doc.dateCreate).toDateString()}</Text>}
-                {doc.dateEff && <Text>Date Effective: {new Date(doc.dateEff).toDateString()}</Text>}
-                {doc.expiry && <Text>Expires: {new Date(doc.expiry).toDateString()}</Text>}
-                <Flex mt={2} width='full' justify='space-between' aligh='center'>
-                  <Text>Attached file: {doc.fileRef ? doc.fileRef.name : 'NONE'}</Text>
-                  <IconButton
-                    icon={<DownloadIcon />}
-                    size='sm'
-                    aria-label='Download'
-                    colorScheme='purple'
-                    onClick={() => handleDownloadFile(doc.fileRef?._id, doc.fileRef?.name)}
-                  />
-                </Flex>
-                <Flex mt={2} width="full" justify="space-between" align="center">
-                  <Button
-                    size="sm"
-                    leftIcon={<EditIcon />}
-                    colorScheme="teal"
-                    onClick={() => handleEditClick(doc)}
-                  >
-                    Edit
-                  </Button>
-                  <IconButton
-                    icon={<DeleteIcon />}
-                    size="sm"
-                    aria-label="Delete"
-                    colorScheme="red"
-                    onClick={() => handleDelete(doc._id)}
-                  />
-                </Flex>
-                {doc.updatedAt && <Text>Last Updated: {new Date(doc.updatedAt).toDateString()}</Text>}
-              </Flex>
-            </Box>
+          {docs.map((doc) => (
+            <DocCard
+              doc={doc}
+              bulkMode={bulkMode}
+              toggleBulkSelect={toggleBulkSelect}
+              handleClickEditDoc={handleClickEditDoc}
+              handleDeleteDoc={handleDeleteDoc}
+              handleDownloadFile={handleDownloadFile}
+              key={doc._id}
+            />
           ))}
         </Stack>
       )}
 
-      {/* Menu drawer */}
-      <Drawer isOpen={isOpen} placement="top" onClose={onClose} size="lg">
+      {/* Drawer menu */}
+      <Drawer isOpen={isOpen} placement='top' onClose={handleClose} size='lg'>
         <DrawerOverlay />
         <DrawerContent>
-          <DrawerCloseButton/>
-          <DrawerHeader borderBottomWidth="1px">{drawerHeader}</DrawerHeader>
+          <DrawerCloseButton />
+          <DrawerHeader borderBottomWidth='1px'>{drawerContent.header}</DrawerHeader>
           <DrawerBody p={4}>
-            {drawerBody}
+            {drawerContent.body}
           </DrawerBody>
         </DrawerContent>
       </Drawer>
+
     </Box>
   );
 }

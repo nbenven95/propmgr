@@ -6,7 +6,7 @@
  * object containing the associated extensions for
  * that key, and the style props.
  */
-const IconMap = Object.freeze({
+const FileExtToIconMap = Object.freeze({
   _3d: {
     ext: ['3dm','3ds','blend','dae','dwg','dxf','fbx','glb','gltf','iges','igs','obj','step','stl','stp'],
     props: {
@@ -276,9 +276,9 @@ const IconMap = Object.freeze({
  * @param {*} ext 
  * @returns
  */
-const IconFromExtension = (ext) => {
+const iconMap = (ext) => {
   const extension = String(ext).toLowerCase().replace('.', '').trim();
-  for (const [_, val] of Object.entries(IconMap)) {
+  for (const [_, val] of Object.entries(FileExtToIconMap)) {
     const extensions = val.ext;
     const props = val.props;
     if (extensions.includes(extension)) return props;
@@ -286,4 +286,4 @@ const IconFromExtension = (ext) => {
   return null;
 };
 
-export default IconFromExtension;
+export default iconMap;

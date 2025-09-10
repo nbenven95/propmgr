@@ -3,9 +3,10 @@ import { useState, useEffect } from 'react'
 import { useDisclosure, useToast } from '@chakra-ui/react'
 
 import OpSysPageUI from './OpSysPageUI.jsx'
-import CreateOpSysForm from './Create/CreateOpSysForm.jsx'
-import EditOpSysForm from './Edit/EditOpSysForm.jsx'
+import CreateOpSysForm from './CreateOpSysForm.jsx'
+import EditOpSysForm from './EditOpSysForm.jsx'
 
+// TODO: move to centralized location
 const baseUrl = 'http://localhost:5000';
 const docsApi = `${baseUrl}/api/docs`;
 const opSysApi = `${baseUrl}/api/opsys`;
@@ -177,13 +178,13 @@ const OpSysPage = () => {
    * @param {*} id 
    */
   const toggleSelect = (id) => {
-    setBulkMode.selected(prev => {
+    setBulkMode(bulkMode.selected(prev => {
       prev.includes(id)
         // De-select item: remove its ObjectID from the list of selected items
         ? prev.filter(_id => _id !== id)
         // Select item: add its ObjectID to the list of selected items
         : [...prev, id]
-    });
+    }));
   };
 
   // Fetch resources on initial page render

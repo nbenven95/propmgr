@@ -1,0 +1,74 @@
+import axios from 'axios';
+import { useState, useCallback } from 'react';
+
+/**
+ * 
+ * @param {*} initLoading An object comprised of string keys and boolean
+ *                        values. The keys should correspond to the names
+ *                        of resources to fetch; they should be the same
+ *                        as the resource name at the end of your API endpoint
+ *                        (e.g., ${baseUrl}/api/docs -> 'docs'). The associated
+ *                        boolean value is the loading/fetched state of
+ *                        the resource; these should all be initialized to 'false'.
+ *                     
+ * @param {*} initFetched An object comprised of string keys and values of arbitrary type.
+ *                        The keys should match 1:1 with those in `loading` for
+ *                        consistency. The values correspond to the fetched resource
+ *                        and must be initialized to the equivalent empty value
+ *                        for that type (e.g., object => {}, array => [], string => '').
+ * 
+ * @returns
+ */
+export default function useFetch({initLoading, initFetched}) {
+  /**
+   * `loading` should contain string keys that correspond
+   * to resources to fetch, with the associated values
+   * being the 'fetched' state (i.e., has the resource
+   * been fetched, or are we still fetching?)
+   */
+  const [loading, setLoading] = useState(initLoading);
+  /**
+   * `fetched` should contain string keys that correspond
+   * to resources to fetch, with the associated values
+   * being the fetched resource (objects, arrays, etc.)
+   * The keys should be the same as those in `loading` for
+   * consistency.
+   */
+  const [fetched, setFetched] = useState(initFetched);
+
+  /**
+   * @param {*} uri The URI of the resource to fetch. The final component
+   *                of the URI should match the corresponding key for the
+   *                resource in `loading` and `fetched`.
+   */
+  const handleFetch = useCallback(async (uri) => {
+    // TODO: validate URI
+    // Extract the resource name from the URI
+    const segments = (new URL(uri)).pathname.split('/');
+    /* If there is a trailing slash, the final element in `segments`
+       will be an empty string. Handle this by popping the final
+       element and checking if it is a falsey value (indicates
+       empty string); if so, pop the next element */
+    const resource = segments.pop() || segments.pop();
+    // Init error to propagate in case API request fails
+    let fetchError = null;
+    try {
+      // Set loading state of resource
+      setLoading(prev => ({ ...prev, [resource]: true }));
+      const res = await axios.get(uri);
+      // Update fetched data for the resource
+      setFetched(prev => ({ ...prev, [resource]: res.data }));
+    } catch (err) {
+      // On failed API request, save the error so we can propagate it
+      fetchError = err;
+    } finally {
+      // Update loading state of resource
+      setLoading(prev => ({ ...prev, [resource]: false }));
+    }
+    // If resource fetch failed, propagate the error
+    if (fetchError) throw new Error(fetchError.message);
+  }, []);
+
+  // Return relevant state/callbacks for the hook
+  return { loading, fetched, handleFetch };
+}

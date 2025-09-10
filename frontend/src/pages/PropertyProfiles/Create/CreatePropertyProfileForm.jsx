@@ -2,9 +2,10 @@ import axios from 'axios'
 import { useEffect, useRef, useState } from 'react'
 import { useToast } from '@chakra-ui/react'
 
+import { getLocalTimestamp } from '../../../util/util.js';
+
 import CreatePropertyProfileFormUI from './CreatePropertyProfileFormUI'
 
-import { formatISO } from '../../../util/util'
 
 const CreatePropertyProfileForm = ({
   api,

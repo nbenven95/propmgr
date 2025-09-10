@@ -1,168 +1,203 @@
-import axios from 'axios'
-import { useState, useEffect } from 'react'
-import { useDisclosure, useToast, Text } from '@chakra-ui/react'
+import { useEffect } from 'react';
+import { useToast, Text } from '@chakra-ui/react';
 
-import DocsPageUI from './DocsPageUI'
-import CreateDocForm from './CreateDoc/CreateDocForm'
-import EditDocForm from './EditDoc/EditDocForm'
+// Import custom components
+import DocsPageUI from './DocsPageUI';
+import CreateDocForm from './CreateDocForm.jsx';
+import EditDocForm from './EditDocForm.jsx';
 
-// TODO: read baseUrl and API endpoints from env 
+// Import custom hooks
+import useBulkMode from '../../hooks/useBulkMode.js';
+import useDrawer from '../../hooks/useDrawer.js';
+import useFetch from '../../hooks/useFetch.js';
+
+// Import utility functions
+import { handleDeleteSingle, handleDownload } from '../../util/util.js'
+
+// TODO: move to centralized location 
 const baseUrl   = 'http://localhost:5000';
 const docsApi   = `${baseUrl}/api/docs`;
 const filesApi  = `${baseUrl}/api/files`;
 
-/**
- * Documents page controller logic
- * 
- * @returns a rendered documents page UI component
- */
 const DocsPage = () => {
+  /**
+   * Hook for managing pop-up messages
+   */
   const toast = useToast();
-  const { isOpen, onOpen, onClose } = useDisclosure();  // Drawer menu open/close state
-  const [loading, setLoading] = useState(true);         // Page loading state (waiting for API request, etc.)
-  const [drawerHeader, setDrawerHeader] = useState(''); // Drawer menu header content
-  const [drawerBody, setDrawerBody] = useState(null);   // Drawer menu body content; render edit or create view based on operating mode
-  const [documents, setDocuments] = useState([]);       // List of documents retrieved from backend
-  const [bulkMode, setBulkMode] = useState(false);      // Bulk delete mode/single delete mode
-  const [selectedDocs, setSelectedDocs] = useState([]); // Documents selected for bulk delete
-  const [currentDoc, setCurrentDoc] = useState(null);   // Document selected for editing
-
   /**
-   * Helper function for generating chakra-ui success toasts
-   * @param {*} title 
-   * @param {*} desc 
+   * Custom hook for managing drawer menu open/close and rendered content state
    */
-  const toastSuccess = (title, desc) => {
-    toast({ title: title, description: desc, status: 'success', duration: 3000, isClosable: true });
-  };
-
+  const { drawerContent, isOpen, handleOpen, handleClose } = useDrawer();
   /**
-   * Helper function for generating chakra-ui error toasts
-   * @param {*} title 
-   * @param {*} desc 
+   * Custom hook for managing bulk delete mode state
    */
-  const toastError = (title, desc) => {
-    toast({ title: title, description: desc, status: 'error', duration: 3000, isClosable: true });
-  };
-
-  const fetchDocuments = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(docsApi);
-      setDocuments(res.data);
-    } catch (err) {
-      console.error(err);
-      toastError('Error fetching documents', err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const {
+    bulkMode,
+    enableBulkMode,
+    disableBulkMode,
+    toggleBulkSelect,
+    handleBulkDelete
+  } = useBulkMode();
+  /**
+   * Custom hook for managing fetched data state
+   */
+  const { loading, fetched, handleFetch } = useFetch({
+    initLoading: { docs: false },
+    initFetched: { docs: [] }
+  });
+  
+  // Fetch data on page render
   useEffect(() => {
-    fetchDocuments();
+    handleFetch(docsApi);
   }, []);
 
-  const handleDelete = async (id) => {
+  /**
+   * 
+   * @param {*} id 
+   */
+  const handleDeleteDoc = async (id) => {
+    let toastArgs = {};
     try {
-      await axios.delete(docsApi + '/' + id);
-      toastSuccess('Document deleted', `Document with ID "${id}" successfully deleted.`);
-      fetchDocuments();
+      // Attempt to delete the document given its ObjectID
+      const doc = await handleDeleteSingle(`${docsApi}/${id}`);
+      // Init success toast
+      toastArgs = {
+        title       : 'Document Deleted',
+        description : `Successfully deleted Document \"${doc?.name?? id}\"`,
+        status      : 'success'
+      };
+      // Refresh documents
+      await handleFetch(docsApi);
     } catch (err) {
+      // Init error toast
+      toastArgs = {
+        title       : 'Error Deleting Document',
+        description : err.message?? err.name?? err.code,
+        status      : 'error'
+      };
       console.error(err);
-      toastError('Error deleting document', err.message);
     }
+    // Display success/error message
+    toast({ ...toastArgs, duration: 3000, isClosable: true });
   };
 
-  const handleBulkDelete = async () => {
-    if (selectedDocs.length === 0) return;
+  /**
+   * Handle deleting all Documents selected for bulk delete.
+   */
+  const handleBulkDeleteDocs = async () => {
+    let toastArgs = {};
     try {
-      await Promise.all(
-        selectedDocs.map((id) => axios.delete(docsApi + '/' + id))
-      );
-      toastSuccess('Documents deleted', `${selectedDocs.length} documents deleted.`);
-      setSelectedDocs([]);
-      setBulkMode(false);
-      fetchDocuments();
+      // Attempt bulk delete
+      const deletedDocs     = await handleBulkDelete(docsApi);
+      const deletedDocNames = deletedDocs.map(doc => doc.name).join(', ');
+      // Init success toast
+      toastArgs = {
+        title       : `Deleted ${deletedDocs.length} Documents`,
+        description : `Successfully deleted Documents: ${deletedDocNames}`,
+        status      : 'success'
+      };
+      // Refresh documents
+      await handleFetch(docsApi);
     } catch (err) {
+      // Init error toast
+      toastArgs = {
+        title       : 'Error Deleting Documents',
+        description : err.message?? err.name?? err.code,
+        status      : 'error'
+      };
       console.error(err);
-      toastError('Error deleting documents', err.message);
     }
+    // Display success/error message
+    toast({ ...toastArgs, duration: 3000, isClosable: true });
   };
 
-  const handleDownloadFile = async (id, filename) => {
+  /**
+   * Download a File from the /api/files endpoint given its FileRef ObjectID
+   * Essentially just a wrapper for the utility function handleDownload given
+   * inputs id and fileName with known/constant URL (filesApi); also displays
+   * success/error toasts.
+   * 
+   * @param {*} id 
+   * @param {*} filename 
+   */
+  const handleDownloadFile = async (id, fileName) => {
+    let toastArgs = {};
     try {
-      const response = await axios.get(
-        `${filesApi}/download/${id}`,
-        { responseType: 'blob' } // Must specify response type as blob (binary object)
-      );
-      const url = window.URL.createObjectURL(new Blob([response.data])); // Create URL for blob
-      const link = document.createElement('a'); // Create temporary link element for blob
-      link.href = url;
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link); // Cleanup
-      window.URL.revokeObjectURL(url);
-      toastSuccess('File download successful', `Successfully downloaded file "${filename}"`);
+      // Attempt async file download
+      await handleDownload(`${filesApi}/download/${id}`, fileName);
+      // Init success toast
+      toastArgs = {
+        title       : 'File Downloaded',
+        description : `Successfully downloaded File \"${fileName}\"`,
+        status      : 'success'
+      };
     } catch (err) {
+      // Init error toast
+      toastArgs = {
+        title       : 'Error Downloading File',
+        description : err.message?? err.name?? err.code,
+        status      : 'error'
+      };
       console.error(err);
-      toastError('Error downloading file', err.message);
     }
+    // Display success/error message
+    toast({ ...toastArgs, duration: 3000, isClosable: true });
   };
 
-  const toggleSelect = (id) => {
-    setSelectedDocs((prev) =>
-      prev.includes(id) ? prev.filter((docId) => docId !== id) : [...prev, id]
+  const onUpdate = () => {
+    handleFetch(docsApi);
+    handleClose();
+  };
+
+  /**
+   * 
+   */
+  const handleClickCreateDoc = () => {
+    handleOpen(
+      <Text>Create New Document</Text>,
+      <CreateDocForm onUpdate={onUpdate} />
     );
   };
 
-  const handleCreateClick = () => {
-    setCurrentDoc(null);
-    setDrawerHeader('Create New Document');
-    setDrawerBody(<CreateDocForm onUpdate={() => {
-      fetchDocuments();
-      onClose();
-    }} />);
-    onOpen();
-  }
-
-  const handleEditClick = (doc) => {
-    setCurrentDoc(doc);
-    setDrawerHeader('Edit Document');
-    setDrawerBody(
-      doc ?
-        <EditDocForm
-          document={doc}
-          onClose={onClose}
-          onUpdate={() => {
-            fetchDocuments();
-            onClose();
-          }}
-        />
-      : <Text>No document selected!</Text> // In theory, this should never happen
-    )
-    onOpen();
+  /**
+   * 
+   * @param {*} doc 
+   * @returns 
+   */
+  const handleClickEditDoc = (doc) => {
+    if (doc) {
+      handleOpen(
+        <Text>Edit {doc.name}</Text>,
+        <EditDocForm doc={doc} onUpdate={onUpdate} />
+      );
+    } else {
+      toast({
+        title       : 'Error Editing Document',
+        description : 'No Document selected for editing.',
+        status      : 'error',
+        duration    : 3000,
+        isClosable  : true
+      });
+    }
   };
 
-  // Return the UI element with our injected controller elements
+  // Return UI component with injected controller elements
   return (
     <DocsPageUI
       isOpen={isOpen}
-      onClose={onClose}
-      documents={documents}
+      handleClose={handleClose}
+      drawerContent={drawerContent}
+      fetched={fetched}
       loading={loading}
       bulkMode={bulkMode}
-      setBulkMode={setBulkMode}
-      selectedDocs={selectedDocs}
-      setSelectedDocs={setSelectedDocs}
-      handleDelete={handleDelete}
-      handleBulkDelete={handleBulkDelete}
+      enableBulkMode={enableBulkMode}
+      disableBulkMode={disableBulkMode}
+      toggleBulkSelect={toggleBulkSelect}
+      handleBulkDeleteDocs={handleBulkDeleteDocs}
+      handleDeleteDoc={handleDeleteDoc}
+      handleClickEditDoc={handleClickEditDoc}
+      handleClickCreateDoc={handleClickCreateDoc}
       handleDownloadFile={handleDownloadFile}
-      toggleSelect={toggleSelect}
-      handleEditClick={handleEditClick}
-      handleCreateClick={handleCreateClick}
-      drawerHeader={drawerHeader}
-      drawerBody={drawerBody}
     />
   );
 };

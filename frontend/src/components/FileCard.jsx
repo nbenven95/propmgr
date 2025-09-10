@@ -2,9 +2,9 @@ import React from 'react'
 import { defaultStyles, FileIcon } from 'react-file-icon'
 import { CloseIcon } from '@chakra-ui/icons'
 
-import iconFromExtension from './iconMap.js'
+import iconMap from '../util/iconMap.js'
 
-import './filecard.css'
+import '../styles/filecard.css'
 
 /**
  * 
@@ -21,7 +21,7 @@ const FileCard = ({
   if (ext === file.name) ext = '';
 
   const defaultStyle = defaultStyles[ext];
-  const backupStyle = iconFromExtension(ext);
+  const backupStyle = iconMap(ext);
 
   return (
       <div className='file-card'>

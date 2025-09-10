@@ -16,6 +16,12 @@ const { BAD_REQUEST, NOT_FOUND, OK } = HttpStatusCodes;
 const InfoRouter = ({
   allowedFileExt,
   docTypes,
+  /**
+   * A dictionary where each key corresponds to a view (e.g., CreateDocForm)
+   * and the corresponding value is another dictionary of tool tips for that view.
+   * The tool tip dictionary contains key/value pairs, where the key is a form
+   * field that can be filled out, and the value is the tool tip text to display.
+   */
   toolTips,
   opSysTypes,
   applianceTypes
@@ -37,16 +43,15 @@ const InfoRouter = ({
 
   infoRouter.get('/tool-tips/:view', (req, res) => {
     const { view } = req.params;
-    const toolTips = toolTips[view];
     if (!view) return res.status(BAD_REQUEST).send({
       success: false,
       message: 'Missing request parameter `view`'
     });
-    if (!toolTips) return res.status(NOT_FOUND).send({
+    if (!toolTips[view]) return res.status(NOT_FOUND).send({
       success: false,
       message: `Could not find tool tips for view \`${view}\``
     })
-    return res.status(OK).send(toolTips);
+    return res.status(OK).send(toolTips[view]);
   });
 
   return infoRouter;
