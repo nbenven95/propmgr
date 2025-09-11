@@ -15,19 +15,29 @@ export default function useBulkMode() {
   });
 
   /* Enable bulk mode */
-  const enableBulkMode = useCallback(() => bulkMode.enabled = true, []);
+  const enableBulkMode = useCallback(() => {
+    setBulkMode(prev => ({ selected: [], enabled: true }));
+  }, []);
 
   /* Disable bulk mode */
-  const disableBulkMode = useCallback(() => bulkMode.enabled = false, []);
+  const disableBulkMode = useCallback(() => {
+    setBulkMode(prev => ({ selected: [], enabled: false }));
+  }, []);
 
   /* Toggle bulk mode on/off */
+  // TODO: can we just always set `selected` to [] when toggling? 
   const toggleBulkMode = useCallback(() => {
-    // Get current state
-    let current = bulkMode.enabled;
-    // Toggle the current state
-    const toggled = !current;
-    // Perform state update
-    setBulkMode(prev => ({ ...prev, enabled: toggled }));
+    /*
+    setBulkMode(prev => {
+      let current = prev.enabled;
+      let toggled = !current;
+      // If bulkMode is disabled, clear the `selected` array
+      if (toggled === false) return { selected: [], enabled: false };
+      // Else, bulkMode is enabled
+      return { ...prev, enabled: true };
+    });
+    */
+    setBulkMode(prev => ({ selected: [], enabled: !prev.enabled }));
   }, []);
 
   /**
@@ -35,18 +45,20 @@ export default function useBulkMode() {
    * @param {*} id The ObjectID of the item to select/de-select for bulk delete
    */
   const toggleBulkSelect = useCallback(id => {
-    // Don't continue if bulk mode isn't enabled
-    if (!bulkMode.enabled) return;
-    // Get current state
-    const current = Array.from(bulkMode.selected);
-    // Init state update array
-    const updated = current.includes(id)
-       // id is already present, remove it to de-select
-      ? current.filter(_id => _id !== id)
-      // id is not present, add it to `bulkMode.selected` to select for bulk delete
-      : [...current, id]
-    // Update bulkMode.selected state
-    setBulkMode(prev => ({ ...prev, selected: updated }));
+    // Use functional form of setBulkMode and reference prev to ensure we have the most up-to-date values
+    setBulkMode(prev => {
+      // Don't continue if bulk mode isn't enabled
+      if (!prev.enabled) return prev;
+      // Get most up-to-date current state (NOTE: don't use bulkMode.enabled directly; can't guarantee this is up to date)
+      const current = Array.from(prev.selected);
+      // Init state update array
+      const updated = current.includes(id)
+        // id is already present, remove it to de-select
+        ? current.filter(_id => _id !== id)
+        // id is not present, append it to the current state
+        : [...current, id];
+      return { ...prev, selected: updated };
+    });
   }, []);
 
   /**

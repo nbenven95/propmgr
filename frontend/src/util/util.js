@@ -1,6 +1,27 @@
 import axios from 'axios';
 
 /**
+ * 
+ * @param {*} err 
+ * @returns 
+ */
+export const getErrorMsg = (err) => {
+  return err.response?.data?.message || err.message || err.name || err.code;
+};
+
+/**
+ * Truncate the file extension from the given filename
+ * 
+ * @param {} filename 
+ * @returns 
+ */
+export const truncateExt = (filename) => {
+  const lastDotIndex = filename?.lastIndexOf('.');
+  if (lastDotIndex === -1) return filename; // No extension
+  return filename?.substring(0, lastDotIndex);
+};
+
+/**
  * Get the current local date/time in ISOO 8601 format (yyyy-MM-ddThh:mm:ss).
  * 
  * Note: the difference between this and `new Date(Date.now()).toISOString()`

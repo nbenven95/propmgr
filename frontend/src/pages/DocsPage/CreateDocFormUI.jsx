@@ -14,16 +14,16 @@ import {
 
 const CreateDocFormUI = ({
   formData,
-  setFormData,
   fetched,
   refs,
   loading,
   submitting,
+  useDefaultName,
   handleSubmit,
+  handleChange,
+  handleToggle,
   handleFocus,
-  handleFocusLost,
-  handleFileChange,
-  toggleUseDefaultName,
+  handleFocusLost
 }) => {
 
   // De-structure fetched data
@@ -41,9 +41,10 @@ const CreateDocFormUI = ({
         <FormControl isRequired>
           <FormLabel>Name</FormLabel>
           <Input
+            name='name'
             placeholder='Document Name'
             value={name}
-            onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            onChange={e => handleChange(e)}
             ref={refs.name}
           />
         </FormControl>
@@ -51,8 +52,9 @@ const CreateDocFormUI = ({
         {/* Toggle use default document name */}
         <FormControl>
           <Checkbox
-            defaultChecked={true}
-            onChange={() => toggleUseDefaultName()}
+            name='useDefaultName'
+            isChecked={useDefaultName}
+            onChange={handleToggle}
           >
             Use file name as document name
           </Checkbox>
@@ -62,9 +64,10 @@ const CreateDocFormUI = ({
         <FormControl isRequired>
           <FormLabel>Document Type</FormLabel>
           <Select
+            name='docType'
             placeholder='Select Document Type'
             value={docType}
-            onChange={e => setFormData(prev => ({ ...prev, docType: e.target.value }))}
+            onChange={e => handleChange(e)}
           >
             {loading.docTypes
               ? <>Loading docTypes. . .</>
@@ -83,11 +86,12 @@ const CreateDocFormUI = ({
             <FormLabel>Date Created</FormLabel>
           </Tooltip>
           <Input
+            name='dateCreate'
             type='datetime-local'
             value={dateCreate}
             onFocus={e => handleFocus(e)}
             onBlur={e => handleFocusLost(e)}
-            onChange={e => setFormData(prev => ({ ...prev, dateCreate: e.target.value }))}
+            onChange={e => handleChange(e)}
             ref={refs.dateCreate}
           />
         </FormControl>
@@ -98,11 +102,12 @@ const CreateDocFormUI = ({
             <FormLabel>Date Effective</FormLabel>
           </Tooltip>
           <Input
+            name='dateEff'
             type='datetime-local'
             value={dateEff}
             onFocus={e => handleFocus(e)}
             onBlur={e => handleFocusLost(e)}
-            onChange={e => setFormData(prev => ({ ...prev, dateEff: e.target.value }))}
+            onChange={e => handleChange(e)}
             ref={refs.dateEff}
           />
         </FormControl>
@@ -113,11 +118,12 @@ const CreateDocFormUI = ({
             <FormLabel>Expiration Date</FormLabel>
           </Tooltip>
           <Input
+            name='expiry'
             type='datetime-local'
             value={expiry}
             onFocus={e => handleFocus(e)}
             onBlur={e => handleFocusLost(e)}
-            onChange={e => setFormData(prev => ({ ...prev, expiry: e.target.value }))}
+            onChange={e => handleChange(e)}
             ref={refs.expiry}
           />
         </FormControl>
@@ -129,9 +135,10 @@ const CreateDocFormUI = ({
         <FormControl isRequired>
           <FormLabel>Upload File</FormLabel>
           <Input
+            name='file'
             type='file'
             accept={allowedFileExt.map(ext => `.${ext}`).join(',')}
-            onChange={() => handleFileChange()}
+            onChange={e => handleChange(e)}
           />
         </FormControl>
 

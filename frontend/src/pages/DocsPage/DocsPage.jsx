@@ -12,12 +12,16 @@ import useDrawer from '../../hooks/useDrawer.js';
 import useFetch from '../../hooks/useFetch.js';
 
 // Import utility functions
-import { handleDeleteSingle, handleDownload } from '../../util/util.js'
+import { getErrorMsg, handleDeleteSingle, handleDownload } from '../../util/util.js'
 
 // TODO: move to centralized location 
 const baseUrl   = 'http://localhost:5000';
-const docsApi   = `${baseUrl}/api/docs`;
 const filesApi  = `${baseUrl}/api/files`;
+const docsApi   = `${baseUrl}/api/docs`;
+const infoApi   = `${baseUrl}/api/info`;
+const fileExtApi = `${infoApi}/allowed-file-ext`;
+const docTypeApi = `${infoApi}/document-types`;
+const toolTipApi = `${infoApi}/tool-tips`;
 
 const DocsPage = () => {
   /**
@@ -42,13 +46,16 @@ const DocsPage = () => {
    * Custom hook for managing fetched data state
    */
   const { loading, fetched, handleFetch } = useFetch({
-    initLoading: { docs: false },
-    initFetched: { docs: [] }
+    initLoading: { docs: false, toolTips: false },
+    initFetched: { docs: [], toolTips: {} }
   });
   
-  // Fetch data on page render
+  /**
+   * 
+   */
   useEffect(() => {
-    handleFetch(docsApi);
+    handleFetch(docsApi, 'docs');
+    handleFetch(`${toolTipApi}/DocsPage`, 'toolTips');
   }, []);
 
   /**
@@ -67,12 +74,12 @@ const DocsPage = () => {
         status      : 'success'
       };
       // Refresh documents
-      await handleFetch(docsApi);
+      await handleFetch(docsApi, 'docs');
     } catch (err) {
       // Init error toast
       toastArgs = {
         title       : 'Error Deleting Document',
-        description : err.message?? err.name?? err.code,
+        description : getErrorMsg(err),
         status      : 'error'
       };
       console.error(err);
@@ -97,12 +104,12 @@ const DocsPage = () => {
         status      : 'success'
       };
       // Refresh documents
-      await handleFetch(docsApi);
+      await handleFetch(docsApi, 'docs');
     } catch (err) {
       // Init error toast
       toastArgs = {
         title       : 'Error Deleting Documents',
-        description : err.message?? err.name?? err.code,
+        description : getErrorMsg(err),
         status      : 'error'
       };
       console.error(err);
@@ -135,7 +142,7 @@ const DocsPage = () => {
       // Init error toast
       toastArgs = {
         title       : 'Error Downloading File',
-        description : err.message?? err.name?? err.code,
+        description : getErrorMsg(err),
         status      : 'error'
       };
       console.error(err);
@@ -144,8 +151,8 @@ const DocsPage = () => {
     toast({ ...toastArgs, duration: 3000, isClosable: true });
   };
 
-  const onUpdate = () => {
-    handleFetch(docsApi);
+  const onUpdate = async () => {
+    await handleFetch(docsApi, 'docs');
     handleClose();
   };
 

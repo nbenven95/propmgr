@@ -9,7 +9,10 @@ export default function useDrawer() {
   });
 
   /**
-   * Opens the drawer and renders the given header and body content 
+   * Open the drawer, set drawerContent state, render drawer with header and body.
+   * 
+   * @param {*} headerContent
+   * @param {*} bodyContent
    */
   const handleOpen = useCallback((headerContent, bodyContent) => {
     setDrawerContent({
@@ -20,8 +23,7 @@ export default function useDrawer() {
   }, []);
 
   /**
-   * Wrapper function to clear drawerContent
-   * state when the drawer is closed.
+   * Close the drawer, clear drawerContent state.
    */
   const handleClose = useCallback(() => {
     setDrawerContent({

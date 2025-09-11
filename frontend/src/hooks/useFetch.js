@@ -17,6 +17,8 @@ import { useState, useCallback } from 'react';
  *                        and must be initialized to the equivalent empty value
  *                        for that type (e.g., object => {}, array => [], string => '').
  * 
+ * @note                  Parameters must be passed as kwargs in an object
+ * 
  * @returns
  */
 export default function useFetch({initLoading, initFetched}) {
@@ -40,16 +42,9 @@ export default function useFetch({initLoading, initFetched}) {
    * @param {*} uri The URI of the resource to fetch. The final component
    *                of the URI should match the corresponding key for the
    *                resource in `loading` and `fetched`.
+   * @returns
    */
-  const handleFetch = useCallback(async (uri) => {
-    // TODO: validate URI
-    // Extract the resource name from the URI
-    const segments = (new URL(uri)).pathname.split('/');
-    /* If there is a trailing slash, the final element in `segments`
-       will be an empty string. Handle this by popping the final
-       element and checking if it is a falsey value (indicates
-       empty string); if so, pop the next element */
-    const resource = segments.pop() || segments.pop();
+  const handleFetch = useCallback(async (uri, resource) => {
     // Init error to propagate in case API request fails
     let fetchError = null;
     try {

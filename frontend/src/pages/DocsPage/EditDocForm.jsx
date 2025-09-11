@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { useToast } from '@chakra-ui/react';
 
@@ -40,7 +41,7 @@ const EditDocForm = ({
     file: null,   // If user wishes to upload a new file
     fileRef: '',  // If user wishes to select a new, existing file
     docType: doc.docType,
-    //dateCreate: doc.dateCreate ? new DatE(doc.dateCreate).toISOString().substr(0, 10),
+    //dateCreate: doc.dateCreate ? new Date(doc.dateCreate).toISOString().substr(0, 10),
     dateCreate: doc.dateCreate ? new Date(doc.dateCreate).toDateString() : getLocalTimestamp(),
     dateEff: doc.dateEff ? new Date(doc.dateEff).toDateString() : '',
     expiry: doc.expiry ? new Date(doc.expiry).toDateString() : ''

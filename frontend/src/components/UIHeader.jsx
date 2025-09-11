@@ -17,9 +17,6 @@ const UIHeader = ({
   handleBulkDelete,
   handleClickCreate
 }) => {
-
-  const isBulkModeDisabled = () => bulkMode.selected.length === 0;
-
   return (
     <Flex mb={4} align='center'>
       <Heading size='lg'>{title}</Heading>
@@ -35,7 +32,7 @@ const UIHeader = ({
           <Button size='sm' colorScheme='red' onClick={disableBulkMode}>
             Cancel Bulk Delete
           </Button>
-          <Button size='sm' colorScheme='red' ml={2} onClick={handleBulkDelete} isDisabled={isBulkModeDisabled}>
+          <Button size='sm' colorScheme='red' ml={2} onClick={handleBulkDelete} isDisabled={bulkMode.selected?.length === 0}>
             Delete Selected
           </Button>
         </>
