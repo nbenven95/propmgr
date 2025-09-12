@@ -15,14 +15,15 @@ import useFetch from '../../hooks/useFetch.js';
 import { getErrorMsg, handleDeleteSingle, handleDownload } from '../../util/util.js'
 
 // TODO: move to centralized location 
-const baseUrl   = 'http://localhost:5000';
-const filesApi  = `${baseUrl}/api/files`;
-const docsApi   = `${baseUrl}/api/docs`;
-const infoApi   = `${baseUrl}/api/info`;
-const fileExtApi = `${infoApi}/allowed-file-ext`;
-const docTypeApi = `${infoApi}/document-types`;
-const toolTipApi = `${infoApi}/tool-tips`;
+const baseUrl     = 'http://localhost:5000';
+const filesApi    = `${baseUrl}/api/files`;
+const docsApi     = `${baseUrl}/api/docs`;
+const infoApi     = `${baseUrl}/api/info`;
+const toolTipApi  = `${infoApi}/tool-tips`;
 
+/**
+ * 
+ */
 const DocsPage = () => {
   /**
    * Hook for managing pop-up messages
@@ -57,6 +58,14 @@ const DocsPage = () => {
     handleFetch(docsApi, 'docs');
     handleFetch(`${toolTipApi}/DocsPage`, 'toolTips');
   }, []);
+
+  /**
+   * 
+   */
+  const onUpdate = async () => {
+    await handleFetch(docsApi, 'docs');
+    handleClose();
+  };
 
   /**
    * 
@@ -103,7 +112,7 @@ const DocsPage = () => {
         description : `Successfully deleted Documents: ${deletedDocNames}`,
         status      : 'success'
       };
-      // Refresh documents
+      // Refresh Documents
       await handleFetch(docsApi, 'docs');
     } catch (err) {
       // Init error toast
@@ -113,9 +122,10 @@ const DocsPage = () => {
         status      : 'error'
       };
       console.error(err);
+    } finally {
+      // Display success/error message
+      toast({ ...toastArgs, duration: 3000, isClosable: true });
     }
-    // Display success/error message
-    toast({ ...toastArgs, duration: 3000, isClosable: true });
   };
 
   /**
@@ -151,11 +161,6 @@ const DocsPage = () => {
     toast({ ...toastArgs, duration: 3000, isClosable: true });
   };
 
-  const onUpdate = async () => {
-    await handleFetch(docsApi, 'docs');
-    handleClose();
-  };
-
   /**
    * 
    */
@@ -188,7 +193,7 @@ const DocsPage = () => {
     }
   };
 
-  // Return UI component with injected controller elements
+  // Return presentational component with injected controller elements
   return (
     <DocsPageUI
       isOpen={isOpen}

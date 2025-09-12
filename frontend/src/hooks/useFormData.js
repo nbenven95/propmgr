@@ -42,8 +42,13 @@ export default function useFormData({initFormData, required}) {
    * @usage Assign as the callback to handle onChange events
    *        for <input/> forms; e.g., onChange={handleChange},
    *        onChange={e => handleChange(e)}
+   * 
+   * @note  You must add a 'name' property to your file input element
+   *        with the same value as the name of your state variable
+   *        (e.g., stagedFiles).
    */
   const handleChange = useCallback(e => {
+    // De-structure target element
     const { name, type, files, value, checked } = e.target;
     let stateUpdate = null;
     // Check the input type
@@ -51,11 +56,7 @@ export default function useFormData({initFormData, required}) {
       // Handle file input
       case 'file': {
         // Check for single or multiple files
-        if (files.length > 1) {
-          stateUpdate = Array.from(files);
-        } else {
-          stateUpdate = files[0];
-        }
+        stateUpdate = files.length > 1 ? Array.from(files) : files[0];
         break;
       }
       // Handle checkbox input
@@ -70,7 +71,27 @@ export default function useFormData({initFormData, required}) {
       }
     }
     // Perform the state update
-    setFormData(prev => ({ ...prev, [name]: stateUpdate }));
+    //setFormData(prev => ({ ...prev, [name]: stateUpdate }));
+    setFormData(prev => {
+      // Handle case where multiple files are set: filter duplicates
+      if (type === 'file' && files.length > 1) {
+        // Init filtered files with most up-to-date state
+        const filteredFiles = [...prev[name]]; // TODO: not sure if this is how to access the stagedFiles field generically
+        // Only add files from stateUpdate that have not already been staged 
+        stateUpdate.forEach(file => {
+          // Check if the current file in stateUpdate is already staged
+          const alreadyStaged = filteredFiles.some(f => {
+            return f.name === file.name && f.size === file.size;
+          });
+          // If not already staged, add the file to filtered files list
+          if (!alreadyStaged) filteredFiles.push(file);
+        })
+        // Update state with the filtered files list
+        return { ...prev, [name]: filteredFiles }
+      }
+      // Else, perform the state update as usual
+      return { ...prev, [name]: stateUpdate }
+    });
   }, []);
 
   /**

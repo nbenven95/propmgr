@@ -1,91 +1,181 @@
-import axios from 'axios'
-import { useEffect, useState } from 'react'
-import { useToast } from '@chakra-ui/react'
+import { useEffect } from 'react';
+import { useToast, Text } from '@chakra-ui/react';
 
-import FilesPageUI from './FilesPageUI'
+import FilesPageUI from './FilesPageUI';
+import UploadForm from './UploadForm.jsx';
 
-const filesRoute = 'http://localhost:5000/api/files' // TODO: read from .env 
+import useBulkMode from '../../hooks/useBulkMode.js';
+import useDrawer from '../../hooks/useDrawer.js';
+import useFetch from '../../hooks/useFetch.js';
+
+import { getErrorMsg, handleDeleteSingle, handleDownload } from '../../util/util.js';
+
+// TODO: move to centralized location 
+const baseUrl   = 'http://localhost:5000';
+const filesApi  = `${baseUrl}/api/files`;
+const infoApi   = `${baseUrl}/api/info`;
+const toolTipApi = `${infoApi}/tool-tips`; // TODO: implement
 
 /**
  * 
  * @returns 
  */
 const FilesPage = () => {
+  
   const toast = useToast();
-  const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  const { drawerContent, isOpen, handleOpen, handleClose } = useDrawer();
+
+  const {
+    bulkMode,
+    enableBulkMode,
+    disableBulkMode,
+    toggleBulkSelect,
+    handleBulkDelete
+  } = useBulkMode();
+
+  const { loading, fetched, handleFetch } = useFetch({
+    initLoading: { files: false, allowedFileExt: false, toolTips: false },
+    initFetched: { files: [], allowedFileExt: [], toolTips: {} }
+  });
+
+  useEffect(() => {
+    handleFetch(filesApi, 'files');
+    // TODO: fetch tool tips
+    //handleFetch(`${toolTipApi}/FilePage`, 'toolTips');
+  }, [])
 
   /**
-   * Get list of currently uploaded files
+   * 
    */
-  const fetchFiles = () => {
-    setLoading(true);
-    // async call to get files from backend
-    axios.get(filesRoute).then(res => { // TODO: loading animation, specify timeout period
-      const newState = Array.from(res.data);
-      setUploadedFiles(newState);
-    }).catch(err => {
-      console.error(err);
-      toast({
-        title: 'Error fetching files',
-        description: err.message,
-        status: 'error',
-        duration: 3000,
-        isClosable: true
-      })
-    }).finally(() => {
-      setLoading(false);
-    });
-  };
+  const onUpdate = async () => {
+    // Refresh Files after upload
+    await handleFetch(filesApi, 'files');
+    // Close the drawer after upload finishes
+    handleClose();
+  }
 
   /**
    * 
    * @param {*} file 
    */
-  const handleDelete = (file) => {
-    if (file.documents?.length > 0) { // (Array.isArray(file.documents) && file.documents.length > 0)
-      toast({
-        title: 'Error deleting file',
-        description: `File "${file.name}" could not be deleted because it is linked to Documents`,
-        status: 'error',
-        duration: 3000,
-        isClosable: true
-      });
+  const handleDeleteFile = async (file) => {
+    let toastArgs = {};
+    if (file.documents?.length > 0) {
+      toastArgs = {
+        title       : 'Error Deleting File',
+        description : `Failed to delete File \"${file.name}\": attached to ${file.documents.length} Documents.`,
+        status      : 'error'
+      };
     } else {
-      // No linked documents, attempt async delete
-      axios.delete(`${filesRoute}/${file?._id}`).then(res => {
-        toast({
-          title: 'File successfully deleted',
-          description: `File with ID "${file._id}" successfully deleted.`,
-          status: 'success',
-          duration: 3000,
-          isClosable: true
-        });
-        fetchFiles(); // On successful delete, get the updated file list
-      }).catch(err => {
-        toast({
-          title: 'Error deleting file',
-          description: `File with ID "${file._id}" could not be deleted`,
-          status: 'error',
-          duration: 3000,
-          isClosable: true
-        })
-        console.error(err); // FIXME: proper error handling
-      });
+      try {
+        // Delete the File, save a copy of its data
+        const deletedFile = await handleDeleteSingle(`${filesApi}/${file._id}`);
+        // Get the updated list of Files
+        await handleFetch(filesApi, 'files');
+        toastArgs = {
+          title       : 'Deleted File',
+          description : `Successfully deleted File \"${deletedFile.name}\"`,
+          status      : 'success'
+        };
+      } catch (err) {
+        toastArgs = {
+          title       : 'Error Deleting File',
+          description : getErrorMsg(err),
+          status      : 'error'
+        };
+        console.error(err);
+      } finally {
+        toast({ ...toastArgs, duration: 3000, isClosable: true });
+      }
     }
   };
 
-  // TODO: look into using useEffect() properly; not sure if its appropriate here
-  // Specify functions that need to run before each render
-  useEffect(() => { 
-    fetchFiles();
-  }, []);
+  /**
+   * 
+   */
+  const handleBulkDeleteFiles = async () => {
+    let toastArgs = {};
+    try {
+      const deletedFiles      = await handleBulkDelete(filesApi);
+      const deletedFileNames  = deletedFiles.map(file => file.name).join(', ');
+      toastArgs = {
+        title       : `Deleted ${deletedFiles.length} Files`,
+        description : `Successfully deleted Files: ${deletedFileNames}`,
+        status      : 'success'
+      };
+      // Refresh Files
+    } catch (err) {
+      toastArgs = {
+        title       : 'Error Deleting Files',
+        description : getErrorMsg(err),
+        status      : 'error'
+      };
+      console.error(err);
+    } finally {
+      toast({ ...toastArgs, duration: 3000, isClosable: true });
+    }
+  };
 
+  /**
+   * Download a File from the /api/files endpoint given its FileRef ObjectID
+   * Essentially just a wrapper for the utility function handleDownload given
+   * inputs id and fileName with known/constant URL (filesApi); also displays
+   * success/error toasts.
+   * 
+   * @param {*} id 
+   * @param {*} filename 
+   */
+  const handleDownloadFile = async (id, fileName) => {
+    let toastArgs = {};
+    try {
+      // Attempt async file download
+      await handleDownload(`${filesApi}/download/${id}`, fileName);
+      // Init success toast
+      toastArgs = {
+        title       : 'File Downloaded',
+        description : `Successfully downloaded File \"${fileName}\"`,
+        status      : 'success'
+      };
+    } catch (err) {
+      // Init error toast
+      toastArgs = {
+        title       : 'Error Downloading File',
+        description : getErrorMsg(err),
+        status      : 'error'
+      };
+      console.error(err);
+    }
+    // Display success/error message
+    toast({ ...toastArgs, duration: 3000, isClosable: true });
+  };
+
+  /**
+   * Open the drawer and render the UploadForm
+   */
+  const handleClickUpload = async () => {
+    handleOpen(
+      <Text>Upload New File</Text>,
+      <UploadForm onUpdate={onUpdate} />
+    );
+  };
+
+  // Return presentational component with injected controller elements
   return (
     <FilesPageUI
+      isOpen={isOpen}
+      handleClose={handleClose}
+      drawerContent={drawerContent}
+      fetched={fetched}
       loading={loading}
-      uploadedFiles={uploadedFiles}
-      handleDelete={handleDelete}
+      bulkMode={bulkMode}
+      enableBulkMode={enableBulkMode}
+      disableBulkMode={disableBulkMode}
+      toggleBulkSelect={toggleBulkSelect}
+      handleBulkDeleteFiles={handleBulkDeleteFiles}
+      handleDeleteFile={handleDeleteFile}
+      handleDownloadFile={handleDownloadFile}
+      handleClickUpload={handleClickUpload}
     />
   );
 };

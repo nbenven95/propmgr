@@ -45,8 +45,6 @@ export default function useFetch({initLoading, initFetched}) {
    * @returns
    */
   const handleFetch = useCallback(async (uri, resource) => {
-    // Init error to propagate in case API request fails
-    let fetchError = null;
     try {
       // Set loading state of resource
       setLoading(prev => ({ ...prev, [resource]: true }));
@@ -54,14 +52,16 @@ export default function useFetch({initLoading, initFetched}) {
       // Update fetched data for the resource
       setFetched(prev => ({ ...prev, [resource]: res.data }));
     } catch (err) {
-      // On failed API request, save the error so we can propagate it
-      fetchError = err;
+      // Propagate error so client can handle it (finally block still executes)
+      if (axios.isAxiosError(err)) {
+        console.error('Axios error:', err.response?.status, err.response?.data);
+      } else {
+        console.error('Unexpected error:', err);
+      }
     } finally {
       // Update loading state of resource
       setLoading(prev => ({ ...prev, [resource]: false }));
     }
-    // If resource fetch failed, propagate the error
-    if (fetchError) throw new Error(fetchError.message);
   }, []);
 
   // Return relevant state/callbacks for the hook

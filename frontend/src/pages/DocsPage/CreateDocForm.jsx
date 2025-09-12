@@ -1,13 +1,12 @@
-import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from '@chakra-ui/react';
+
+import CreateDocFormUI from './CreateDocFormUI.jsx';
 
 import useFetch from '../../hooks/useFetch.js';
 import useFormData from '../../hooks/useFormData.js';
 
 import { getErrorMsg, getLocalTimestamp, truncateExt } from '../../util/util.js';
-
-import CreateDocFormUI from './CreateDocFormUI.jsx';
 
 // TODO: move to centralized location 
 const baseUrl   = 'http://localhost:5000';
@@ -27,7 +26,7 @@ const CreateDocForm = ({ onUpdate }) => {
 
   const toast = useToast();
 
-  const { formData, setFormData, getPayload, submitting, handleChange, handlePost, handlePut } = useFormData({
+  const { formData, setFormData, getPayload, submitting, handleChange, handlePost } = useFormData({
     initFormData: {
       name      : '',
       file      : null, // Newly uploaded file
@@ -115,7 +114,7 @@ const CreateDocForm = ({ onUpdate }) => {
       const doc = await handlePost(`${docsApi}/create`, payload, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
-      if (onUpdate) await onUpdate(); // TODO: should this be awaited?
+      if (onUpdate) await onUpdate();
       toastArgs = {
         title       : 'Document Created',
         description : `Successfully created Document \"${doc.name}\"`,
@@ -128,8 +127,9 @@ const CreateDocForm = ({ onUpdate }) => {
         status      : 'error'
       };
       console.error(err);
+    } finally {
+      toast({ ...toastArgs, duration: 3000, isClosable: true });
     }
-    toast({ ...toastArgs, duration: 3000, isClosable: true });
   };
 
   /**

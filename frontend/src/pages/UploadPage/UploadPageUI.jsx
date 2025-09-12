@@ -4,7 +4,7 @@ import React from 'react'
 import { Button, VStack } from '@chakra-ui/react'
 import { WiCloudUp } from "react-icons/wi";
 
-import FileCard from '../../components/FileCard'
+import FileCard from '../../components/cards/FileCard'
 
 /**
  * Dumb (presentational) component for UploadPage.

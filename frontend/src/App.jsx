@@ -2,12 +2,14 @@ import React from 'react'
 import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom'
 import { Box } from '@chakra-ui/react'
 
-import CreateDocForm from './pages/DocsPage/CreateDocForm'
-import DocsPage from './pages/DocsPage/DocsPage'
-import FilesPage from './pages/FilesPage/FilesPage'
-import Navbar from './components/Navbar'
-import PropertyProfilesPage from './pages/PropertyProfiles/PropertyProfilesPage'
-import UploadPage from './pages/UploadPage/UploadPage'
+import Navbar from './components/Navbar';
+import CreateDocForm from './pages/DocsPage/CreateDocForm';
+import DocsPage from './pages/DocsPage/DocsPage';
+import FilesPage from './pages/FilesPage/FilesPage';
+//import UploadPage from './pages/UploadPage/UploadPage';
+import UploadForm from './pages/FilesPage/UploadForm';
+import PropertyProfilesPage from './pages/PropertyProfiles/PropertyProfilesPage';
+
 
 function App() {
   return (
@@ -19,7 +21,7 @@ function App() {
           <Route path='/docs' element={<DocsPage />} />
           <Route path='/docs/create' element={<CreateDocForm />} />
           <Route path='/files' element={<FilesPage />} />
-          <Route path='/files/upload' element={<UploadPage />} />
+          <Route path='/files/upload' element={<UploadForm />} />
           <Route path='/properties' element={<PropertyProfilesPage />} />
         </Routes>
       </Router>

@@ -45,11 +45,11 @@ const InfoRouter = ({
     const { view } = req.params;
     if (!view) return res.status(BAD_REQUEST).send({
       success: false,
-      message: 'Missing request parameter `view`'
+      message: 'Missing request parameter \"view\"'
     });
     if (!toolTips[view]) return res.status(NOT_FOUND).send({
       success: false,
-      message: `Could not find tool tips for view \`${view}\``
+      message: `Could not find tooltips for view \"${view}\"`
     })
     return res.status(OK).send(toolTips[view]);
   });

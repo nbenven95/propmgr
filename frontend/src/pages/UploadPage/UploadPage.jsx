@@ -12,9 +12,7 @@ const endpoint = 'http://localhost:5000/api/files'
  * 
  * @returns 
  */
-const UploadPage = ({
-  stagedFilesGrid
-}) => {
+const UploadPage = () => {
   const [files, setFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -101,7 +99,6 @@ const UploadPage = ({
   return (
     // Pass state and handlers to dumb component
     <UploadPageUI
-      stagedFilesGrid={stagedFilesGrid}
       files={files}
       isDragging={isDragging}
       fileInputRef={fileInputRef}

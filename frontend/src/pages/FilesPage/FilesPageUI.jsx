@@ -1,9 +1,19 @@
-import React from 'react'
-import { Tooltip } from '@chakra-ui/react'
+import React from 'react';
+import {
+  Box,
+  Drawer,
+  DrawerBody,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerHeader,
+  DrawerOverlay,
+  Flex,
+  Text,
+  Tooltip
+} from '@chakra-ui/react';
 
-import FileCard from '../../components/FileCard'
-
-import '../../styles/filecard.css'
+import UIHeader from '../../components/UIHeader';
+import FileCard from '../../components/cards/FileCard';
 
 /**
  * 
@@ -11,35 +21,81 @@ import '../../styles/filecard.css'
  * @returns 
  */
 const FilesPageUI = ({
+  isOpen,
+  handleClose,
+  drawerContent,
+  fetched,
   loading,
-  uploadedFiles,
-  handleDelete
+  bulkMode,
+  enableBulkMode,
+  disableBulkMode,
+  toggleBulkSelect,
+  handleBulkDeleteFiles,
+  handleDeleteFile,
+  handleDownloadFile, // TODO: add download button to file cards
+  handleClickUpload
 }) => {
+  
+  const { files } = fetched;
+
+  {/* Display loading indicator while fetching */}
+  if (loading.files) {
+    return (
+      <Flex justify='center' align='center' minH='100vh'>
+        <Text fontSize='xl'>Loading Files. . .</Text>
+      </Flex>
+    );
+  }
+
   return (
-    <div className='files-container'>
-      {loading ? (
-        <p>Loading . . .</p> 
-      ) : uploadedFiles.length === 0 ? (
-        <p>No Files found.</p>
+    <Box maxW='100vw' mx='auto' p={4} >
+
+      {/* Bulk delete controls, button link to upload menu */}
+      <UIHeader 
+        title='Files'
+        bulkMode={bulkMode}
+        enableBulkMode={enableBulkMode}
+        disableBulkMode={disableBulkMode}
+        handleBulkDelete={handleBulkDeleteFiles}
+        handleClickCreate={handleClickUpload}
+      />
+
+      {/* Main FileCard display */}
+      {files.length === 0 ? (
+        <Text>No Files Found</Text>
       ) : (
-        <>
-          <h2>Files</h2>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '20px' }}>
-            {uploadedFiles?.map((file, index) => (
-              <Tooltip key={index} label={
-                file.documents?.length === 0
-                  ? 'No linked documents'
-                  : `Linked documents (${file.documents?.length}): ` + file.documents.map(doc => doc?.name).join(', ')
-              }>
-                <div key={index}>
-                  <FileCard file={file} handleDelete={handleDelete} />
-                </div>
-              </Tooltip>
-            ))}
-          </div>
-        </>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '20px' }} >
+          {files.map((file, i) => (
+            <Tooltip key={i} label={
+              file.documents?.length === 0
+                ? 'No Linked Documents'
+                : `Linked documents (${file.documents?.length}): ${file.documents.map(d => d.name).join(', ')}`
+            } >
+              <FileCard 
+                file={file}
+                bulkMode={bulkMode}
+                toggleBulkSelect={toggleBulkSelect}
+                handleDeleteFile={handleDeleteFile}
+                key={file._id}
+              />
+            </Tooltip>
+          ))}
+        </div>
       )}
-    </div>
+
+      {/* Drawer menu */}
+      <Drawer isOpen={isOpen} placement='top' onClose={handleClose} size='lg'>
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader borderBottomWidth='1px'>{drawerContent.header}</DrawerHeader>
+          <DrawerBody p={4}>
+            {drawerContent.body}
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+
+    </Box>
   );
 };
 
