@@ -1,6 +1,12 @@
 import {
   Box,
   Button,
+  Drawer,
+  DrawerBody,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerHeader,
+  DrawerOverlay,
   Checkbox,
   Input,
   Select,
@@ -9,26 +15,36 @@ import {
   VStack,
   Flex,
   Heading,
-  Tooltip
-} from '@chakra-ui/react'
+  Tooltip,
+  HStack,
+  Text
+} from '@chakra-ui/react';
 
 const CreateDocFormUI = ({
-  formData,
-  fetched,
-  refs,
+  isOpen,
   loading,
   submitting,
   useDefaultName,
-  handleSubmit,
-  handleChange,
-  handleToggle,
-  handleFocus,
-  handleFocusLost
+
+  refs,
+  fetched,
+  formData,
+  drawerContent,
+  
+  onCloseForm: handleClose,
+  onChangeForm: handleChange,
+  onStageFiles: handleStageFiles,
+  onDatePickerFocus: handleFocus,
+  onDatePickerFocusLost: handleFocusLost,
+
+  onClickUpload: handleClickUpload,
+  onClickSubmit: handleClickSubmit,
+  onClickToggle: handleClickToggle
 }) => {
 
   // De-structure fetched data
   const { files, docTypes, toolTips, allowedFileExt } = fetched;
-  
+
   // De-structure form data
   const { name, docType, dateCreate, dateEff, expiry } = formData;
 
@@ -43,7 +59,7 @@ const CreateDocFormUI = ({
           <Input
             name='name'
             placeholder='Document Name'
-            value={name}
+            value={name?? ''}
             onChange={e => handleChange(e)}
             ref={refs.name}
           />
@@ -54,7 +70,7 @@ const CreateDocFormUI = ({
           <Checkbox
             name='useDefaultName'
             isChecked={useDefaultName}
-            onChange={handleToggle}
+            onChange={() => handleClickToggle()}
           >
             Use file name as document name
           </Checkbox>
@@ -66,7 +82,7 @@ const CreateDocFormUI = ({
           <Select
             name='docType'
             placeholder='Select Document Type'
-            value={docType}
+            value={docType?? ''}
             onChange={e => handleChange(e)}
           >
             {loading.docTypes
@@ -82,13 +98,13 @@ const CreateDocFormUI = ({
 
         {/* Date created picker */}
         <FormControl>
-          <Tooltip label={toolTips['dateCreate']}>
+          <Tooltip label={toolTips.dateCreate?? 'Date created'}>
             <FormLabel>Date Created</FormLabel>
           </Tooltip>
           <Input
             name='dateCreate'
             type='datetime-local'
-            value={dateCreate}
+            value={dateCreate?? ''}
             onFocus={e => handleFocus(e)}
             onBlur={e => handleFocusLost(e)}
             onChange={e => handleChange(e)}
@@ -98,13 +114,13 @@ const CreateDocFormUI = ({
 
         {/* Date effective picker */}
         <FormControl>
-          <Tooltip label={toolTips['dateEff']}>
+          <Tooltip label={toolTips.dateEff?? 'Date effective'}>
             <FormLabel>Date Effective</FormLabel>
           </Tooltip>
           <Input
             name='dateEff'
             type='datetime-local'
-            value={dateEff}
+            value={dateEff?? ''}
             onFocus={e => handleFocus(e)}
             onBlur={e => handleFocusLost(e)}
             onChange={e => handleChange(e)}
@@ -114,7 +130,7 @@ const CreateDocFormUI = ({
 
         {/* Expiration date picker */}
         <FormControl>
-          <Tooltip label={toolTips['expiry']}>
+          <Tooltip label={toolTips.expiry?? 'Expiration date'}>
             <FormLabel>Expiration Date</FormLabel>
           </Tooltip>
           <Input
@@ -128,25 +144,60 @@ const CreateDocFormUI = ({
           />
         </FormControl>
 
-        {/* TODO: file select drop-down menu */}
-        {/* TODO: add logic to prevent user from selecting an existing file and uploading a new one */}
-
-        {/* File upload */}
+        {
+          // TODO: Add two buttons: select existing file, select new file
+          // - Intially, both should be enabled
+          // - Upload button should be linked via reference to an input component
+          // - Corresponding input component should be set to single file mode
+          // TODO: On clicking 'select new file', drawer opens with the UploadForm component
+          // TODO: On staging a file, both buttons should be hidden
+          // - Replaced with a 'file staged for upload' field
+          // TODO: Render a FileCard component next to the 'staged for upload' field
+          // - Should have the necessary controller logic to handle removing the file from staging
+          // - If the file is removed from staging, both buttons are displayed again
+          // - Make sure to re-fetch files if a new one is uploaded during document creation
+          // - 
+          // TODO: On clicking 'select existing file', drawer opens with the FilesPage rendered
+          // - Make sure files are being pre-fetched in useEffect for initial render
+          // - Pass pre-fetched files to FilesPageUI component
+          // TODO: On selecting a file, both buttons should be hidden
+          // - Replaced with a 'file' field
+          // TODO: Render a FileCard component next to the 'file' field
+          // - Should have necessary controller logic to handle clearing the file like any other form
+          // - Should be displayed the same as the FileCard for the file to be uploaded
+          // - 
+          // TODO: Add onClick handler for FileCards to handle clicking/selecting them
+        }
+        {/* File upload 
         <FormControl isRequired>
           <FormLabel>Upload File</FormLabel>
           <Input
-            name='file'
+            name='stagedFile'
             type='file'
             accept={allowedFileExt.map(ext => `.${ext}`).join(',')}
-            onChange={e => handleChange(e)}
+            onChange={e => {
+              handleStageFiles(e.target.files);
+            }}
           />
+        </FormControl>
+        */}
+        <FormControl>
+          <FormLabel>Attach File</FormLabel>
+          <HStack justifyContent='space-between' width='100%' >
+            <Button variant='outline' onClick={() => alert('select clicked!')} >
+              Select From Existing Files
+            </Button>
+            <Button colorScheme='blue' onClick={() => handleClickUpload()} >
+              Upload New File
+            </Button>
+          </HStack>
         </FormControl>
 
         {/* Submit button */}
         <Flex justify='center' mt={4}>
           <Button
             colorScheme='teal'
-            onClick={() => handleSubmit()}
+            onClick={() => handleClickSubmit()}
             isLoading={submitting}
             loadingText='Submitting. . .'
             width='100%'
@@ -158,6 +209,19 @@ const CreateDocFormUI = ({
         {/* TODO: add 'clear form' button */}
 
       </VStack>
+
+      {/* Drawer menu */}
+      <Drawer isOpen={isOpen} placement='top' onClose={() => handleClose()} size='lg'>
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader borderBottomWidth='1px'>{drawerContent.header}</DrawerHeader>
+          <DrawerBody p={4}>
+            {drawerContent.body}
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+
     </Box>
   );
 }

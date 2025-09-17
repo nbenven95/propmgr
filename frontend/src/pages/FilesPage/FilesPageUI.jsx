@@ -22,18 +22,21 @@ import FileCard from '../../components/cards/FileCard';
  */
 const FilesPageUI = ({
   isOpen,
-  handleClose,
-  drawerContent,
-  fetched,
   loading,
+
+  fetched,
+  drawerContent,
+  
+  onCloseForm: handleCloseDrawer,
+
+  onClickUpload: handleClickUpload,
+  onClickDelete: handleClickDelete,
+  onClickDownload: handleClickDownload,
+
   bulkMode,
-  enableBulkMode,
-  disableBulkMode,
-  toggleBulkSelect,
-  handleBulkDeleteFiles,
-  handleDeleteFile,
-  handleDownloadFile, // TODO: add download button to file cards
-  handleClickUpload
+  onBulkDelete: handleBulkDelete,
+  onBulkModeToggle: handleToggleBulkMode,
+  onBulkSelectToggle: handleToggleBulkSelect
 }) => {
   
   const { files } = fetched;
@@ -54,10 +57,9 @@ const FilesPageUI = ({
       <UIHeader 
         title='Files'
         bulkMode={bulkMode}
-        enableBulkMode={enableBulkMode}
-        disableBulkMode={disableBulkMode}
-        handleBulkDelete={handleBulkDeleteFiles}
-        handleClickCreate={handleClickUpload}
+        onClickCreate={handleClickUpload}
+        onClickDelete={handleBulkDelete}
+        onClickBulkModeToggle={handleToggleBulkMode}
       />
 
       {/* Main FileCard display */}
@@ -74,8 +76,9 @@ const FilesPageUI = ({
               <FileCard 
                 file={file}
                 bulkMode={bulkMode}
-                toggleBulkSelect={toggleBulkSelect}
-                handleDeleteFile={handleDeleteFile}
+                onClickDelete={handleClickDelete}
+                onClickBulkSelect={handleToggleBulkSelect}
+                onClickDownload={handleClickDownload}
                 key={file._id}
               />
             </Tooltip>
@@ -84,7 +87,7 @@ const FilesPageUI = ({
       )}
 
       {/* Drawer menu */}
-      <Drawer isOpen={isOpen} placement='top' onClose={handleClose} size='lg'>
+      <Drawer isOpen={isOpen} placement='top' onClose={handleCloseDrawer} size='lg'>
         <DrawerOverlay />
         <DrawerContent>
           <DrawerCloseButton />

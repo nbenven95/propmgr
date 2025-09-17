@@ -13,8 +13,9 @@ import iconMap from '../../util/iconMap.js'
 const FileCard = ({
   file,
   bulkMode,
-  toggleBulkSelect,
-  handleDeleteFile
+  onClickDelete: handleDelete,
+  onClickBulkSelect: handleBulkSelect,
+  onClickDownload: handleDownload // TODO: add download button
 }) => {
 
   // Get the file extension (or the final extension, in the case of multiple)
@@ -42,19 +43,19 @@ const FileCard = ({
       flexDirection='column'
       alignItems='center'
     >
-      {/* If bulkMode prop was passed, render the bulk select checkbox (if bulkMode is enabled) */}
-      {bulkMode && bulkMode.enabled && (
+      {/* Render bulkMode select checkbox if enabled and file has no attached documents */}
+      {bulkMode?.enabled && file.documents?.length === 0 && (
         <Checkbox
           position='absolute'
           top={2}
           left={2}
-          size='sm'
-          isChecked={bulkMode.selected.includes(file._id)}
-          onChange={() => toggleBulkSelect(file._id)}
+          size='md'
+          isChecked={bulkMode?.selected.includes(file._id)}
+          onChange={() => handleBulkSelect(file._id)}
         />
       )}
 
-      {/* Delete/remove from staging button in upper right */}
+      {/* Display delete/remove from staging button as long as the file has no attached Documents */}
       <IconButton
         position='absolute'
         top={2}
@@ -63,12 +64,13 @@ const FileCard = ({
         aria-label='Delete File'
         icon={<DeleteIcon />}
         colorScheme='red'
-        onClick={() => handleDeleteFile(file)}
+        disabled={bulkMode?.enabled || file?.documents?.length > 0}
+        onClick={() => handleDelete(file)}
       />
 
       {/* File Icon in center */}
-      <Box flex='1' display='flex' alignItems='center' justifyContent='center' my={4} width='100%'>
-        <FileIcon extension={ext} size={64} {...style} />
+      <Box flex='1' display='flex' alignItems='center' justifyContent='center' my={4} width='40%'>
+        <FileIcon extension={ext} {...style} />
       </Box>
 
       {/* Filename, truncated */}
@@ -82,32 +84,9 @@ const FileCard = ({
       >
         {file.name}
       </Text>
+      <Text>{file._id}</Text>
     </Box>
-  )
-
-  /*
-  return (
-      <div className='file-card'>
-      <div className='file-icon-container'>
-        <div className='file-icon'>
-          {defaultStyle === undefined ? (
-            <FileIcon extension={ext} {...backupStyle} />
-          ) : (
-            <FileIcon extension={ext} {...defaultStyle} />
-          )}
-        </div>
-      </div>
-      <div className='file-name'>{file.name}</div>
-      {handleDelete && <button 
-        className='delete-button'
-        title='Delete' 
-        onClick={() => handleDelete(file)}
-      >
-        <CloseIcon/>
-      </button>}
-    </div>
-  )
-  */
+  );
 };
 
 export default FileCard;

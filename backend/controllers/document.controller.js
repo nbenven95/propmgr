@@ -70,10 +70,10 @@ const getDocumentById = async (req, res) => {
 const createDocument = async (req, res) => {
   // Destructure name and (optional) fileRef from body data
   const { docType, fileRef, name, dateCreate, dateEff, expiry } = req.body;
-  // If a new file was uploaded, this will be passed by multer middleware
-  const file = req.file;
-  let fileId = null;
   try {
+    // If a new file was uploaded, this will be passed by multer middleware
+    const file = req.files[0];
+    let fileId = null;
     // Check if new file data or an existing File ref has been provided
     if (file) {
       // New file uploaded -- destructure multer data

@@ -12,32 +12,31 @@ import CreateNewItemBtn from './buttons/CreateNewItemBtn'
 const UIHeader = ({
   title,
   bulkMode,
-  enableBulkMode,
-  disableBulkMode,
-  handleBulkDelete,
-  handleClickCreate
+  onClickCreate: handleClickCreate,
+  onClickDelete: handleBulkDelete,
+  onClickBulkModeToggle: handleToggleBulkMode
 }) => {
   return (
     <Flex mb={4} align='center'>
       <Heading size='lg'>{title}</Heading>
       
       {/* 'Create New' button */}
-      <CreateNewItemBtn label={title} onClick={handleClickCreate} /> {/* TODO: should this be passed as an arrow function? */}
+      <CreateNewItemBtn label={title} onClick={handleClickCreate} />
 
       <Spacer />
 
       {/* Display bulk operation controls if bulk mode is enabled */}
       {bulkMode.enabled ? (
         <>
-          <Button size='sm' colorScheme='red' onClick={disableBulkMode}>
+          <Button size='sm' colorScheme='red' onClick={handleToggleBulkMode} >
             Cancel Bulk Delete
           </Button>
           <Button size='sm' colorScheme='red' ml={2} onClick={handleBulkDelete} isDisabled={bulkMode.selected?.length === 0}>
-            Delete Selected
+            Delete Selected Items
           </Button>
         </>
       ) : (
-        <Button size='sm' colorScheme='blue' onClick={enableBulkMode}>
+        <Button size='sm' colorScheme='blue' onClick={handleToggleBulkMode} >
           Enable Bulk Delete
         </Button>
       )}

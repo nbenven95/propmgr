@@ -94,8 +94,8 @@ const uploadFiles = async (req, res) => {
 	// In-memory array for response data
 	const newFiles = [];
 	// Read files from request data (after processing by multer middleware)
-	const files = req.files;
-	/* Helper callback to create a FileRef promise for each uploaded file */
+	const files = req.files; // Note: 'files' is defined by the value passed to Multer.array() middleware in our route definition 
+/* Helper callback to create a FileRef promise for each uploaded file */
 	const createFileRefPromises = files.map(async (file) => {
   	// Create new FileRef from form data (after processing by multer)
 		const { filename, originalname, path } = file;
@@ -107,7 +107,6 @@ const uploadFiles = async (req, res) => {
 		try {
 			// Await save FileRef to database
 			await newFileRef.save();
-			// Add to 
 			newFiles.push(newFileRef);
 			return newFileRef;
 		} catch (err) {

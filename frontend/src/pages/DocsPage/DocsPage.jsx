@@ -1,18 +1,14 @@
 import { useEffect } from 'react';
 import { useToast, Text } from '@chakra-ui/react';
 
-// Import custom components
 import DocsPageUI from './DocsPageUI';
-import CreateDocForm from './CreateDocForm.jsx';
-import EditDocForm from './EditDocForm.jsx';
+import CreateDocForm from './CreateDocForm';
+import EditDocForm from './EditDocForm';
 
-// Import custom hooks
-import useBulkMode from '../../hooks/useBulkMode.js';
-import useDrawer from '../../hooks/useDrawer.js';
-import useFetch from '../../hooks/useFetch.js';
-
-// Import utility functions
-import { getErrorMsg, handleDeleteSingle, handleDownload } from '../../util/util.js'
+import useBulkMode from '../../hooks/useBulkMode';
+import useDrawer from '../../hooks/useDrawer';
+import useFetch from '../../hooks/useFetch';
+import { getErrorMsg, onDeleteSingle, onDownload } from '../../util/util';
 
 // TODO: move to centralized location 
 const baseUrl     = 'http://localhost:5000';
@@ -21,61 +17,49 @@ const docsApi     = `${baseUrl}/api/docs`;
 const infoApi     = `${baseUrl}/api/info`;
 const toolTipApi  = `${infoApi}/tool-tips`;
 
-/**
- * 
- */
 const DocsPage = () => {
-  /**
-   * Hook for managing pop-up messages
-   */
+
   const toast = useToast();
-  /**
-   * Custom hook for managing drawer menu open/close and rendered content state
-   */
-  const { drawerContent, isOpen, handleOpen, handleClose } = useDrawer();
-  /**
-   * Custom hook for managing bulk delete mode state
-   */
-  const {
-    bulkMode,
-    enableBulkMode,
-    disableBulkMode,
-    toggleBulkSelect,
-    handleBulkDelete
-  } = useBulkMode();
-  /**
-   * Custom hook for managing fetched data state
-   */
-  const { loading, fetched, handleFetch } = useFetch({
-    initLoading: { docs: false, toolTips: false },
-    initFetched: { docs: [], toolTips: {} }
+
+  const { drawerContent, isOpen, onDrawerOpen, onDrawerClose } = useDrawer();
+
+  const { bulkMode, onBulkModeToggle, onBulkSelectToggle, onBulkDelete } = useBulkMode();
+
+  const { loading, fetched, onFetch } = useFetch({
+    initLoading: { toolTips: false, docs: false },
+    initFetched: { toolTips: {}, docs: [] },
+    endpoints: { toolTips: toolTipApi, docs: docsApi }
   });
   
-  /**
-   * 
-   */
+  // Handle side-effects
   useEffect(() => {
-    handleFetch(docsApi, 'docs');
-    handleFetch(`${toolTipApi}/DocsPage`, 'toolTips');
-  }, []);
-
-  /**
-   * 
-   */
-  const onUpdate = async () => {
-    await handleFetch(docsApi, 'docs');
-    handleClose();
-  };
+    /* Workaround to let us indirectly await async in useEffect */
+    const handleFetch = async () => {
+      // Array of fetch promises
+      const promises = [onFetch('toolTips'), onFetch('docs')];
+      // Execute all promises in parallel until all are settled
+      const results = await Promise.allSettled(promises);
+      // Get a list of errors for any resources that failed to fetch
+      const errs = results.filter(r => r.status === 'rejected').map(r => r.reason);
+      // Notify user of any resources that failed to fetch
+      const numErrs = errs.length;
+      if (numErrs > 0) {
+        const msg = `Failed to fetch (${numErrs}) resource${numErrs > 1 ? 's' : ''}: ${errs.join(', ')}`;
+        console.error(msg);
+      }
+    };
+    handleFetch();
+  }, []); // No dependencies; only called on initial page render
 
   /**
    * 
    * @param {*} id 
    */
-  const handleDeleteDoc = async (id) => {
+  const handleDelete = async (id) => {
     let toastArgs = {};
     try {
       // Attempt to delete the document given its ObjectID
-      const doc = await handleDeleteSingle(`${docsApi}/${id}`);
+      const doc = await onDeleteSingle(`${docsApi}/${id}`);
       // Init success toast
       toastArgs = {
         title       : 'Document Deleted',
@@ -100,11 +84,11 @@ const DocsPage = () => {
   /**
    * Handle deleting all Documents selected for bulk delete.
    */
-  const handleBulkDeleteDocs = async () => {
+  const handleBulkDelete = async () => {
     let toastArgs = {};
     try {
       // Attempt bulk delete
-      const deletedDocs     = await handleBulkDelete(docsApi);
+      const deletedDocs     = await onBulkDelete(docsApi);
       const deletedDocNames = deletedDocs.map(doc => doc.name).join(', ');
       // Init success toast
       toastArgs = {
@@ -113,7 +97,7 @@ const DocsPage = () => {
         status      : 'success'
       };
       // Refresh Documents
-      await handleFetch(docsApi, 'docs');
+      await onFetch('docs');
     } catch (err) {
       // Init error toast
       toastArgs = {
@@ -121,7 +105,6 @@ const DocsPage = () => {
         description : getErrorMsg(err),
         status      : 'error'
       };
-      console.error(err);
     } finally {
       // Display success/error message
       toast({ ...toastArgs, duration: 3000, isClosable: true });
@@ -137,11 +120,11 @@ const DocsPage = () => {
    * @param {*} id 
    * @param {*} filename 
    */
-  const handleDownloadFile = async (id, fileName) => {
+  const handleDownload = async (id, fileName) => {
     let toastArgs = {};
     try {
       // Attempt async file download
-      await handleDownload(`${filesApi}/download/${id}`, fileName);
+      await onDownload(`${filesApi}/download/${id}`, fileName);
       // Init success toast
       toastArgs = {
         title       : 'File Downloaded',
@@ -161,55 +144,54 @@ const DocsPage = () => {
     toast({ ...toastArgs, duration: 3000, isClosable: true });
   };
 
-  /**
-   * 
-   */
-  const handleClickCreateDoc = () => {
-    handleOpen(
+  /* Handle refreshing fetched Documents after one is created, edited, or deleted */
+  const handleRefresh = async () => {
+    await onFetch('docs');
+    onDrawerClose();
+  };
+
+  /* Handle opening drawer and rendering CreateDocForm */
+  const handleOpenCreateForm = () => {
+    onDrawerOpen(
       <Text>Create New Document</Text>,
-      <CreateDocForm onUpdate={onUpdate} />
+      <CreateDocForm onUpdate={handleRefresh} />
     );
   };
 
-  /**
-   * 
-   * @param {*} doc 
-   * @returns 
-   */
-  const handleClickEditDoc = (doc) => {
-    if (doc) {
-      handleOpen(
-        <Text>Edit {doc.name}</Text>,
-        <EditDocForm doc={doc} onUpdate={onUpdate} />
-      );
-    } else {
-      toast({
-        title       : 'Error Editing Document',
-        description : 'No Document selected for editing.',
-        status      : 'error',
-        duration    : 3000,
-        isClosable  : true
-      });
-    }
+  /* Handle opening drawer and rendering EditDocForm */
+  const handleOpenEditForm = (doc) => {
+    onDrawerOpen(
+      <Text>Edit {doc.name}</Text>,
+      <EditDocForm doc={doc} onUpdate={handleRefresh} />
+    );
   };
+
+  /* Handle closing drawer that is displaying Create/EditForm */
+  const handleCloseForm = () => onDrawerClose();
+
+  const handleToggleBulkMode = () => onBulkModeToggle();
+  const handleToggleBulkSelect = () => onBulkSelectToggle();
 
   // Return presentational component with injected controller elements
   return (
     <DocsPageUI
       isOpen={isOpen}
-      handleClose={handleClose}
-      drawerContent={drawerContent}
-      fetched={fetched}
       loading={loading}
+
+      fetched={fetched}
+      drawerContent={drawerContent}
+      
+      onCloseForm={handleCloseForm}
+
+      onClickCreate={handleOpenCreateForm}
+      onClickEdit={handleOpenEditForm}
+      onClickDelete={handleDelete}
+      onClickDownload={handleDownload}
+
       bulkMode={bulkMode}
-      enableBulkMode={enableBulkMode}
-      disableBulkMode={disableBulkMode}
-      toggleBulkSelect={toggleBulkSelect}
-      handleBulkDeleteDocs={handleBulkDeleteDocs}
-      handleDeleteDoc={handleDeleteDoc}
-      handleClickEditDoc={handleClickEditDoc}
-      handleClickCreateDoc={handleClickCreateDoc}
-      handleDownloadFile={handleDownloadFile}
+      onBulkDelete={handleBulkDelete}
+      onBulkModeToggle={handleToggleBulkMode}
+      onBulkSelectToggle={handleToggleBulkSelect}
     />
   );
 };

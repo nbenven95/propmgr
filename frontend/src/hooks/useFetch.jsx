@@ -21,7 +21,7 @@ import { useState, useCallback } from 'react';
  * 
  * @returns
  */
-export default function useFetch({initLoading, initFetched}) {
+export default function useFetch({ initLoading, initFetched, endpoints }) {
   /**
    * `loading` should contain string keys that correspond
    * to resources to fetch, with the associated values
@@ -33,31 +33,39 @@ export default function useFetch({initLoading, initFetched}) {
    * `fetched` should contain string keys that correspond
    * to resources to fetch, with the associated values
    * being the fetched resource (objects, arrays, etc.)
-   * The keys should be the same as those in `loading` for
-   * consistency.
+   * The key names must be the same as those set in `loading`.
    */
   const [fetched, setFetched] = useState(initFetched);
+  /**
+   * `api` should contain string keys that correspond to
+   * resources to fetch, with the associated values
+   * being the URL of the GET endpoint.
+   * The key names must be the same as those set in `loading`
+   * and `fetched`.
+   */
+  const _endpoints = Object.freeze(endpoints);
 
   /**
-   * @param {*} uri The URI of the resource to fetch. The final component
-   *                of the URI should match the corresponding key for the
-   *                resource in `loading` and `fetched`.
-   * @returns
+   * @param {String} resource
    */
-  const handleFetch = useCallback(async (uri, resource) => {
+  const onFetch = useCallback(async (resource) => {
     try {
+      // Get the URL for the resource to fetch
+      if (!Object.keys(_endpoints).includes(resource)) {
+        // Ensure 'resource' is a valid resource key
+        throw new Error(`Invalid resource key \"${resource}\"`);
+      }
+      const url = endpoints[resource]; 
       // Set loading state of resource
       setLoading(prev => ({ ...prev, [resource]: true }));
-      const res = await axios.get(uri);
+      const res = await axios.get(url);
       // Update fetched data for the resource
       setFetched(prev => ({ ...prev, [resource]: res.data }));
     } catch (err) {
-      // Propagate error so client can handle it (finally block still executes)
-      if (axios.isAxiosError(err)) {
-        console.error('Axios error:', err.response?.status, err.response?.data);
-      } else {
-        console.error('Unexpected error:', err);
-      }
+      // Append the original error message to our new one; append new message to err
+      err.message = `Failed to fetch resource \"${resource}\": ${err.message}`;
+      // Propagate error
+      throw err;
     } finally {
       // Update loading state of resource
       setLoading(prev => ({ ...prev, [resource]: false }));
@@ -65,5 +73,5 @@ export default function useFetch({initLoading, initFetched}) {
   }, []);
 
   // Return relevant state/callbacks for the hook
-  return { loading, fetched, handleFetch };
+  return { loading, fetched, onFetch };
 }

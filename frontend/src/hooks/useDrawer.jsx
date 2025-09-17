@@ -4,8 +4,8 @@ import { useDisclosure } from '@chakra-ui/react';
 export default function useDrawer() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [drawerContent, setDrawerContent] = useState({
-    header: null,
-    body  : null
+    header: <></>,
+    body  : <></>
   });
 
   /**
@@ -14,10 +14,10 @@ export default function useDrawer() {
    * @param {*} headerContent
    * @param {*} bodyContent
    */
-  const handleOpen = useCallback((headerContent, bodyContent) => {
-    setDrawerContent({
-      header: headerContent,
-      body  : bodyContent
+  const onDrawerOpen = useCallback((headerContent, bodyContent) => {
+    setDrawerContent(prev => {
+      console.log(prev);
+      return { header: headerContent, body: bodyContent };
     });
     onOpen();
   }, []);
@@ -25,13 +25,13 @@ export default function useDrawer() {
   /**
    * Close the drawer, clear drawerContent state.
    */
-  const handleClose = useCallback(() => {
+  const onDrawerClose = useCallback(() => {
     setDrawerContent({
-      header: null,
-      body  : null
+      header: <></>,
+      body  : <></>
     });
     onClose();
   }, []);
 
-  return { drawerContent, isOpen, handleOpen, handleClose };
+  return { drawerContent, isOpen, onDrawerOpen, onDrawerClose };
 }

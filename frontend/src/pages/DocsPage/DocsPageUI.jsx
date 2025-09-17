@@ -17,19 +17,22 @@ import DocCard from '../../components/cards/DocCard';
 
 const DocsPageUI = ({
   isOpen,
-  handleClose,
-  drawerContent,
-  fetched,
   loading,
+
+  fetched,
+  drawerContent,
+
+  onCloseForm: handleCloseDrawer,
+
+  onClickCreate: handleClickCreate,
+  onClickEdit: handleClickEdit,
+  onClickDelete: handleClickDelete,
+  onClickDownload: handleClickDownload,
+ 
   bulkMode,
-  enableBulkMode,
-  disableBulkMode,
-  toggleBulkSelect,
-  handleBulkDeleteDocs,
-  handleDeleteDoc,
-  handleClickEditDoc,
-  handleClickCreateDoc,
-  handleDownloadFile
+  onBulkDelete: handleBulkDelete,
+  onBulkModeToggle: handleToggleBulkMode,
+  onBulkSelectToggle: handleToggleBulkSelect
 }) => {
 
   const { docs } = fetched;
@@ -53,10 +56,9 @@ const DocsPageUI = ({
       <UIHeader
         title='Documents'
         bulkMode={bulkMode}
-        enableBulkMode={enableBulkMode}
-        disableBulkMode={disableBulkMode}
-        handleBulkDelete={handleBulkDeleteDocs}
-        handleClickCreate={handleClickCreateDoc}
+        onClickCreate={handleClickCreate}
+        onClickDelete={handleBulkDelete}
+        onClickBulkModeToggle={handleToggleBulkMode}
       />
       
       {/* Main Documents view */}
@@ -68,10 +70,10 @@ const DocsPageUI = ({
             <DocCard
               doc={doc}
               bulkMode={bulkMode}
-              toggleBulkSelect={toggleBulkSelect}
-              handleClickEditDoc={handleClickEditDoc}
-              handleDeleteDoc={handleDeleteDoc}
-              handleDownloadFile={handleDownloadFile}
+              onClickEdit={handleClickEdit}
+              onClickDelete={handleClickDelete}
+              onClickDownload={handleClickDownload}
+              onClickBulkSelect={handleToggleBulkSelect}
               key={doc._id}
             />
           ))}
@@ -79,7 +81,7 @@ const DocsPageUI = ({
       )}
 
       {/* Drawer menu */}
-      <Drawer isOpen={isOpen} placement='top' onClose={handleClose} size='lg'>
+      <Drawer isOpen={isOpen} placement='top' onClose={handleCloseDrawer} size='lg'>
         <DrawerOverlay />
         <DrawerContent>
           <DrawerCloseButton />

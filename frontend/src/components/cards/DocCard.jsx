@@ -18,15 +18,14 @@ import {
 const DocCard = ({
   doc,
   bulkMode,
-  toggleBulkSelect,
-  handleClickEditDoc,
-  handleDeleteDoc,
-  handleDownloadFile
+  onClickEdit: handleEdit,
+  onClickDelete: handleDelete,
+  onClickDownload: handleDownload,
+  onClickBulkSelect: handleBulkSelect
 }) => {
 
   return (
     // TODO: display appropriate icon type for the attached file
-    // TODO: refactor so we can somehow pre-generate date strings so we don't have to redundantly call `new Date(...).toDateString()` over and over
     <Box
       position='relative'
       borderWidth='1px'
@@ -43,7 +42,7 @@ const DocCard = ({
           top={2}
           left={2}
           isChecked={bulkMode.selected.includes(doc._id)}
-          onChange={() => toggleBulkSelect(doc._id)}
+          onChange={() => handleBulkSelect(doc._id)}
         />
       )}
 
@@ -76,7 +75,7 @@ const DocCard = ({
             size='sm'
             aria-label='Download'
             colorScheme='purple'
-            onClick={() => handleDownloadFile(doc.fileRef?._id, doc.fileRef?.name)}
+            onClick={() => handleDownload(doc.fileRef?._id, doc.fileRef?.name)}
           />
         </Flex>
 
@@ -93,7 +92,7 @@ const DocCard = ({
             leftIcon={<EditIcon />}
             aria-label='Edit Document'
             colorScheme='teal'
-            onClick={() => handleClickEditDoc(doc)}
+            onClick={() => handleEdit(doc)}
           >
             Edit
           </Button>
@@ -103,7 +102,7 @@ const DocCard = ({
             size='sm'
             aria-label='Delete Document'
             colorScheme='red'
-            onClick={() => handleDeleteDoc(doc._id)}
+            onClick={() => handleDelete(doc._id)}
           />          
         </Flex>
 

@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { useToast } from '@chakra-ui/react';
 
-import useFetch from '../../hooks/useFetch.js';
+import useFetch from '../../hooks/useFetch.jsx';
 
 import EditDocFormUI from './EditDocFormUI.jsx';
 
