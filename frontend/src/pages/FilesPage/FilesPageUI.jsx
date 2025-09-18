@@ -21,13 +21,10 @@ import FileCard from '../../components/cards/FileCard';
  * @returns 
  */
 const FilesPageUI = ({
-  isOpen,
   loading,
-
   fetched,
-  drawerContent,
-  
-  onCloseForm: handleCloseDrawer,
+  drawerMenu,
+
   onClickUpload: handleClickUpload,
   onClickDelete: handleClickDelete,
   onClickDownload: handleClickDownload,
@@ -61,7 +58,10 @@ const FilesPageUI = ({
         onClickBulkModeToggle={handleToggleBulkMode}
       />
 
-      {/* Main FileCard display */}
+      {/* Drawer menu */}
+      {drawerMenu}
+
+      {/* FileCard grid */}
       {files.length === 0 ? (
         <Text>No Files Found</Text>
       ) : (
@@ -84,18 +84,6 @@ const FilesPageUI = ({
           ))}
         </div>
       )}
-
-      {/* Drawer menu */}
-      <Drawer isOpen={isOpen} placement='top' onClose={handleCloseDrawer} size='lg'>
-        <DrawerOverlay />
-        <DrawerContent>
-          <DrawerCloseButton />
-          <DrawerHeader borderBottomWidth='1px'>{drawerContent.header}</DrawerHeader>
-          <DrawerBody p={4}>
-            {drawerContent.body}
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
 
     </Box>
   );

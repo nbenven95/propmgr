@@ -20,7 +20,6 @@ const UploadFormUI = ({
   refs,
   fetched,
   formData,
-  //fileInputRef,
 
   onStageFiles: handleStageFiles,
   onClickRemove: handleClickRemove,
@@ -32,7 +31,7 @@ const UploadFormUI = ({
 }) => {
 
   const { stagedFiles } = formData;
-  const { allowedFileExt, toolTips } = fetched;
+  const { allowedFileExt } = fetched; // TODO: enforce file extension restrictions
 
   const borderColor = useColorModeValue('gray.300', 'gray.600');
   const draggingBorderColor = '#1e40af';

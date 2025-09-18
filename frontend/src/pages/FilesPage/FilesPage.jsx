@@ -1,137 +1,106 @@
-import { useEffect } from 'react';
-import { useToast, Text } from '@chakra-ui/react';
+import { useEffect, useRef } from 'react';
+import { Text } from '@chakra-ui/react';
 
 import FilesPageUI from './FilesPageUI';
 import UploadForm from './UploadForm';
 
 import useBulkMode from '../../hooks/useBulkMode';
 import useDrawer from '../../hooks/useDrawer';
+import useNotify from '../../hooks/useNotify';
 import useFetch from '../../hooks/useFetch';
 import { getErrorMsg, onDeleteSingle, onDownload } from '../../util/util';
 
 // TODO: move to centralized location 
 const baseUrl   = 'http://localhost:5000';
 const filesApi  = `${baseUrl}/api/files`;
-const infoApi   = `${baseUrl}/api/info`;
-const toolTipApi = `${infoApi}/tool-tips`;
 
 /**
  * 
  * @returns 
  */
 const FilesPage = () => {
+  /* Init hooks */
+
+  const notify = useNotify();
   
-  const toast = useToast();
-
-  const { drawerContent, isOpen, onDrawerOpen, onDrawerClose } = useDrawer();
-
+  const { drawerContent, isOpen, onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();
+  
   const { bulkMode, onBulkModeToggle, onBulkSelectToggle, onBulkDelete } = useBulkMode();
-
-  const { loading, fetched, onFetch } = useFetch({
-    initLoading: { toolTips: false, files: false},
-    initFetched: { toolTips: {}, files: [] },
-    endpoints  : { toolTips: toolTipApi, files: filesApi }
+  
+  const { loading, fetched, onFetchMany } = useFetch({
+    initLoading: { files: false},
+    initFetched: { files: [] },
+    endpoints  : { files: filesApi }
   });
-
-  // Handle side-effects
-  useEffect(() => {
-    /* Workaround to let us indirectly await async in useEffect */
-    const handleFetch = async () => {
-      // Array of fetch promises
-      const promises = [onFetch('toolTips'), onFetch('files')];
-      // Execute all promises in parallel until all are settled
-      const results = await Promise.allSettled(promises);
-      // Get a list of errors for any resources that failed to fetch
-      const errs = results.filter(r => r.status === 'rejected').map(r => r.reason);
-      // Notify user of any resources that failed to fetch
-      const numErrs = errs.length;
-      if (numErrs > 0) {
-        const msg = `Failed to fetch (${numErrs}) resource${numErrs > 1 ? 's' : ''}: ${errs.join(', ')}`;
-        console.error(msg);
-      }
-    };
-    handleFetch();
-  }, []); // No dependencies; only called on initial page render
-
-  /* Handle refreshing fetched Files after they are uploaded or deleted */
-  const handleRefresh = async () => {
-    await onFetch('files');
-    if (isOpen) onDrawerClose(); // Close the drawer if the UploadForm is open
-  };
 
   /**
    * 
+   * @param {Array} resources 
+   */
+  const handleFetch = async (resources) => {
+    // TODO: is there a way to get the names of resources that failed to fetch?
+    const errs = await onFetchMany(resources);
+    // On failure to fetch, just log to console
+    if (errs.length > 0) {
+      console.error(`Failed to fetch (${errs.length})`.concat(
+        `resource${errs.length > 1 ? 's' : ''}: ${errs.join(', ')}`));
+    }
+  };
+
+  /* Handle side effects */
+
+  // Fetch resources (no dependencies; only called on initial page render)
+  useEffect(() => {
+    handleFetch(['files']);
+  }, []);
+
+  /**
    * @param {*} file 
    */
   const handleDelete = async (file) => {
-    let toastArgs = {};
-    if (file.documents?.length > 0) {
-      toastArgs = {
-        title       : 'Error Deleting File',
-        status      : 'error',
-        description : `Failed to delete File \"${file.name}\": attached to (${file.documents.length}) Document${file.documents.length > 1 ? 's' : ''}.`
-      };
-    } else {
-      try {
-        // Delete the File, save a copy of its data
-        const deletedFile = await onDeleteSingle(`${filesApi}/${file._id}`);
-        // Refresh fetched files
-        await handleRefresh();
-        toastArgs = {
-          title       : 'Deleted File',
-          description : `Successfully deleted File \"${deletedFile.name}\"`,
-          status      : 'success'
-        };
-      } catch (err) {
-        toastArgs = {
-          title       : 'Error Deleting File',
-          description : getErrorMsg(err),
-          status      : 'error'
-        };
-      }
+    // Check if the File has any attached Documents before attempting delete
+    const numDocs = file.documents?.length;
+    if (numDocs > 0) {
+      notify({
+        status: 'error',
+        title: 'Error Deleting File',
+        desc: `File \"${file.name}\" is attached to (${numDocs}) Document${numDocs > 1 ? 's' : ''}.`
+      });
+      return;
     }
-    toast({ ...toastArgs, duration: 3000, isClosable: true });
+    try {
+      // Try to delete the file, notify user on success
+      const deletedFile = await onDeleteSingle(`${filesApi}/${file._id}`);
+      notify({
+        status: 'success',
+        title: 'File Deleted',
+        desc: `Successfully deleted File \"${deletedFile.name}\"`
+      });
+    } catch (err) {
+      // Notify user if delete fails
+      notify({ status: 'error', title: 'Error Deleting File', desc: getErrorMsg(err) });
+    }
+    // Refresh fetched files
+    await handleFetch(['files']);
   };
 
-  /**
-   * 
-   */
+  /** */
   const handleBulkDelete = async () => {
-    let toastArgs = {};
     try {
       // Attempt bulk delete
-      const deletedFiles      = await onBulkDelete(filesApi);
-      const deletedFileNames  = deletedFiles.map(file => file.name).join(', ');
-      /*
-      const responses = await onBulkDelete(filesApi);
-      const errors = responses.filter(res => {
-        if (!res.success) return res.reason;
+      const deletedFiles = await onBulkDelete(filesApi);
+      const numDeleted = deletedFiles.length;
+      notify({
+        status: 'success',
+        title: 'Files Deleted',
+        desc: `Successfully deleted (${numDeleted}) File${numDeleted > 1 ? 's' : ''}`
       });
-      console.log(`Errors: ${errors.join(', ')}`);
-      const fulfilled = responses.filter(res => {
-        if (res.success) return res.data;
-      });
-      console.log(`Fulfilled: ${fulfilled.join(', ')}`);
-      */
-      toastArgs = {
-        title       : `Deleted ${deletedFiles.length} Files`,
-        status      : 'success',
-        description : `Successfully deleted Files: ${deletedFileNames}`
-      };
-      
-      //toastArgs = { title: 'Bulk Delete Successful', status: 'success' };
-      // Refresh Files
-      await handleRefresh();
     } catch (err) {
-      // Init error toast
-      toastArgs = {
-        title       : 'Error Deleting Files',
-        status      : 'error',
-        description : getErrorMsg(err)
-      };
+      // Notify user if bulk delete fails
+      notify({ status: 'error', title: 'Error Deleting Files', desc: getErrorMsg(err) });
     }
-    // Display success/error message
-    toast({ ...toastArgs, duration: 3000, isClosable: true });
+    // Refresh fetched files
+    await handleFetch(['files']);
   };
 
   /**
@@ -144,39 +113,43 @@ const FilesPage = () => {
    * @param {*} filename 
    */
   const handleDownload = async (id, fileName) => {
-    let toastArgs = {};
     try {
-      // Attempt async file download
+      // Attempt File download, notify user on success
       await onDownload(`${filesApi}/download/${id}`, fileName);
-      // Init success toast
-      toastArgs = {
-        title       : 'File Downloaded',
-        status      : 'success',
-        description : `Successfully downloaded File \"${fileName}\"`
-      };
+      notify({
+        status: 'success',
+        title: 'File Downloaded',
+        desc: `Successfully downloaded File \"${fileName}\"`
+      });
     } catch (err) {
-      // Init error toast
-      toastArgs = {
-        title       : 'Error Downloading File',
-        status      : 'error',
-        description : getErrorMsg(err)
-      };
+      // Notify user if download fails
+      notify({ status: 'error', title: 'Error Downloading File', desc: getErrorMsg(err) });
     }
-    // Display success/error message
-    toast({ ...toastArgs, duration: 3000, isClosable: true });
   };
+
+  /* Handle closing UploadForm drawer */
+  const handleCloseForm = () => onDrawerClose();
+
+  /* Handle refreshing fetched Files when new ones are uploaded via UploadForm */
+  /*
+  const handleRefresh = async () => {
+    await handleFetch(['files']);
+    // Close the UploadForm drawer after fetch completes
+    handleCloseForm();
+  };
+  */
 
   /* Handle opening the drawer and rendering UploadForm */
   const handleOpenForm = () => {
     onDrawerOpen(
       <Text>Upload New File</Text>,
-      <UploadForm onUpdate={handleRefresh} />
+      <UploadForm onUpdate={() => { // Only need to pass onUpdate if UploadForm is being rendered in Drawer
+        handleFetch(['files']); // Note: this is not being awaited; verify that the 'loading' indicator displays on the page when the drawer closes
+        handleCloseForm();
+      }} />
     );
   };
-
-  /* Handle closing drawer that is displaying UploadForm */
-  const handleCloseForm = () => onDrawerClose();
-
+  
   /* */
   const handleToggleBulkMode = () => onBulkModeToggle();
 
@@ -186,16 +159,11 @@ const FilesPage = () => {
   // Return presentational component with injected controller elements
   return (
     <FilesPageUI
-      // Boolean state
-      isOpen={isOpen}
       loading={loading}
-
-      // Data state
       fetched={fetched}
-      drawerContent={drawerContent}
 
-      // Event handlers
-      onCloseForm={handleCloseForm}
+      drawerMenu={<DrawerMenu onDrawerClose={handleCloseForm} />}
+
       onClickDelete={handleDelete}
       onClickUpload={handleOpenForm}
       onClickDownload={handleDownload}

@@ -1,6 +1,10 @@
 import axios from 'axios';
 import { useState, useCallback } from 'react';
 
+// TODO: add a DISPLAY_TIMEOUT value that will prevent loading indicators from displaying
+// i.e., use a small delay (e.g., 300 ms) before showing the indicator so quick fetches don't make the screen flash
+// Keep the loading indicator visible for at least a minimum duration once shown so it doesn't flicker if the fetch completes quickly
+
 /**
  * 
  * @param {*} initLoading An object comprised of string keys and boolean
@@ -61,6 +65,9 @@ export default function useFetch({ initLoading, initFetched, endpoints }) {
       const res = await axios.get(url);
       // Update fetched data for the resource
       setFetched(prev => ({ ...prev, [resource]: res.data }));
+      // Sleep for a few seconds so the loading indicator displays consistently
+      // TODO: is this best practice for production build?
+      
     } catch (err) {
       // Append the original error message to our new one; append new message to err
       err.message = `Failed to fetch resource \"${resource}\": ${err.message}`;
@@ -72,6 +79,24 @@ export default function useFetch({ initLoading, initFetched, endpoints }) {
     }
   }, []);
 
+  /**
+   * @param {Array} resources
+   */
+  const onFetchMany = useCallback(async (resources) => {
+    // Input validation
+    if (!Array.isArray(resources)) {
+      throw new Error('Invalid value for resources (must be an array of strings)');
+    } else if (resources.length === 0) {
+      return [];
+    }
+    // Execute all promises in parallel until all are settled (success or error)
+    const responses = await Promise.allSettled(resources.map(resource => onFetch(resource)));
+    // Get an array of error messages
+    const errors = responses.filter(res => res.status === 'rejected').map(res => res.reason);
+    // Return the errors array (if length === 0, all fetches successful)
+    return errors;
+  }, []);
+
   // Return relevant state/callbacks for the hook
-  return { loading, fetched, onFetch };
+  return { loading, fetched, onFetch, onFetchMany };
 }

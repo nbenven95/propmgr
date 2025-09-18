@@ -156,58 +156,25 @@ export default function useFormData({initFormData, required}) {
     return payload;
   };
 
-  async function post(uri, payload, config = {}) {
-    try {
-      // Update submission state and await POST request
-      setSubmitting(true);
-      var postRes = await axios.post(uri, payload, config);
-    } catch (err) {
-      // Propagate errors
-      throw err;
-    } finally {
-      // Update state on success or error
-      setSubmitting(false);
-    }
-    // Return response data on success
-    return postRes.data.data;
-  };
-
-
-  async function put(uri, payload, config = {}) {
-    try {
-      // Update submission state and await PUT request
-      setSubmitting(true);
-      var putRes = await axios.put(uri, payload, config);
-    } catch (err) {
-      // Propagate errors
-      throw err;
-    } finally {
-      // Update state on success or error
-      setSubmitting(false);
-    }
-    // Return response data on success
-    return putRes.data.data;
-  };
-
   /**
    * @param {String} type Can be either 'POST' (e.g., creating a new item using data from a form submission),
    *                      or 'PUT' (e.g., updating an existing item using data from a form submission)
-   * @param {String} uri
+   * @param {String} url
    */
-  const onSubmit = useCallback(async (type = 'POST', uri, config = {}) => {
+  const onSubmit = useCallback(async (url, type = 'POST', config = {}) => {
     try {
       // Set submission state `submitting=true` to indicate submission in progress
       setSubmitting(true);
       // Init FormData payload from the current state
       const payload = getPayload();
       // Perform the request depending on the submission type
-      switch (type) {
+      switch (type.toUpperCase()) {
         case 'POST': {
-          var res = await axios.post(uri, payload, config);
+          var res = await axios.post(url, payload, config);
           break;
         }
         case 'PUT' : {
-          var res = await axios.put(uri, payload, config);
+          var res = await axios.put(url, payload, config);
           break;
         }
         default: throw new Error(`Invalid value \"${type}\" for argument \`type\` (must be string \'POST\' or \'PUT\')`);
@@ -219,10 +186,10 @@ export default function useFormData({initFormData, required}) {
       // Reset submission state on success or failure
       setSubmitting(false);
     }
-    // Return response data; if res is undefined/null and no error was thrown already, throw one now
-    return res ? res.data.data : (() => {
-      throw new Error(`Received null/undefined response to ${type.toUpperCase()} request`)
-    });
+    // Return response data; if undefined/null and no error was thrown already, throw one now
+    return res?.data?.data?? (() => {
+      throw new Error(`${type.toUpperCase()} request received null/undefined response`)
+    })();
   });
 
   // Return relevant state/callbacks for the hook
