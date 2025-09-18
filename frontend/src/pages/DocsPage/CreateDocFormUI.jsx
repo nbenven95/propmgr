@@ -181,6 +181,8 @@ const CreateDocFormUI = ({
           />
         </FormControl>
         */}
+
+        {/* New file upload controls (opens drawer with dropzone) */}
         <FormControl>
           <FormLabel>Attach File</FormLabel>
           <HStack justifyContent='space-between' width='100%' >

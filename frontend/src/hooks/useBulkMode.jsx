@@ -61,15 +61,31 @@ export default function useBulkMode() {
     if (!_bulkMode.enabled || _bulkMode.selected.length === 0) return [];
 
     // TODO: change this to use Promise.allSettled so errors don't interrupt
+    
+    console.log(`${_bulkMode.selected.join(', ')}`);
+
     const responses = await Promise.all(
       // Map ObjectIDs in `selected` to output of axios.delete()
       _bulkMode.selected.map(id => axios.delete(`${url}/${id}`))
     );
     
+    /*
+    const responses = await Promise.allSettled(
+      _bulkMode.selected.map(id => axios.delete(`${url}/${id}`))
+    );
+    */
+    
     // Reset bulk mode on success
     setBulkMode({ enabled: false, selected: [] });
     // Return the deleted items (assumes deleted item is passed via `data` field in the response)
     return responses.map(res => res.data.data);
+    /*
+    return responses.map(res => {
+      return res.status === 'fulfilled'
+        ? { success: true, data: res.value }
+        : { success: false, error: res.reason }
+    });
+    */
   }, []);
 
   // Return relevant state/callbacks for the hook

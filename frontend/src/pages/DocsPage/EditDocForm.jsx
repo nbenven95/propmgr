@@ -7,14 +7,7 @@ import useFetch from '../../hooks/useFetch.jsx';
 import EditDocFormUI from './EditDocFormUI.jsx';
 
 import {
-  getLocalTimestamp,
-  handleDeleteBulk,
-  handleDeleteSingle,
-  handleDownload,
-  handleFetch,
-  handleOpenDrawer,
-  toastError,
-  toastSuccess,
+  getLocalTimestamp
 } from '../../util/util.js';
 
 const baseUrl   = 'http://localhost:5000';
@@ -47,19 +40,19 @@ const EditDocForm = ({
     expiry: doc.expiry ? new Date(doc.expiry).toDateString() : ''
   });
   const [submitting, setSubmitting] = useState(false);
-  //const [name, setName] = useState(document.name);
-  //const [docType, setDocType] = useState(document.docType);
-  //const [docTypes, setDocTypes] = useState([]);
-  ///const [loading, setLoading] = useState(false);
-  //const [dateCreate, setDateCreate] = useState(
-  //  document.dateCreate ? new Date(document.dateCreate).toISOString().substr(0,10) : ''
-  //);
-  //const [dateEff, setDateEff] = useState(
-  //  document.dateEff ? new Date(document.dateEff).toISOString().substr(0,10) : ''
-  //);
-  //const [expiry, setExpiry] = useState(
-  //  document.expiry ? new Date(document.expiry).toISOString().substr(0,10) : ''
-  //);
+  const [name, setName] = useState(document.name);
+  const [docType, setDocType] = useState(document.docType);
+  const [docTypes, setDocTypes] = useState([]);
+  //const [loading, setLoading] = useState(false);
+  const [dateCreate, setDateCreate] = useState(
+    document.dateCreate ? new Date(document.dateCreate).toISOString().substr(0,10) : ''
+  );
+  const [dateEff, setDateEff] = useState(
+    document.dateEff ? new Date(document.dateEff).toISOString().substr(0,10) : ''
+  );
+  const [expiry, setExpiry] = useState(
+    document.expiry ? new Date(document.expiry).toISOString().substr(0,10) : ''
+  );
 
   /* Data to fetch during initial render */
   useEffect(() => {

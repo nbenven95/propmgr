@@ -51,6 +51,12 @@ const DocsPage = () => {
     handleFetch();
   }, []); // No dependencies; only called on initial page render
 
+  /* Handle refreshing fetched Documents after one is created, edited, or deleted */
+  const handleRefresh = async () => {
+    await onFetch('docs');
+    if (isOpen) onDrawerClose(); // Close the drawer if the Create/EditDocForm is open
+  };
+
   /**
    * 
    * @param {*} id 
@@ -66,8 +72,8 @@ const DocsPage = () => {
         description : `Successfully deleted Document \"${doc?.name?? id}\"`,
         status      : 'success'
       };
-      // Refresh documents
-      await handleFetch(docsApi, 'docs');
+      // Refresh fetched Documents
+      await handleRefresh();
     } catch (err) {
       // Init error toast
       toastArgs = {
@@ -75,7 +81,6 @@ const DocsPage = () => {
         description : getErrorMsg(err),
         status      : 'error'
       };
-      console.error(err);
     }
     // Display success/error message
     toast({ ...toastArgs, duration: 3000, isClosable: true });
@@ -96,8 +101,8 @@ const DocsPage = () => {
         description : `Successfully deleted Documents: ${deletedDocNames}`,
         status      : 'success'
       };
-      // Refresh Documents
-      await onFetch('docs');
+      // Refresh fetched Documents
+      await handleFetch();
     } catch (err) {
       // Init error toast
       toastArgs = {
@@ -105,10 +110,9 @@ const DocsPage = () => {
         description : getErrorMsg(err),
         status      : 'error'
       };
-    } finally {
-      // Display success/error message
-      toast({ ...toastArgs, duration: 3000, isClosable: true });
     }
+    // Display success/error message
+    toast({ ...toastArgs, duration: 3000, isClosable: true });
   };
 
   /**
@@ -138,16 +142,9 @@ const DocsPage = () => {
         description : getErrorMsg(err),
         status      : 'error'
       };
-      console.error(err);
     }
     // Display success/error message
     toast({ ...toastArgs, duration: 3000, isClosable: true });
-  };
-
-  /* Handle refreshing fetched Documents after one is created, edited, or deleted */
-  const handleRefresh = async () => {
-    await onFetch('docs');
-    onDrawerClose();
   };
 
   /* Handle opening drawer and rendering CreateDocForm */
@@ -169,8 +166,11 @@ const DocsPage = () => {
   /* Handle closing drawer that is displaying Create/EditForm */
   const handleCloseForm = () => onDrawerClose();
 
+  /* */
   const handleToggleBulkMode = () => onBulkModeToggle();
-  const handleToggleBulkSelect = () => onBulkSelectToggle();
+
+  /* */
+  const handleToggleBulkSelect = (id) => onBulkSelectToggle(id);
 
   // Return presentational component with injected controller elements
   return (

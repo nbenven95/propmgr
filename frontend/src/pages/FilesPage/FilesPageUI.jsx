@@ -28,7 +28,6 @@ const FilesPageUI = ({
   drawerContent,
   
   onCloseForm: handleCloseDrawer,
-
   onClickUpload: handleClickUpload,
   onClickDelete: handleClickDelete,
   onClickDownload: handleClickDownload,

@@ -53,6 +53,12 @@ const FilesPage = () => {
     handleFetch();
   }, []); // No dependencies; only called on initial page render
 
+  /* Handle refreshing fetched Files after they are uploaded or deleted */
+  const handleRefresh = async () => {
+    await onFetch('files');
+    if (isOpen) onDrawerClose(); // Close the drawer if the UploadForm is open
+  };
+
   /**
    * 
    * @param {*} file 
@@ -69,8 +75,8 @@ const FilesPage = () => {
       try {
         // Delete the File, save a copy of its data
         const deletedFile = await onDeleteSingle(`${filesApi}/${file._id}`);
-        // Refresh Files
-        await onFetch('files');
+        // Refresh fetched files
+        await handleRefresh();
         toastArgs = {
           title       : 'Deleted File',
           description : `Successfully deleted File \"${deletedFile.name}\"`,
@@ -82,7 +88,6 @@ const FilesPage = () => {
           description : getErrorMsg(err),
           status      : 'error'
         };
-        console.error(err);
       }
     }
     toast({ ...toastArgs, duration: 3000, isClosable: true });
@@ -97,19 +102,32 @@ const FilesPage = () => {
       // Attempt bulk delete
       const deletedFiles      = await onBulkDelete(filesApi);
       const deletedFileNames  = deletedFiles.map(file => file.name).join(', ');
+      /*
+      const responses = await onBulkDelete(filesApi);
+      const errors = responses.filter(res => {
+        if (!res.success) return res.reason;
+      });
+      console.log(`Errors: ${errors.join(', ')}`);
+      const fulfilled = responses.filter(res => {
+        if (res.success) return res.data;
+      });
+      console.log(`Fulfilled: ${fulfilled.join(', ')}`);
+      */
       toastArgs = {
         title       : `Deleted ${deletedFiles.length} Files`,
-        description : `Successfully deleted Files: ${deletedFileNames}`,
-        status      : 'success'
+        status      : 'success',
+        description : `Successfully deleted Files: ${deletedFileNames}`
       };
+      
+      //toastArgs = { title: 'Bulk Delete Successful', status: 'success' };
       // Refresh Files
-      await onFetch('files');
+      await handleRefresh();
     } catch (err) {
       // Init error toast
       toastArgs = {
         title       : 'Error Deleting Files',
-        description : getErrorMsg(err),
-        status      : 'error'
+        status      : 'error',
+        description : getErrorMsg(err)
       };
     }
     // Display success/error message
@@ -133,29 +151,20 @@ const FilesPage = () => {
       // Init success toast
       toastArgs = {
         title       : 'File Downloaded',
-        description : `Successfully downloaded File \"${fileName}\"`,
-        status      : 'success'
+        status      : 'success',
+        description : `Successfully downloaded File \"${fileName}\"`
       };
     } catch (err) {
       // Init error toast
       toastArgs = {
         title       : 'Error Downloading File',
-        description : getErrorMsg(err),
-        status      : 'error'
+        status      : 'error',
+        description : getErrorMsg(err)
       };
-      console.error(err);
     }
     // Display success/error message
     toast({ ...toastArgs, duration: 3000, isClosable: true });
   };
-
-  /* Handle refreshing fetched Files after they are uploaded or deleted */
-  const handleRefresh = async () => {
-    // Refresh Files after upload
-    await onFetch('files');
-    // Close drawer on success
-    onDrawerClose();
-  }
 
   /* Handle opening the drawer and rendering UploadForm */
   const handleOpenForm = () => {
@@ -168,24 +177,30 @@ const FilesPage = () => {
   /* Handle closing drawer that is displaying UploadForm */
   const handleCloseForm = () => onDrawerClose();
 
+  /* */
   const handleToggleBulkMode = () => onBulkModeToggle();
-  const handleToggleBulkSelect = () => onBulkSelectToggle();
+
+  /* */
+  const handleToggleBulkSelect = (id) => onBulkSelectToggle(id);
 
   // Return presentational component with injected controller elements
   return (
     <FilesPageUI
+      // Boolean state
       isOpen={isOpen}
       loading={loading}
 
+      // Data state
       fetched={fetched}
       drawerContent={drawerContent}
 
+      // Event handlers
       onCloseForm={handleCloseForm}
-
-      onClickDownload={handleDownload}
       onClickDelete={handleDelete}
       onClickUpload={handleOpenForm}
-      
+      onClickDownload={handleDownload}
+
+      // Bulk mode state (TODO: refactor)
       bulkMode={bulkMode}
       onBulkDelete={handleBulkDelete}
       onBulkModeToggle={handleToggleBulkMode}
