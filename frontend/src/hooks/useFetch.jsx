@@ -5,6 +5,13 @@ import { useState, useCallback } from 'react';
 // i.e., use a small delay (e.g., 300 ms) before showing the indicator so quick fetches don't make the screen flash
 // Keep the loading indicator visible for at least a minimum duration once shown so it doesn't flicker if the fetch completes quickly
 
+// TODO: refactor input parameters
+// should now take one argument: resources
+// resources will be an array of key/value pairs:
+// { <resource_name>: { init: <initial_value>, url: <resource_api_url> }}
+// Use this to build out our fetched and loading state
+// Can also build an efficient lookup table for endpoints
+
 /**
  * 
  * @param {*} initLoading An object comprised of string keys and boolean

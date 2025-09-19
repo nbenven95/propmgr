@@ -10,7 +10,13 @@ import { useCallback, useState } from 'react';
  * 
  * @returns 
  */
-export default function useFormData({initFormData, required}) {
+export default function useFormData({ initFormData, required }) {
+  
+  // TODO: refactor to take one parameter: fields
+  // fields will be an array of key/value pairs:
+  // { <field_name>: { init: <init_value>, required: <is the field required? (true/false)> } }
+  // Build our formData and submitting state from this
+  // Can also build an efficient lookup table for required instead of relying on the original input
   /**
    * `formData` should contain string keys that correspond to
    * names of input fields on your form, with the associated

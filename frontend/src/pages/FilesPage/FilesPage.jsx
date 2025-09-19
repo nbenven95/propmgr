@@ -130,21 +130,18 @@ const FilesPage = () => {
   /* Handle closing UploadForm drawer */
   const handleCloseForm = () => onDrawerClose();
 
-  /* Handle refreshing fetched Files when new ones are uploaded via UploadForm */
-  /*
-  const handleRefresh = async () => {
-    await handleFetch(['files']);
-    // Close the UploadForm drawer after fetch completes
-    handleCloseForm();
-  };
-  */
-
   /* Handle opening the drawer and rendering UploadForm */
   const handleOpenForm = () => {
     onDrawerOpen(
       <Text>Upload New File</Text>,
       <UploadForm onUpdate={() => { // Only need to pass onUpdate if UploadForm is being rendered in Drawer
-        handleFetch(['files']); // Note: this is not being awaited; verify that the 'loading' indicator displays on the page when the drawer closes
+        /* Note: because handleFetch is async and we are
+          calling it without await, the function will start
+          the fetch and then immediately close the form without
+          waiting for the promise to be fulfilled. This should
+          then allow 'Loading Files. . .' to display when the
+          drawer closes if the fetch is still ongoing.  */
+        handleFetch(['files']);
         handleCloseForm();
       }} />
     );

@@ -108,12 +108,13 @@ const UploadForm = ({ onUpdate }) => {
           ? `Successfully uploaded (${files.length}) Files`
           : `Successfully uploaded File \"${files[0].name}\"`
       });
-      // Call handler to re-fetch Files and close drawer
-      // TODO: try this without 'await' to see if loading indicator displays when drawer closes
-      if (onUpdate) await onUpdate();
+      // If UploadForm is being rendered in a drawer, update fetched Files and close drawer
+      /* Note: call this synchronously so we can start the fetch and immediately close
+        the drawer. If the fetch is still ongoing, 'Files Loading. . .' will (should)
+        display; this may or may not be desirable behavior. */
+      if (onUpdate) onUpdate();
     } catch (err) {
       // Notify user of failed upload
-
       notify({ status: 'error', title: `Error Uploading `, desc: getErrorMsg(err) });
     }
   };
