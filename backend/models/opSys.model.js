@@ -1,7 +1,7 @@
 import mongoose from 'mongoose'
 
-import DocTypeEnum from '@config/docType.js'
-import OpSysTypeEnum, { ApplianceTypeEnum } from '@config/OpSysType.js'
+import DocTypeEnum from '@config/DocTypes.js'
+import OpSysTypeEnum, { ApplianceTypeEnum } from '@config/OpSysTypes.js'
 
 import { contactSchema } from '@models/embedded/contact.model.js'
 

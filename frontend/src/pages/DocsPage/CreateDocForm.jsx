@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { useToast, Text } from '@chakra-ui/react';
+import { Text } from '@chakra-ui/react';
 
 import CreateDocFormUI from './CreateDocFormUI';
 import UploadForm from '../../pages/FilesPage/UploadForm';
 
-import useDrawer from '../../hooks/useDrawer.jsx';
 import useFetch from '../../hooks/useFetch.jsx';
+import useNotify from '../../hooks/useNotify.jsx';
+import useDrawer from '../../hooks/useDrawer.jsx';
 import useFormData from '../../hooks/useFormData.jsx';
-import { getErrorMsg, getLocalTimestamp, truncateExt } from '../../util/util.js';
+import { getErrorMsg, truncateExt } from '../../util/util.js';
+import { ssrExportNameKey } from 'vite/module-runner';
 
 // TODO: move to centralized location 
 const baseUrl   = 'http://localhost:5000';
@@ -15,8 +17,7 @@ const filesApi  = `${baseUrl}/api/files`;
 const docsApi   = `${baseUrl}/api/docs`;
 const infoApi   = `${baseUrl}/api/info`;
 const fileExtApi = `${infoApi}/allowed-file-ext`;
-const docTypeApi = `${infoApi}/document-types`;
-const toolTipApi = `${infoApi}/tool-tips`;
+const docTypesApi = `${infoApi}/document-types`;
 
 /**
  * 
@@ -25,174 +26,121 @@ const toolTipApi = `${infoApi}/tool-tips`;
  */
 const CreateDocForm = ({ onUpdate }) => {
 
-  const toast = useToast();
+  const { formData, setFormData, submitting, onChange, onSubmit } = useFormData([
+    { name        : { init: '', required: true } },
+    { stagedFiles : { init: [], required: true } }, // If creating Document with an uploaded File
+    { docType     : { init: '', required: true } }, // Init to type 'Text'
+    { dateCreate  : {
+      init    : new Date().toISOString(), // Init date as ISO string (this is how they are saved on the backend)
+      required: false 
+    } },
+    { dateEff     : { init: '', required: false } },
+    { expiry      : { init: '', required: false } },
+    { fileRef     : { init: '', required: false } }, // If creating Document with pre-uploaded File
+  ]);
 
-  const { formData, setFormData, submitting, onChange, onSubmit } = useFormData({
-    initFormData: {
-      name        : '',
-      stagedFiles : [], // Newly uploaded file; use an array for consistency (only allow 1 element)
-      docType     : '',      
-      dateCreate  : getLocalTimestamp(),
-      dateEff     : '',
-      expiry      : '',
-      fileRef     : '' // ObjectID of existing FileRef (mutually exclusive with `file`)
-    },
-    required: {
-      name        : true,
-      stagedFiles : true,
-      docType     : true,
-      dateCreate  : false,
-      dateEff     : false,
-      expiry      : false,
-      fileRef     : false // TODO: make mutually exclusive w/ file
-    }
-  });
+  const { loading, fetched, onFetchMany } = useFetch([
+    { allowedFileExt: { init: [], url: fileExtApi } },
+    { docTypes      : { init: [], url: docTypesApi } },
+    { files         : { init: [], url: filesApi } }
+  ]);
 
-  const { loading, fetched, onFetch } = useFetch({
-    initLoading: { allowedFileExt: false, docTypes: false, toolTips: false, files: false },
-    initFetched: { allowedFileExt: [], docTypes: [], toolTips: {}, files: [] },
-    endpoints: { 
-      allowedFileExt: fileExtApi,
-      docTypes      : docTypeApi,
-      toolTips      : toolTipApi,
-      files         : filesApi
-    }
-  });
+  const { drawerContent, isOpen, onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();
 
-  const { drawerContent, isOpen, onDrawerOpen, onDrawerClose } = useDrawer();
+  const notify = useNotify();
 
+  const [formState, setFormState] = useState({ useDefaultName: true });
+
+  // TODO: check if the date refs are actually being used 
   const refs = {
-    dateCreate: useRef(),
-    dateEff   : useRef(),
-    expiry    : useRef(),
-    name      : useRef()
+    name: useRef(),
+    useDefaultName: useRef(),
+    stagedFiles: useRef(formData.stagedFiles)
   };
 
-  // TODO: move this into form data? (shouldn't matter if it gets sent with our requests)
-  const [useDefaultName, setUseDefaultName] = useState(true);
+  /**
+   * 
+   * @param {Array} resources 
+   */
+  const handleFetch = async (resources) => {
+    const errs = await onFetchMany(resources);
+    // On failure to fetch, just log to console
+    if (errs.length > 0) {
+      console.error(`Failed to fetch (${errs.length})`.concat(
+        `${plural('resource', errs.length)}: ${errs.join(', ')}`));
+    }
+  };
 
   // Handle side-effects
   useEffect(() => {
-    /* Workaround to let us indirectly await async in useEffect */
-    const handleFetch = async () => {
-      // Array of fetch promises
-      const promises = [
-        onFetch('allowedFileExt'),
-        onFetch('docTypes'),
-        onFetch('toolTips'),
-        onFetch('files')
-      ];
-      // Execute all promises in parallel until all are settled
-      const results = await Promise.allSettled(promises);
-      // Get a list of errors for any resources that failed to fetch
-      const errs = results.filter(r => r.status === 'rejected').map(r => r.reason);
-      // Notify user of any resources that failed to fetch
-      const numErrs = errs.length;
-      if (numErrs > 0) {
-        const msg = `Failed to fetch (${numErrs}) resource${numErrs > 1 ? 's' : ''}: ${errs.join(', ')}`;
-        console.error(msg);
-      }
-    };
-    handleFetch();
+    handleFetch(['allowedFileExt', 'docTypes', 'files']);
   }, []); // No dependencies; only called on initial page render
 
   // Handle side-effects (useDefaultName toggled or staged file change)
+  // TODO: consider simplifying (e.g., just disable the input form when toggled on)
   useEffect(() => {
-    setFormData(prev => {
-      if (!Array.isArray(prev.stagedFiles) || prev.stagedFiles.length === 0) {
-        // No file staged for upload yet, do nothing
-        return { ...prev };
-      }
-      // Only allow one file to be staged
-      const stagedFile = prev.stagedFiles[0];
-      // Get the default name (truncate file ext)
-      const defaultName = truncateExt(stagedFile.name);
-      // Check if default name toggled on/off
-      if (useDefaultName) {
-        // Default name toggled on
-        return { ...prev, name: defaultName };
+    const { stagedFiles } = formData;
+    const { useDefaultName } = formState;
+    const defaultName = stagedFiles.length > 0 ? truncateExt(stagedFiles[0].name) : '';
+    const currentName = refs.name.current?.value?? '';
+
+    let nameUpdate;
+
+    if (useDefaultName) {
+      // useDefaultName toggled on: update form data and return
+      nameUpdate = defaultName;
+    } else {
+      // useDefaultName toggled off: check if the name field should be cleared
+      if (currentName !== defaultName) {
+        // defaultName was changed while it was toggled on: keep the changes
+        nameUpdate = currentName;
       } else {
-        // Default name toggled off
-        if (defaultName !== refs.name.current?.value) {
-          // If name changed while toggled on, keep the changes
-          return { ...prev, name: refs.name.current.value };
-        } else {
-          // No changes made, clear the field
-          return { ...prev, name: '' };
-        }
+        // defaultName was not changed: clear the field
+        nameUpdate = '';
       }
-    });
-  }, [useDefaultName, formData.stagedFiles]);
+    }
+    setFormData(prev => ({ ...prev, name: nameUpdate }));
+  }, [formState.useDefaultName, formData.stagedFiles]);
+
 
   /**
    * 
    * @param {*} files 
    */
   const handleStageFiles = (files) => {
-    // Make sure input is an array of Files and not a FileList (or else things break)
-    const filesToStage = Array.from(files);
-    // Enforce file upload limit for Document creation
-    let toastArgs = {
-      title: 'Error Staging File',
-      status: 'error',
-      duration: 3000,
-      isClosable: true,
-      description: 'Only (1) file may be staged for upload at a time.'
-    };
-    if (formData.stagedFiles.length == 1 || filesToStage.length > 1) {
-      toast({ ...toastArgs });
+    // Ensure input is Files array (not FileList)
+    const temp = Array.from(files);
+    if (temp.length > 1) {
+      notify({
+        status: 'error',
+        title: 'Error Staging File',
+        desc: 'Only (1) file may be staged for upload at a time.'
+      });
       return;
     }
-    onChange({
-      target: {
-        name  : 'stagedFiles', // Name of our file input element and corresponding formData state field
-        type  : 'file',
-        files : filesToStage
-      }
-    });
+    // Init file to stage (must be an array for multer.array() middleware on backend)
+    const fileToStage = [temp[0]];
+    onChange({ target: { name: 'stagedFiles', type: 'file', files: fileToStage } });
   };
 
   /**
    * 
    * @param {*} e 
-   * @returns 
    */
-  const handleSubmitForm = async () => { // TODO: should onClick callbacks be async? 
-    let toastArgs = {};
-    try {
-
-      // TODO: handle file upload and doc creation separately (will need to update doc controller backend)
-      // First, ensure either payload.files or payload.fileRef is set (error if both or none)
-      //  - payload.files will be read as req.files after request goes through multer middleware
-      //  - All other payload fields are (should be) used as the key/values in req.body on backend
-      //  - i.e., what we unpack when we make the call to mongoose to create our db objects
-      //  - Documents have a fileRef field (the ObjectID of an uploaded file) that should be part of req.body
-      // If payload.files is set and is a valid FileArray, make a post request to upload the files
-      //  - Should only contain one File; must be an array for consistency on backend 
-      //    If upload is successful, get the ID of the resulting object and use that for our fileRef
-      //    Also, re-fetch files
-      // Else, assume fileRef is set and construct the payload from our current formData state 
-
-      const doc = await onSubmit(`${docsApi}/create`, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      //const doc = await handlePost(`${docsApi}/create`, payload, { headers: {} });
-      if (onUpdate) await onUpdate();
-      toastArgs = {
-        title       : 'Document Created',
-        description : `Successfully created Document \"${doc.name}\"`,
-        status      : 'success'
-      };
-    } catch (err) {
-      toastArgs = {
-        title       : 'Error Creating Document',
-        description : getErrorMsg(err),
-        status      : 'error'
-      };
-      console.error(err);
-    }
-    toast({ ...toastArgs, duration: 3000, isClosable: true });
-  };
+  const handleChangeDate = (e) => {
+    // Get the raw value of the Date picker input ('yyyy-MM-dd')
+    const datePickerVal = e.target.value;
+    if (!datePickerVal) return;
+    // Get the date components
+    const [year, month, day] = datePickerVal.split('-');
+    // Create a new local date with time set to midnight
+    const dateLocal = new Date(year, month - 1, day);
+    // Pass a copy of e with updated target.value to onChange
+    onChange({ 
+      ...e,
+      target: { name: e.target.name, type: e.target.type, value: dateLocal.toISOString() }
+    });
+  }
 
   /* Handle opening drawer and rendering UploadForm */
   const handleOpenForm = () => {
@@ -202,19 +150,13 @@ const CreateDocForm = ({ onUpdate }) => {
     );
   };
 
-  /**
-   * Handle onChange events for form input fields (non-file)
-   * 
-   * @param {*} e 
-   * @returns 
-   */
-  const handleChangeForm = e => onChange(e);
-
-  /* Handle closing drawer displaying the UploadForm */
-  const handleCloseForm = () => onDrawerClose();
-
   /* Toggle useDefaultName state */
-  const handleToggleUseDefaultName = () => setUseDefaultName(prev => !prev);
+  const handleToggleUseDefaultName = () => {
+    setFormState(prev => ({
+      ...prev,
+      useDefaultName: !prev.useDefaultName
+    }));
+  }
 
   /**
    * Handle onFocus events for dateTime picker elements.
@@ -238,20 +180,62 @@ const CreateDocForm = ({ onUpdate }) => {
    */
   const handleFocusLost = (e) => {};
 
+    /**
+   * 
+   * @param {*} e 
+   * @returns 
+   */
+  const handleSubmitForm = async () => {
+    // TODO: 
+    
+    try {
+
+      // TODO: handle file upload and doc creation separately (will need to update doc controller backend)
+      // First, ensure either payload.files or payload.fileRef is set (error if both or none)
+      //  - payload.files will be read as req.files after request goes through multer middleware
+      //  - All other payload fields are (should be) used as the key/values in req.body on backend
+      //  - i.e., what we unpack when we make the call to mongoose to create our db objects
+      //  - Documents have a fileRef field (the ObjectID of an uploaded file) that should be part of req.body
+      // If payload.files is set and is a valid FileArray, make a post request to upload the files
+      //  - Should only contain one File; must be an array for consistency on backend 
+      //    If upload is successful, get the ID of the resulting object and use that for our fileRef
+      //    Also, re-fetch files
+      // Else, assume fileRef is set and construct the payload from our current formData state 
+
+      const doc = await onSubmit(
+        `${docsApi}/create`,
+        { headers: { 'Content-Type': 'multipart/form-data' } 
+      });
+      notify({    
+        status: 'success',
+        title : 'Document Created',
+        desc  : `Successfully created Document \"${doc.name}\"`
+      });
+    } catch (err) {
+      notify({ status: 'error', title: 'Error Creating Document', desc: getErrorMsg(err) });
+    } finally {
+      // If CreateDocForm is being rendered in a drawer, refresh fetched data and close drawer
+      if (onUpdate) onUpdate();
+    }
+  };
+
   return (
     <CreateDocFormUI 
-      isOpen={isOpen}
-      loading={loading}
-      submitting={submitting}
-      useDefaultName={useDefaultName}
-
       refs={refs}
       fetched={fetched}
       formData={formData}
-      drawerContent={drawerContent}
+      formState={formState}
+      loading={loading}
+      submitting={submitting}
 
-      onCloseForm={handleCloseForm}
-      onChangeForm={handleChangeForm}
+      drawerMenu={<DrawerMenu />}
+
+      isOpen={isOpen}
+      drawerContent={drawerContent}
+      onCloseForm={onDrawerClose}
+
+      onChangeField={onChange}
+      onChangeDate={handleChangeDate}
       onStageFiles={handleStageFiles}
       //onDatePickerFocus={handleFocus}
       //onDatePickerFocusLost={handleFocusLost}

@@ -10,6 +10,8 @@ export const getErrorMsg = (err) => {
   return err.response?.data?.message || err.message || err.name || err.code;
 };
 
+export const plural = (name, count) => `${name}${count > 1 ? 's' : ''}`;
+
 /**
  * Truncate the file extension from the given filename
  * 
@@ -40,6 +42,7 @@ export const getLocalTimestamp = () => {
   const minutes = String(now.getMinutes()).padStart(2, '0');
   const seconds = String(now.getSeconds()).padStart(2, '0');
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  //return `${year}-${month}-${day}T00:00:00`;
 };
 
 /**

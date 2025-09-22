@@ -1,40 +1,25 @@
 import axios from 'axios';
 import { useCallback, useState } from 'react';
 
-/**
- * 
- * @param {*} initFormData
- * @param {*} required
- * 
- * @note Parameters must be passed as kwargs in an object
- * 
- * @returns 
- */
-export default function useFormData({ initFormData, required }) {
+export default function useFormData(fields) {
   
   // TODO: refactor to take one parameter: fields
   // fields will be an array of key/value pairs:
   // { <field_name>: { init: <init_value>, required: <is the field required? (true/false)> } }
   // Build our formData and submitting state from this
   // Can also build an efficient lookup table for required instead of relying on the original input
-  /**
-   * `formData` should contain string keys that correspond to
-   * names of input fields on your form, with the associated
-   * values being the data that is read from those fields.
-   */
-  const [formData, setFormData] = useState(initFormData);
-  /**
-   * `required` should be an object containing key/value pairs,
-   * where each key corresponds 1:1 with keys in `formData`.
-   * The associated values indicate whether or not the corresponding
-   * field in `formData` is required for submission.
-   */
-  const _required = Object.freeze(required); // TODO: validate input
-  /**
-   * Form submission state.
-   *    true : submission in progress
-   *    false: submission complete/submission not started
-   */
+
+  const [formData, setFormData] = useState(Object.assign({}, ...fields.map(f => {
+    const [name, { init, required }] = Object.entries(f)[0];
+    return { [name]: init };
+  })));
+
+  //const _required = Object.freeze(required);
+  const required = Object.freeze(Object.assign({}, ...fields.map(f => {
+    const [name, { init, required }] = Object.entries(f)[0];
+    return { [name]: required };
+  })));
+
   const [submitting, setSubmitting] = useState(false);
 
   /**
@@ -63,8 +48,6 @@ export default function useFormData({ initFormData, required }) {
       case 'file': {
         // Always assign as an array of files for consistent handling when filtering duplicates
         stateUpdate = !Array.isArray(files) ? Array.from(files) : files;
-        //stateUpdate = Array.isArray(files) ? files : [files];
-        //stateUpdate = files.length > 1 ? files : files[0];
         break;
       }
       // Handle checkbox input
@@ -75,7 +58,6 @@ export default function useFormData({ initFormData, required }) {
       // Handle all other input types
       default: {
         stateUpdate = value;
-        break;
       }
     }
     // Perform the state update
@@ -110,7 +92,7 @@ export default function useFormData({ initFormData, required }) {
     }
     // Define helper functions  
     function isSameFile(file, other) {
-      return file.name === other.name && file.size === other.size;
+      return file?.name === other?.name && file?.size === other?.size;
     }
     function isAlreadyStaged(file) {
       return stagedFiles.some(f => isSameFile(file, f));
@@ -132,7 +114,7 @@ export default function useFormData({ initFormData, required }) {
     const payload = new FormData();
     Object.keys(formData).forEach(field => {
       // Check if the field is required
-      if (_required[field] && !formData[field]) {
+      if (required[field] && !formData[field]) {
           // Throw an error if the field is required but empty
           throw new Error(`Field \"${field}\" is required`);
       }
@@ -167,7 +149,7 @@ export default function useFormData({ initFormData, required }) {
    *                      or 'PUT' (e.g., updating an existing item using data from a form submission)
    * @param {String} url
    */
-  const onSubmit = useCallback(async (url, type = 'POST', config = {}) => {
+  const onSubmit = useCallback(async (url, config = {}, type = 'POST') => {
     try {
       // Set submission state `submitting=true` to indicate submission in progress
       setSubmitting(true);
@@ -197,6 +179,8 @@ export default function useFormData({ initFormData, required }) {
       throw new Error(`${type.toUpperCase()} request received null/undefined response`)
     })();
   });
+
+  // TODO: add an onClear callback to clear all fields
 
   // Return relevant state/callbacks for the hook
   return { formData, setFormData, submitting, onChange, onSubmit };

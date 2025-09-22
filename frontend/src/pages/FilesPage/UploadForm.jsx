@@ -7,7 +7,7 @@ import UploadFormUI from './UploadFormUI';
 import useFetch from '../../hooks/useFetch';
 import useNotify from '../../hooks/useNotify';
 import useFormData from '../../hooks/useFormData';
-import { getErrorMsg } from '../../util/util';
+import { getErrorMsg, plural } from '../../util/util';
 
 // TODO: move to centralized location 
 const baseUrl   = 'http://localhost:5000';
@@ -19,19 +19,15 @@ const fileExtApi = `${infoApi}/allowed-file-ext`;
 
 const UploadForm = ({ onUpdate }) => {
 
-  //const toast = useToast();
   const notify = useNotify();
 
-  const { formData, setFormData, submitting, onChange, onSubmit } = useFormData({
-    initFormData: { stagedFiles: [] },
-    required    : { stagedFiles: true }
-  });
+  const { formData, setFormData, submitting, onChange, onSubmit } = useFormData([
+    { stagedFiles: { init: [], required: true } }
+  ]);
 
-  const { loading, fetched, onFetchMany } = useFetch({
-    initLoading: { allowedFileExt: false },
-    initFetched: { allowedFileExt: false },
-    endpoints: { allowedFileExt: fileExtApi }
-  });
+  const { loading, fetched, onFetchMany } = useFetch([
+    { allowedFileExt: { init: [], url: fileExtApi } }
+  ]);
 
   // Init component references
   const refs = { fileInput: useRef() };
@@ -58,7 +54,7 @@ const UploadForm = ({ onUpdate }) => {
     // On failure to fetch, just log to console
     if (errs.length > 0) {
       console.error(`Failed to fetch (${errs.length})`.concat(
-        `resource${errs.length > 1 ? 's' : ''}: ${errs.join(', ')}`));
+        `${plural('resource', errs.length)}: ${errs.join(', ')}`));
     }
   };
 
@@ -74,9 +70,9 @@ const UploadForm = ({ onUpdate }) => {
    * @param {*} files
    */
   const handleStageFiles = (files) => {
-    // Make sure input is an array of Files and not a FileList for consistency
+    // Make sure input is an array of Files and not a FileList
     const filesToStage = Array.from(files);
-    // Fake event object because dropzone gives us the files directly, not an event object
+    // Dropzone gives us files directly; create fake event object for onChange to work with
     onChange({ target: { name: 'stagedFiles', type: 'file', files: filesToStage } });
   };
 
@@ -103,19 +99,20 @@ const UploadForm = ({ onUpdate }) => {
       // Notify user of successful upload
       notify({
         status: 'success',
-        title: `File${files.length > 1 ? 's' : ''} Uploaded`,
+        title: `${plural('File', files.length)} Uploaded`,
         desc: files.length > 1
           ? `Successfully uploaded (${files.length}) Files`
           : `Successfully uploaded File \"${files[0].name}\"`
       });
-      // If UploadForm is being rendered in a drawer, update fetched Files and close drawer
+    } catch (err) {
+      // Notify user of failed upload
+      notify({ status: 'error', title: 'Error Uploading File(s)', desc: getErrorMsg(err) });
+    } finally {
+      // If UploadForm is being rendered in a drawer, refresh fetched Files and close drawer
       /* Note: call this synchronously so we can start the fetch and immediately close
         the drawer. If the fetch is still ongoing, 'Files Loading. . .' will (should)
         display; this may or may not be desirable behavior. */
       if (onUpdate) onUpdate();
-    } catch (err) {
-      // Notify user of failed upload
-      notify({ status: 'error', title: `Error Uploading `, desc: getErrorMsg(err) });
     }
   };
 

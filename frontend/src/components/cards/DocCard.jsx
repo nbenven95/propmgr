@@ -102,7 +102,7 @@ const DocCard = ({
             size='sm'
             aria-label='Delete Document'
             colorScheme='red'
-            onClick={() => handleDelete(doc._id)}
+            onClick={() => handleDelete(doc)}
           />          
         </Flex>
 

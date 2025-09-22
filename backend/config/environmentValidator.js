@@ -5,7 +5,7 @@ import path from 'node:path'
 /**
  * Schema for validating environment variables
  */
-export default Joi.object({
+const environmentValidator = Joi.object({
 
 	MONGO_AUTH_EN: Joi.bool()
 		.truthy(1,'1','t') 		// Additional values to parse as "true"
@@ -150,4 +150,6 @@ export default Joi.object({
 			return helpers.message('ALLOWED_FILE_EXT must be a space-delimited string of valid file extensions');
 		}, 'ALLOWED_FILE_EXT list validation')
 
-})
+});
+
+export default environmentValidator;

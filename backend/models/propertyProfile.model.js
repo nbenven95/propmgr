@@ -10,7 +10,7 @@ import { noteSchema } from '@models/embedded/note.model.js'
 import { phoneNumberSchema } from '@models/embedded/phoneNumber.model.js'
 import { wastePickupSchedSchema } from '@models/embedded/wastePickupSched.model.js'
 
-import DocTypeEnum from '@config/docType.js'
+import DocTypeEnum from '@config/DocTypes.js'
 
 const { BLUEPRINT, CONTRACT, DEED, FLOORPLAN, LEASE, LIEN, SCHEMATIC, TEXT, WORKORDER } = DocTypeEnum;
 const allowedDocTypes = [BLUEPRINT, CONTRACT, DEED, FLOORPLAN, LEASE, LIEN, SCHEMATIC, TEXT, WORKORDER];

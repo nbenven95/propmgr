@@ -32,72 +32,68 @@ import { useState, useCallback } from 'react';
  * 
  * @returns
  */
-export default function useFetch({ initLoading, initFetched, endpoints }) {
-  /**
-   * `loading` should contain string keys that correspond
-   * to resources to fetch, with the associated values
-   * being the 'fetched' state (i.e., has the resource
-   * been fetched, or are we still fetching?)
-   */
-  const [loading, setLoading] = useState(initLoading);
-  /**
-   * `fetched` should contain string keys that correspond
-   * to resources to fetch, with the associated values
-   * being the fetched resource (objects, arrays, etc.)
-   * The key names must be the same as those set in `loading`.
-   */
-  const [fetched, setFetched] = useState(initFetched);
-  /**
-   * `api` should contain string keys that correspond to
-   * resources to fetch, with the associated values
-   * being the URL of the GET endpoint.
-   * The key names must be the same as those set in `loading`
-   * and `fetched`.
-   */
-  const _endpoints = Object.freeze(endpoints);
+export default function useFetch(resources) {
+
+  // e.g., { files: false, docs: false }
+  const [loading, setLoading] = useState(Object.assign({}, ...resources.map(r => {
+    const [name, { init, url }] = Object.entries(r)[0];
+    return { [name]: false }; 
+  })));
+
+  // e.g., { files: [], docs: [] }
+  const [fetched, setFetched] = useState(Object.assign({}, ...resources.map(r => {
+    const [name, { init, url }] = Object.entries(r)[0];
+    return { [name]: init };
+  })));
+
+  // e.g., { files: 'http://localhost:5000/api/files', docs: 'http://localhost:5000/api/docs' }
+  const endpoints = Object.freeze(Object.assign({}, ...resources.map(r => {
+     const [name, { init, url }] = Object.entries(r)[0];
+    return { [name]: url };
+  })));
 
   /**
-   * @param {String} resource
+   * @param {String} resrc
    */
-  const onFetch = useCallback(async (resource) => {
+  const onFetch = useCallback(async (resrc) => {
     try {
       // Get the URL for the resource to fetch
-      if (!Object.keys(_endpoints).includes(resource)) {
+      if (!Object.keys(endpoints).includes(resrc)) {
         // Ensure 'resource' is a valid resource key
-        throw new Error(`Invalid resource key \"${resource}\"`);
+        throw new Error(`Invalid resource key \"${resrc}\"`);
       }
-      const url = endpoints[resource]; 
+      const url = endpoints[resrc];
       // Set loading state of resource
-      setLoading(prev => ({ ...prev, [resource]: true }));
+      setLoading(prev => ({ ...prev, [resrc]: true }));
       const res = await axios.get(url);
       // Update fetched data for the resource
-      setFetched(prev => ({ ...prev, [resource]: res.data }));
-      // Sleep for a few seconds so the loading indicator displays consistently
-      // TODO: is this best practice for production build?
-      
+      setFetched(prev => ({ ...prev, [resrc]: res.data }));
+
+      // TODO: sleep for a few millis to test loading indicators (disable for production)
+
     } catch (err) {
       // Append the original error message to our new one; append new message to err
-      err.message = `Failed to fetch resource \"${resource}\": ${err.message}`;
+      err.message = `Failed to fetch resource \"${resrc}\": ${err.message}`;
       // Propagate error
       throw err;
     } finally {
       // Update loading state of resource
-      setLoading(prev => ({ ...prev, [resource]: false }));
+      setLoading(prev => ({ ...prev, [resrc]: false }));
     }
   }, []);
 
   /**
-   * @param {Array} resources
+   * @param {Array} resrcs
    */
-  const onFetchMany = useCallback(async (resources) => {
+  const onFetchMany = useCallback(async (resrcs) => {
     // Input validation
-    if (!Array.isArray(resources)) {
+    if (!Array.isArray(resrcs)) {
       throw new Error('Invalid value for resources (must be an array of strings)');
-    } else if (resources.length === 0) {
+    } else if (resrcs.length === 0) {
       return [];
     }
     // Execute all promises in parallel until all are settled (success or error)
-    const responses = await Promise.allSettled(resources.map(resource => onFetch(resource)));
+    const responses = await Promise.allSettled(resrcs.map(resrc => onFetch(resrc)));
     // Get an array of error messages
     const errors = responses.filter(res => res.status === 'rejected').map(res => res.reason);
     // Return the errors array (if length === 0, all fetches successful)

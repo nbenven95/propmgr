@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { Text } from '@chakra-ui/react';
 
 import FilesPageUI from './FilesPageUI';
@@ -8,7 +8,7 @@ import useBulkMode from '../../hooks/useBulkMode';
 import useDrawer from '../../hooks/useDrawer';
 import useNotify from '../../hooks/useNotify';
 import useFetch from '../../hooks/useFetch';
-import { getErrorMsg, onDeleteSingle, onDownload } from '../../util/util';
+import { getErrorMsg, plural, onDeleteSingle, onDownload } from '../../util/util';
 
 // TODO: move to centralized location 
 const baseUrl   = 'http://localhost:5000';
@@ -19,31 +19,31 @@ const filesApi  = `${baseUrl}/api/files`;
  * @returns 
  */
 const FilesPage = () => {
-  /* Init hooks */
 
-  const notify = useNotify();
-  
-  const { drawerContent, isOpen, onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();
+  /* Init hooks */
   
   const { bulkMode, onBulkModeToggle, onBulkSelectToggle, onBulkDelete } = useBulkMode();
   
-  const { loading, fetched, onFetchMany } = useFetch({
-    initLoading: { files: false},
-    initFetched: { files: [] },
-    endpoints  : { files: filesApi }
-  });
+  const { onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();
+
+  const { loading, fetched, onFetchMany } = useFetch([
+    { files: { init: [], url: filesApi } }
+  ]); 
+
+  const notify = useNotify();
 
   /**
    * 
-   * @param {Array} resources 
+   * @param {Array} resrcs
    */
-  const handleFetch = async (resources) => {
+  const handleFetch = async (resrcs) => {
     // TODO: is there a way to get the names of resources that failed to fetch?
-    const errs = await onFetchMany(resources);
-    // On failure to fetch, just log to console
+    const errs = await onFetchMany(resrcs);
+    // On failure to fetch, log to console
     if (errs.length > 0) {
-      console.error(`Failed to fetch (${errs.length})`.concat(
-        `resource${errs.length > 1 ? 's' : ''}: ${errs.join(', ')}`));
+      const numErrors = errs.length;
+      const msg = `Failed to fetch (${numErrors}) ${plural('resource', numErrors)}: ${errs.join(', ')}`;
+      console.error(msg);
     }
   };
 
@@ -58,29 +58,30 @@ const FilesPage = () => {
    * @param {*} file 
    */
   const handleDelete = async (file) => {
-    // Check if the File has any attached Documents before attempting delete
-    const numDocs = file.documents?.length;
-    if (numDocs > 0) {
-      notify({
-        status: 'error',
-        title: 'Error Deleting File',
-        desc: `File \"${file.name}\" is attached to (${numDocs}) Document${numDocs > 1 ? 's' : ''}.`
-      });
-      return;
-    }
+    const { name, documents, _id } = file;
+    const numLinked = documents?.length?? 0;
     try {
-      // Try to delete the file, notify user on success
-      const deletedFile = await onDeleteSingle(`${filesApi}/${file._id}`);
+      // Check if the File has any attached Documents before attempting delete
+      if (numLinked > 0) {
+        const msg = `File \"${name}\" has (${numLinked}) linked ${plural('Document', numLinked)}`;
+        throw new Error(msg);
+      }
+      // Try to delete the File, notify user on success
+      await onDeleteSingle(`${filesApi}/${_id}`);
       notify({
         status: 'success',
         title: 'File Deleted',
-        desc: `Successfully deleted File \"${deletedFile.name}\"`
+        desc: `Successfully deleted File \"${name}\"`
       });
     } catch (err) {
       // Notify user if delete fails
-      notify({ status: 'error', title: 'Error Deleting File', desc: getErrorMsg(err) });
+      notify({
+        status: 'error',
+        title: `Error Deleting File \"${name}\"`,
+        desc: getErrorMsg(err)
+      });
     }
-    // Refresh fetched files
+    // Refresh fetched Files on successful delete (handle errors separately)
     await handleFetch(['files']);
   };
 
@@ -92,14 +93,14 @@ const FilesPage = () => {
       const numDeleted = deletedFiles.length;
       notify({
         status: 'success',
-        title: 'Files Deleted',
-        desc: `Successfully deleted (${numDeleted}) File${numDeleted > 1 ? 's' : ''}`
+        title: `${plural('File', numDeleted)} Deleted`,
+        desc: `Successfully deleted (${numDeleted}) ${plural('File', numDeleted)}`
       });
     } catch (err) {
       // Notify user if bulk delete fails
       notify({ status: 'error', title: 'Error Deleting Files', desc: getErrorMsg(err) });
     }
-    // Refresh fetched files
+    // Refresh fetched Files on successful bulk delete
     await handleFetch(['files']);
   };
 
@@ -122,13 +123,14 @@ const FilesPage = () => {
         desc: `Successfully downloaded File \"${fileName}\"`
       });
     } catch (err) {
-      // Notify user if download fails
-      notify({ status: 'error', title: 'Error Downloading File', desc: getErrorMsg(err) });
+      // Notify user of failed download
+      notify({
+        status: 'error',
+        title: 'Error Downloading File',
+        desc: getErrorMsg(err)
+      });
     }
   };
-
-  /* Handle closing UploadForm drawer */
-  const handleCloseForm = () => onDrawerClose();
 
   /* Handle opening the drawer and rendering UploadForm */
   const handleOpenForm = () => {
@@ -142,16 +144,10 @@ const FilesPage = () => {
           then allow 'Loading Files. . .' to display when the
           drawer closes if the fetch is still ongoing.  */
         handleFetch(['files']);
-        handleCloseForm();
+        onDrawerClose(); // Close the form immediately after initiating the fetch
       }} />
     );
   };
-  
-  /* */
-  const handleToggleBulkMode = () => onBulkModeToggle();
-
-  /* */
-  const handleToggleBulkSelect = (id) => onBulkSelectToggle(id);
 
   // Return presentational component with injected controller elements
   return (
@@ -159,17 +155,17 @@ const FilesPage = () => {
       loading={loading}
       fetched={fetched}
 
-      drawerMenu={<DrawerMenu onDrawerClose={handleCloseForm} />}
+      drawerMenu={<DrawerMenu />}
 
       onClickDelete={handleDelete}
       onClickUpload={handleOpenForm}
       onClickDownload={handleDownload}
 
-      // Bulk mode state (TODO: refactor)
+      // TODO: refactor useBulkMode
       bulkMode={bulkMode}
-      onBulkDelete={handleBulkDelete}
-      onBulkModeToggle={handleToggleBulkMode}
-      onBulkSelectToggle={handleToggleBulkSelect}
+      onBulkDelete={handleBulkDelete} // Custom bulk delete handler
+      onBulkModeToggle={onBulkModeToggle}
+      onBulkSelectToggle={onBulkSelectToggle}
     />
   );
 };

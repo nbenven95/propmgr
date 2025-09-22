@@ -5,13 +5,13 @@ import express from 'express'
 import fs from 'node:fs'
 import multer from 'multer'
 
-import DocTypeEnum from '@config/docType.js'
-import OpSysTypeEnum, { ApplianceTypeEnum } from '@config/OpSysType.js'
-import ToolTipDict from '@config/ToolTip.js'
+import DocTypeEnum from '@config/DocTypes.js'
+import OpSysTypeEnum, { ApplianceTypeEnum } from '@config/OpSysTypes.js'
+import ToolTipDict from '@config/ToolTips.js'
 
 import connectMongoDB from '@middleware/mongoConnect.js'
-import envSchema from '@config/envValidationSchema.js'
-import multerOptions from '@config/multerOpt.js'
+import validator from '@config/environmentValidator.js'
+import multerConfig from '@config/multerConfig.js'
 import errorHandler from '@middleware/errorHandler.js'
 
 import DocumentRouter from '@routes/document.route.js'
@@ -22,11 +22,12 @@ import SubunitRouter from '@routes/subunit.route.js'
 
 /* LOAD AND VALIDATE ENVIRONMENT VARIABLES */
 
-const env = dotenvExpand		// Load environment
-	.expand(dotenv.config()) 	// Expand variables
-	?.parsed;								 	// Get env (use instead of "process.env")
+const envNotValidated = dotenvExpand	// Load environment
+	.expand(dotenv.config())						// Expand variables
+	?.parsed;								 						// Get env (use instead of "process.env")
 
-const { error, value: validatedEnvVars } = envSchema.validate(env); // Validate env with Joi schema
+// Use Joi schema to validate environment variables
+const { error, value: env } = validator.validate(envNotValidated);
 if (error) {
 	console.error('Environment validation error:', error.details);
 	process.exit(1);
@@ -36,7 +37,7 @@ const {
 	MONGO_AUTH_EN, MONGO_AUTH_SRC, MONGO_AUTH_USER, MONGO_AUTH_PASS, MONGO_URI, // MongoDB environment variables
 	EXPRESS_HOST, EXPRESS_PORT, REACT_HOST, REACT_PORT,													// Express and React environment variables
 	UPLOAD_DIR, MAX_FILE_SIZE, MAX_FILES_PER_UPLOAD, ALLOWED_FILE_EXT						// Multer environment variables
-} = validatedEnvVars;
+} = env;
 
 /* DEFINE MIDDLEWARE OPTIONS */
 
@@ -45,7 +46,7 @@ const {
 
 // Create multer object from 
 const upload = multer(
-  multerOptions({ // Multer config from env var
+  multerConfig({ // Multer config from env var
     uploadDir         : UPLOAD_DIR,
     maxFileSize       : MAX_FILE_SIZE,
     maxFilesPerUpload : MAX_FILES_PER_UPLOAD,

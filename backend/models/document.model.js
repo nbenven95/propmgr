@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 
-import DocTypeEnum from '@config/docType.js'
+import DocTypeEnum from '@config/DocTypes.js'
 import FileRef from '@models/fileRef.model.js'
 
 // TODO: implement some way to get list of all PropertyProfile, Subunit, OpSys, and InsurancePolicy documents that are associated with a given Document document
@@ -93,6 +93,7 @@ documentSchema.pre('save', async function(next) {
   }
 });
 
+// TODO: check if this needs 'new' or not
 const Document = new mongoose.model('Document', documentSchema);
 
 export default Document;

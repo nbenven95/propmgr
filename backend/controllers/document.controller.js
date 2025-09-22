@@ -135,7 +135,7 @@ const deleteDocument = async (req, res) => {
       message: `Invalid object id ${id}`
     });
   }
-  // Attempt async delete the Property object
+  // Attempt delete
   try {
     const deletedDoc = await Document.findByIdAndDelete(id);
     // Check for non-existent Document

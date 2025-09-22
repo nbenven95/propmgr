@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+// TODO: refactor this component in a similar manner to useDrawer to return a BulkDeleteControls component
+
 /**
  * 
  * @returns

@@ -1,45 +1,29 @@
 import React from 'react';
-import {
-  Box,
-  Drawer,
-  DrawerBody,
-  DrawerCloseButton,
-  DrawerContent,
-  DrawerHeader,
-  DrawerOverlay,
-  Flex,
-  Stack,
-  Text
-} from '@chakra-ui/react';
+import { Box, Flex, Stack, Text } from '@chakra-ui/react';
 
 import UIHeader from '../../components/UIHeader';
 import DocCard from '../../components/cards/DocCard';
 
 const DocsPageUI = ({
-  isOpen,
   loading,
-
   fetched,
-  drawerContent,
+  drawerMenu,
 
-  onCloseForm: handleCloseDrawer,
-
-  onClickCreate: handleClickCreate,
-  onClickEdit: handleClickEdit,
-  onClickDelete: handleClickDelete,
-  onClickDownload: handleClickDownload,
+  onClickEdit,
+  onClickCreate,
+  onClickDelete,
+  onClickDownload,
  
   bulkMode,
-  onBulkDelete: handleBulkDelete,
-  onBulkModeToggle: handleToggleBulkMode,
-  onBulkSelectToggle: handleToggleBulkSelect
+  onBulkDelete,
+  onBulkModeToggle,
+  onBulkSelectToggle
 }) => {
-
+  // Destructure fetched resources
   const { docs } = fetched;
   
   {/* Display loading indicator while fetching */}
   if (loading.docs) {
-    // TODO: replace text with an animated loading icon
     return (
       <Flex justify="center" align="center" minH="100vh">
         <Text fontSize="xl">Loading Documents. . .</Text>
@@ -47,19 +31,20 @@ const DocsPageUI = ({
     );
   }
 
-  {/* Display fetched Documents */}
+  {/* Display fetched Documents in a stack */}
   return (
     <Box maxW='100vw' mx='auto' p={4}>
-      
-      {/* Display UI header text and bulk operation controls */}
-      {/* TODO: refactor this to separate the title and + button from the bulk delete controls */}
+      {/* Bulk delete controls, button link to CreateDocForm via drawer */}
       <UIHeader
         title='Documents'
         bulkMode={bulkMode}
-        onClickCreate={handleClickCreate}
-        onClickDelete={handleBulkDelete}
-        onClickBulkModeToggle={handleToggleBulkMode}
+        onClickCreate={onClickCreate}
+        onClickDelete={onBulkDelete}
+        onClickBulkModeToggle={onBulkModeToggle}
       />
+
+      {/* Drawer menu */}
+      {drawerMenu}
       
       {/* Main Documents view */}
       {docs.length === 0 ? (
@@ -70,28 +55,15 @@ const DocsPageUI = ({
             <DocCard
               doc={doc}
               bulkMode={bulkMode}
-              onClickEdit={handleClickEdit}
-              onClickDelete={handleClickDelete}
-              onClickDownload={handleClickDownload}
-              onClickBulkSelect={handleToggleBulkSelect}
+              onClickEdit={onClickEdit}
+              onClickDelete={onClickDelete}
+              onClickDownload={onClickDownload}
+              onClickBulkSelect={onBulkSelectToggle}
               key={doc._id}
             />
           ))}
         </Stack>
       )}
-
-      {/* Drawer menu */}
-      <Drawer isOpen={isOpen} placement='top' onClose={handleCloseDrawer} size='lg'>
-        <DrawerOverlay />
-        <DrawerContent>
-          <DrawerCloseButton />
-          <DrawerHeader borderBottomWidth='1px'>{drawerContent.header}</DrawerHeader>
-          <DrawerBody p={4}>
-            {drawerContent.body}
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
-
     </Box>
   );
 }

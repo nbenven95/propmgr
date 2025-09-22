@@ -1,16 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Drawer,
-  DrawerBody,
-  DrawerCloseButton,
-  DrawerContent,
-  DrawerHeader,
-  DrawerOverlay,
-  Flex,
-  Text,
-  Tooltip
-} from '@chakra-ui/react';
+import { Box, Flex, Text, Tooltip } from '@chakra-ui/react';
 
 import UIHeader from '../../components/UIHeader';
 import FileCard from '../../components/cards/FileCard';
@@ -25,16 +14,16 @@ const FilesPageUI = ({
   fetched,
   drawerMenu,
 
-  onClickUpload: handleClickUpload,
-  onClickDelete: handleClickDelete,
-  onClickDownload: handleClickDownload,
+  onClickUpload,
+  onClickDelete,
+  onClickDownload,
 
   bulkMode,
-  onBulkDelete: handleBulkDelete,
-  onBulkModeToggle: handleToggleBulkMode,
-  onBulkSelectToggle: handleToggleBulkSelect
+  onBulkDelete,
+  onBulkModeToggle,
+  onBulkSelectToggle
 }) => {
-  
+  // Destructure fetched resources
   const { files } = fetched;
 
   {/* Display loading indicator while fetching */}
@@ -46,16 +35,16 @@ const FilesPageUI = ({
     );
   }
 
+  {/* Display fetched Files in a grid */}
   return (
     <Box maxW='100vw' mx='auto' p={4} >
-
-      {/* Bulk delete controls, button link to upload menu */}
+      {/* Bulk delete controls, button link to UploadForm via drawer */}
       <UIHeader 
         title='Files'
         bulkMode={bulkMode}
-        onClickCreate={handleClickUpload}
-        onClickDelete={handleBulkDelete}
-        onClickBulkModeToggle={handleToggleBulkMode}
+        onClickCreate={onClickUpload}
+        onClickDelete={onBulkDelete}
+        onClickBulkModeToggle={onBulkModeToggle}
       />
 
       {/* Drawer menu */}
@@ -75,16 +64,15 @@ const FilesPageUI = ({
               <FileCard 
                 file={file}
                 bulkMode={bulkMode}
-                onClickDelete={handleClickDelete}
-                onClickBulkSelect={handleToggleBulkSelect}
-                onClickDownload={handleClickDownload}
+                onClickDelete={onClickDelete}
+                onClickBulkSelect={onBulkSelectToggle}
+                onClickDownload={onClickDownload}
                 key={file._id}
               />
             </Tooltip>
           ))}
         </div>
       )}
-
     </Box>
   );
 };

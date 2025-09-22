@@ -15,9 +15,9 @@ const CLOSABLE = true;
 export default function useNotify() {
   
   const toast = useToast();
-  
+
   const notify = useCallback(({ status, title, desc }) => {
-    if (!Object.values(StatusEnum).includes(status)) {
+    if (!Object.values(StatusEnum).includes(String(status).toLowerCase())) {
       throw new Error(`Invalid status \"${status}\"`);
     }
     toast({ 
@@ -25,7 +25,7 @@ export default function useNotify() {
       isClosable  : CLOSABLE,
       status      : status,
       title       : title,
-      description : desc,
+      description : desc
     });
   }, []);
 

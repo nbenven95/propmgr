@@ -10,9 +10,9 @@ const OpSysTypeEnum = Object.freeze({
 });
 
 const ApplianceTypeEnum = Object.freeze({
-  CLOTHES_WASHER: 'washer, clothes',
-  CLOTHES_DRYER : 'dryer, clothes',
-  DISH_WASHER   : 'washer, dishes'
+  CLOTHES_WASHER: 'clothes washer',
+  CLOTHES_DRYER : 'clothes dryer',
+  DISH_WASHER   : 'dishwasher'
 });
 
 export default OpSysTypeEnum;
