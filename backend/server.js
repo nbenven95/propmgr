@@ -60,9 +60,12 @@ const corsOpt = { origin: `http://${REACT_HOST}:${REACT_PORT}`, optionsSuccessSt
 /* INIT APP; LOAD MIDDLEWARE, ROUTES, AND ERROR HANDLERS */
 
 const app = express();
+
+// Define body-parsing middleware (must be before routes)
 app.use(express.json());
-app.use(cors(corsOpt));
 app.use(express.urlencoded({ extended: true }));
+
+app.use(cors(corsOpt));
 
 // Init Express routers with required args (e.g., multer object for routes handling file uploads)
 const documentRoutes  = DocumentRouter(upload);

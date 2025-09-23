@@ -10,6 +10,18 @@ const {
 const DEFAULT_ERR_MSG = '\n┻━┻ ︵ヽ(`Д´)ﾉ︵﻿ ┻━┻\n' + '\nSomething went wrong!\n';
 
 /**
+ * Wrapper function for controllers, to help cut down on try/catch boilerplate.
+ * Any errors thrown in the function body that catchAsync wraps are automatically
+ * passed to next(), which passes the error off to our custom error handling
+ * middleware (i.e., errorHandler).
+ * 
+ * @param {*} fn An async function with parameters req, res, next; most likely a controller
+ */
+const catchAsync = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+/**
  * Error class for handling operational and programming errors.
  * 
  * Operational errors are expected, predictable errors,
@@ -26,7 +38,7 @@ const DEFAULT_ERR_MSG = '\n┻━┻ ︵ヽ(`Д´)ﾉ︵﻿ ┻━┻\n' + '\nSo
  * 
  */
 class CustomError extends Error {
-  constructor(message, statusCode) {
+  constructor(message, statusCode, isOperational = true) {
     super(message);
     /**
      * HTTP status code
@@ -35,13 +47,14 @@ class CustomError extends Error {
     /**
      * Status: failure or error?
      */
+    // TODO: assumes anything other than a 4XX status is an error; how to prevent user from inputting a non-error/fail status code? 
     this.status = String(statusCode).startsWith('4')
-      ? 'fail'
-      : 'error' // TODO: assumes anything other than a 4XX status is an error; how to prevent user from inputting a non-error/fail status code? 
+      ? 'failure'
+      : 'error'
     /**
      * Operational or programming error?
      */
-    this.isOperational = true;
+    this.isOperational = isOperational;
   }
 }
 
@@ -53,8 +66,8 @@ const errorHandler = (err, req, res, next) => {
   // Delegate to default Express error handler if headers already sent
   if (res.headersSent) return next(err);
 
-  // Init catch-all status code and message
-  let httpStatus = INTERNAL_SERVER_ERROR;
+  // Init default HTTP status code and error message
+  let statusCode = INTERNAL_SERVER_ERROR;
   let message = err.message?? DEFAULT_ERR_MSG;
 
   /**
@@ -76,36 +89,37 @@ const errorHandler = (err, req, res, next) => {
    * values are instances of CastError or ValidatorError
    */
   if (err.name === 'ValidationError') {
-    httpStatus = BAD_REQUEST;
+    statusCode = BAD_REQUEST;
     const errors = Object.values(err.errors).map(e => e.message);
     // TODO: finish implementing
+    message = '';
   }
   /**
    * Handle Mongoose CastError
    */
   else if (err.name === 'CastError') {
-    httpStatus = BAD_REQUEST;
+    statusCode = BAD_REQUEST;
     message = `Invalid ${err.path}: ${err.value}`; // TODO: research 
   }
   /**
    * Handle MongoDB duplicate key error
    */
   else if (err.code && err.code === 11000) {
-    httpStatus = CONFLICT;
+    statusCode = CONFLICT;
     // TODO: finish implementing
+    message = '';
   }
   
   // Handle custom errors
   if (err instanceof CustomError) {
-    httpStatus = err.httpStatus;
+    statusCode = err.statusCode;
     message = err.message;
   }
 
   // Send error status
-  return res.status(httpStatus).send({
+  return res.status(statusCode).send({
     success: false,
     message: message,
-    status: httpStatus,
     error: err,
     stack: process.env.NODE_ENV === 'development'
       ? err.stack // Only include stack trace in development build
@@ -115,3 +129,4 @@ const errorHandler = (err, req, res, next) => {
 };
 
 export default errorHandler;
+export { catchAsync, CustomError };

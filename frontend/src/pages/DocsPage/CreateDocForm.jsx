@@ -9,7 +9,6 @@ import useNotify from '../../hooks/useNotify.jsx';
 import useDrawer from '../../hooks/useDrawer.jsx';
 import useFormData from '../../hooks/useFormData.jsx';
 import { getErrorMsg, truncateExt } from '../../util/util.js';
-import { ssrExportNameKey } from 'vite/module-runner';
 
 // TODO: move to centralized location 
 const baseUrl   = 'http://localhost:5000';
@@ -31,8 +30,9 @@ const CreateDocForm = ({ onUpdate }) => {
     { stagedFiles : { init: [], required: true } }, // If creating Document with an uploaded File
     { docType     : { init: '', required: true } }, // Init to type 'Text'
     { dateCreate  : {
+      // TODO: fix this init so that the time is set to midnight 
       init    : new Date().toISOString(), // Init date as ISO string (this is how they are saved on the backend)
-      required: false 
+      required: false
     } },
     { dateEff     : { init: '', required: false } },
     { expiry      : { init: '', required: false } },
@@ -135,27 +135,22 @@ const CreateDocForm = ({ onUpdate }) => {
     const [year, month, day] = datePickerVal.split('-');
     // Create a new local date with time set to midnight
     const dateLocal = new Date(year, month - 1, day);
-    // Pass a copy of e with updated target.value to onChange
+    // Pass a copy of e with updated target to onChange
     onChange({ 
       ...e,
-      target: { name: e.target.name, type: e.target.type, value: dateLocal.toISOString() }
+      // Only need to update target.value with the new local date
+      target: { ...e.target, value: dateLocal.toISOString() }
     });
   }
 
-  /* Handle opening drawer and rendering UploadForm */
+  /* Handle opening drawer and rendering the UploadForm */
   const handleOpenForm = () => {
-    onDrawerOpen(
-      <Text>Upload New File</Text>,
-      <UploadForm onUpdate={handleStageFiles} />
-    );
+    onDrawerOpen(<Text>Upload New File</Text>, <UploadForm onUpdate={handleStageFiles} />);
   };
 
   /* Toggle useDefaultName state */
   const handleToggleUseDefaultName = () => {
-    setFormState(prev => ({
-      ...prev,
-      useDefaultName: !prev.useDefaultName
-    }));
+    setFormState(prev => ({ ...prev, useDefaultName: !prev.useDefaultName }));
   }
 
   /**
@@ -186,31 +181,10 @@ const CreateDocForm = ({ onUpdate }) => {
    * @returns 
    */
   const handleSubmitForm = async () => {
-    // TODO: 
-    
+    // TODO: implement async wrapper function (similar to backend)
     try {
-
-      // TODO: handle file upload and doc creation separately (will need to update doc controller backend)
-      // First, ensure either payload.files or payload.fileRef is set (error if both or none)
-      //  - payload.files will be read as req.files after request goes through multer middleware
-      //  - All other payload fields are (should be) used as the key/values in req.body on backend
-      //  - i.e., what we unpack when we make the call to mongoose to create our db objects
-      //  - Documents have a fileRef field (the ObjectID of an uploaded file) that should be part of req.body
-      // If payload.files is set and is a valid FileArray, make a post request to upload the files
-      //  - Should only contain one File; must be an array for consistency on backend 
-      //    If upload is successful, get the ID of the resulting object and use that for our fileRef
-      //    Also, re-fetch files
-      // Else, assume fileRef is set and construct the payload from our current formData state 
-
-      const doc = await onSubmit(
-        `${docsApi}/create`,
-        { headers: { 'Content-Type': 'multipart/form-data' } 
-      });
-      notify({    
-        status: 'success',
-        title : 'Document Created',
-        desc  : `Successfully created Document \"${doc.name}\"`
-      });
+      const res = await onSubmit(`${docsApi}/create`, { headers: { 'Content-Type': 'multipart/form-data' } });
+      notify({ status: 'success', title: 'Document Created', desc: res.message });
     } catch (err) {
       notify({ status: 'error', title: 'Error Creating Document', desc: getErrorMsg(err) });
     } finally {

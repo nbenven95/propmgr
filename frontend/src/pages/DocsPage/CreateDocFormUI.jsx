@@ -103,7 +103,7 @@ const CreateDocFormUI = ({
             name='useDefaultName'
             isChecked={useDefaultName}
             onChange={onClickToggle}
-            ref={refs.useDefaultName}
+            ref={refs.useDefaultName} // TODO: check if this ref is needed anymore 
           >
             Use file name as document name
           </Checkbox>
@@ -130,7 +130,6 @@ const CreateDocFormUI = ({
         </FormControl>
 
         {/* Date created picker */}
-        {/* TODO: make this just date (ensure not UTC) */}
         <FormControl>
           <Tooltip label={'Document date of creation'}>
             <FormLabel>Date Created</FormLabel>

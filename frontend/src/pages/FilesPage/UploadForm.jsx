@@ -8,6 +8,8 @@ import useFetch from '../../hooks/useFetch';
 import useNotify from '../../hooks/useNotify';
 import useFormData from '../../hooks/useFormData';
 import { getErrorMsg, plural } from '../../util/util';
+import { data } from 'react-router-dom';
+import { date } from 'joi';
 
 // TODO: move to centralized location 
 const baseUrl   = 'http://localhost:5000';
@@ -93,10 +95,12 @@ const UploadForm = ({ onUpdate }) => {
   const handleSubmitForm = async () => {
     try {
       // Await POST request (default for onSubmit)
-      const files = await onSubmit(`${filesApi}/upload`);
+      const res = await onSubmit(`${filesApi}/upload`);
+      const files = Array.from(res.data);
       // Clear staged files
       setFormData({ stagedFiles: [] });
       // Notify user of successful upload
+      // TODO: format these messages on the backend for consistency, access through res.message field
       notify({
         status: 'success',
         title: `${plural('File', files.length)} Uploaded`,
@@ -108,10 +112,7 @@ const UploadForm = ({ onUpdate }) => {
       // Notify user of failed upload
       notify({ status: 'error', title: 'Error Uploading File(s)', desc: getErrorMsg(err) });
     } finally {
-      // If UploadForm is being rendered in a drawer, refresh fetched Files and close drawer
-      /* Note: call this synchronously so we can start the fetch and immediately close
-        the drawer. If the fetch is still ongoing, 'Files Loading. . .' will (should)
-        display; this may or may not be desirable behavior. */
+      // Call onUpdate (sync) to start fetch and close drawer immediately; loading indicator should display if fetch is ongoing
       if (onUpdate) onUpdate();
     }
   };

@@ -1,10 +1,12 @@
-import mongoose from 'mongoose'
-import sysPath from 'node:path'
+import mongoose from 'mongoose';
+import syspath from 'node:path';
 
-import Document from '@models/document.model.js'
-import File from '@models/fileRef.model.js'
+import Document from '@models/document.model.js';
+import FileRef from '@models/fileRef.model.js';
 
-import HttpStatusCodes from '@util/HttpStatus.js'
+import HttpStatusCodes from '@util/HttpStatus.js';
+
+import { catchAsync, CustomError } from '@middleware/errorHandler.js';
 
 const {
   OK,
@@ -58,66 +60,42 @@ const getDocumentById = async (req, res) => {
   }
 };
 
-/**
- * 
- * Note: if both a new file and existing fileRef are provided,
- * the new file will take precedence.
- * 
- * @param {} req 
- * @param {*} res 
- * @returns 
- */
-const createDocument = async (req, res) => {
-  // Destructure name and (optional) fileRef from body data
-  const { docType, fileRef, name, dateCreate, dateEff, expiry } = req.body;
-  try {
-    // If a new file was uploaded, this will be passed by multer middleware
-    const file = req.files[0];
-    let fileId = null;
-    // Check if new file data or an existing File ref has been provided
-    if (file) {
-      // New file uploaded -- destructure multer data
-      const { filename, originalname, path } = file;
-      const newFile = File({ // TODO: test this with new 
-        name      : originalname,
-        path      : sysPath.resolve(path),
-        uniquename: filename
-      });
-      await newFile.save();
-      fileId = newFile._id;
-    } else if (fileRef) {
-      // Existing File selected
-      fileId = fileRef;
-    } else {
-      return res.status(BAD_REQUEST).send({
-        success: false,
-        message: 'Must provide valid new file data or existing File ref'
-      });
-    }
-    // Create the Document
-    const newDoc = new Document({
-      docType   : docType,
-      fileRef   : fileId,
-      name      : name,
-      dateCreate: dateCreate,
-      dateEff   : dateEff,
-      expiry    : expiry
-    });
-    // Attempt async save
-    await newDoc.save();
-    return res.status(CREATED).send({
-      success : true,
-      message : `Created new Document ${name}`,
-      data    : newDoc
-    });
-  } catch (err) {
-    return res.status(INTERNAL_SERVER_ERROR).send({
-      success : false,
-      message : `Could not create Document ${name}`,
-      error   : err
+// Note: parameter 'next' is required for catchAsync
+const createDocument = catchAsync(async (req, res, next) => {
+  // Get the current value of fileRef (may be null if a new file was uploaded)
+  const { name, fileRef } = req.body;
+
+  // Throw an error if no existing fileRef or new File data were provided
+  if (!fileRef && (!Array.isArray(req.files) || req.files.length == 0)) {
+    throw new CustomError({
+      message: `Error creating Document \"${name}\": must provide a valid FileRef ObjectID or new File data`,
+      statusCode: BAD_REQUEST,
+      isOperational: true
     });
   }
-};
+
+  // If a new File was uploaded, try to save it (already processed by Multer at this point)
+  let id;
+  if (req.files?.length > 0) {
+    const { filename, originalname, path } = req.files[0];
+    const uploadedFile = new FileRef({
+      name: originalname,
+      path: syspath.resolve(path),
+      uniquename: filename
+    });
+    await uploadedFile.save();
+    id = uploadedFile._id;
+  }
+
+  // Create the Document: if a new FileRef was created, use its ObjectID as our fileRef
+  const doc = new Document({ ...req.body, fileRef: fileRef || id });
+  await doc.save();
+  return res.status(CREATED).send({
+    success: true,
+    message: `Successfully created Document \"${doc.name}\"`,
+    data: doc
+  });
+});
 
 /**
  * 

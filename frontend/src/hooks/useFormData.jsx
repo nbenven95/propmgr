@@ -133,8 +133,6 @@ export default function useFormData(fields) {
         /* Note: this requires that you use {headers: { 'Content-Type': 'multipart/form-data' }}
            in your POST request so axios knows how to construct (I think? TODO: look into this) */
         value.forEach(file => payload.append('files', file));
-        /* Multer does not recognize this notation, don't bother with it */
-        //value.forEach((file, i) => payload.append(`files[${i}]`, file));
       } else if (value !== undefined && value !== null) {
         /* Else, append the value if non-empty (will always
            be non-empty at this point if it is required) */
@@ -174,8 +172,15 @@ export default function useFormData(fields) {
       // Reset submission state on success or failure
       setSubmitting(false);
     }
+
+    // TODO: refactor this to just return res.data so we can access the response message and not just the resource
     // Return response data; if undefined/null and no error was thrown already, throw one now
+    /*
     return res?.data?.data?? (() => {
+      throw new Error(`${type.toUpperCase()} request received null/undefined response`)
+    })();
+    */
+    return res?.data?? (() => {
       throw new Error(`${type.toUpperCase()} request received null/undefined response`)
     })();
   });

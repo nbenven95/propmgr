@@ -1,6 +1,8 @@
 // TODO: rename this file to helpers.js
 import axios from 'axios';
 
+// TODO: write an async wrapper function similar to backend to cut down on try/catch boilerplate
+
 /**
  * 
  * @param {*} err 
@@ -10,6 +12,12 @@ export const getErrorMsg = (err) => {
   return err.response?.data?.message || err.message || err.name || err.code;
 };
 
+/**
+ * 
+ * @param {*} name 
+ * @param {*} count 
+ * @returns 
+ */
 export const plural = (name, count) => `${name}${count > 1 ? 's' : ''}`;
 
 /**
