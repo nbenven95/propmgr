@@ -46,7 +46,7 @@ const DocCard = ({
         />
       )}
 
-      {/* Display Document data fields */}
+      {/* Display Document data */}
       <Flex
         direction='column'
         align='start'

@@ -8,13 +8,11 @@ import useFetch from '../../hooks/useFetch';
 import useNotify from '../../hooks/useNotify';
 import useFormData from '../../hooks/useFormData';
 import { getErrorMsg, plural } from '../../util/util';
-import { data } from 'react-router-dom';
-import { date } from 'joi';
 
 // TODO: move to centralized location 
-const baseUrl   = 'http://localhost:5000';
-const filesApi  = `${baseUrl}/api/files`;
-const infoApi   = `${baseUrl}/api/info`;
+const baseUrl   = 'http://localhost:5000/api';
+const filesApi  = `${baseUrl}/files`;
+const infoApi   = `${baseUrl}/info`;
 const fileExtApi = `${infoApi}/allowed-file-ext`;
 
 // TODO: refactor file staging state and logic to Dropzone

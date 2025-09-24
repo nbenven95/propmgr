@@ -1,12 +1,6 @@
 import {
   Box,
   Button,
-  Drawer,
-  DrawerBody,
-  DrawerCloseButton,
-  DrawerContent,
-  DrawerHeader,
-  DrawerOverlay,
   Checkbox,
   Input,
   Select,
@@ -16,7 +10,6 @@ import {
   Flex,
   Heading,
   Tooltip,
-  HStack,
   Text
 } from '@chakra-ui/react';
 

@@ -80,7 +80,8 @@ export default function useBulkMode() {
     // Reset bulk mode on success
     setBulkMode({ enabled: false, selected: [] });
     // Return the deleted items (assumes deleted item is passed via `data` field in the response)
-    return responses.map(res => res.data.data);
+    //return responses.map(res => res.data.data);
+    return responses.map(res => res.data);
     /*
     return responses.map(res => {
       return res.status === 'fulfilled'

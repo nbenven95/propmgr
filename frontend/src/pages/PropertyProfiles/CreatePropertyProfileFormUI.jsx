@@ -10,7 +10,7 @@ const CreatePropertyProfileFormUI = ({
   useDefaultDateOfAcq,
   dateAcq,
   setDateAcq,
-  apn, // TODO: look into APIs for finding the APN automatically 
+  apn,
   setApn,
   address,
   setAddress,

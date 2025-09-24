@@ -1,21 +1,34 @@
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
 
-import Document from '@models/document.model.js'
-import InsurancePolicy from '@models/insurancePolicy.model.js'
-import OpSys from '@models/opSys.model.js'
+import Document from '@models/document.model.js';
+import InsurancePolicy from '@models/insurancePolicy.model.js';
+import OpSys from '@models/opSys.model.js';
 
-import { addressSchema } from '@models/embedded/address.model.js'
-import { geoCodeSchema } from '@models/embedded/geoCode.model.js'
-import { noteSchema } from '@models/embedded/note.model.js'
-import { phoneNumberSchema } from '@models/embedded/phoneNumber.model.js'
-import { wastePickupSchedSchema } from '@models/embedded/wastePickupSched.model.js'
+import { addressSchema } from '@models/embedded/address.model.js';
+import { geoCodeSchema } from '@models/embedded/geoCode.model.js';
+import { noteSchema } from '@models/embedded/note.model.js';
+import { phoneNumberSchema } from '@models/embedded/phoneNumber.model.js';
+import { wastePickupSchedSchema } from '@models/embedded/wastePickupSched.model.js';
 
-import DocTypeEnum from '@config/DocTypes.js'
+import DocTypeEnum from '@config/DocTypes.js';
 
 const { BLUEPRINT, CONTRACT, DEED, FLOORPLAN, LEASE, LIEN, SCHEMATIC, TEXT, WORKORDER } = DocTypeEnum;
 const allowedDocTypes = [BLUEPRINT, CONTRACT, DEED, FLOORPLAN, LEASE, LIEN, SCHEMATIC, TEXT, WORKORDER];
 
-// TODO: add field for garbage pickup schedule; should include day(s) of the week, time, and frequency (e.g., weekly, biweekly, etc.) 
+const MAX_NOTES = 32;
+
+/* Note: 
+The validator runs when the document is validated (typically on save or on explicit validate()). It will prevent you from saving a parent
+document if notes.length exceeds MAX_NOTES, but it does not block you from pushing more items in memory by itself.
+Details:
+- The custom validator runs as part of Mongoose document validation.
+- On doc.save() (or doc.validate()), Mongoose will validate the notes array and fail if notes.length > MAX_NOTES.
+- If you push more items to notes in memory and do not call save (or validate), nothing is prevented yet.
+- If you perform an update operation (e.g., findOneAndUpdate, updateOne) and want validation to run, you must enable runValidators: true on that operation.
+- Example for an update:
+  Model.updateOne({ _id: id }, { $set: { notes: newNotes } }, { runValidators: true })
+So, to enforce the limit consistently, ensure you save/validate the document after mutations, and enable runValidators for any update operations you use.
+*/
 
 /**
  * Schema encapsulating property profile information
@@ -94,8 +107,7 @@ const propertyProfileSchema = new mongoose.Schema({
     default : [],
     validate: {
       validator: function(notes) {
-        let maxNotes = 32; // FIXME: magic number; how to pass from init code in server.js? 
-        return Array.isArray(notes) && notes.length < maxNotes + 1
+        return Array.isArray(notes) && notes.length < MAX_NOTES + 1
       },
       message: props => `${props.value}`
     }
@@ -265,7 +277,7 @@ const preSaveValidator = async function(next) { // Note: need to use a non-arrow
 
   } catch (err) {
     console.error(
-      `Error in ${this.type} pre-save validation: ${err.message?? err.name?? err.code?? '<no internal error message provided'}`
+      `Error in ${this.type} pre-save validation: ${err.message?? err.name?? err.code?? '<no internal error message provided>'}`
     );
     next(err);
   }
@@ -285,4 +297,4 @@ const Subunit = new mongoose.model('Subunit', subunitSchema);
 const PropertyProfile = new mongoose.model('PropertyProfile', propertyProfileSchema);
 
 export default PropertyProfile;
-export { Subunit }
+export { Subunit };

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Box, Text, VStack } from '@chakra-ui/react'
 
-import AddressCard from './AddressCard'
+import AddressCard from './cards/AddressCard'
 
 const ContactInfoCard = ({
   first,

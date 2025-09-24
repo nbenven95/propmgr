@@ -22,16 +22,16 @@ const DocsPageUI = ({
   // Destructure fetched resources
   const { docs } = fetched;
   
-  {/* Display loading indicator while fetching */}
+  // Display loading indicator while fetching resources
   if (loading.docs) {
     return (
-      <Flex justify="center" align="center" minH="100vh">
-        <Text fontSize="xl">Loading Documents. . .</Text>
+      <Flex justify='center' align='center' minH='100vh'>
+        <Text fontSize='xl'>Loading Documents. . .</Text>
       </Flex>
     );
   }
 
-  {/* Display fetched Documents in a stack */}
+  // Display fetched Documents
   return (
     <Box maxW='100vw' mx='auto' p={4}>
       {/* Bulk delete controls, button link to CreateDocForm via drawer */}
@@ -46,12 +46,12 @@ const DocsPageUI = ({
       {/* Drawer menu */}
       {drawerMenu}
       
-      {/* Main Documents view */}
+      {/* Display Documents */}
       {docs.length === 0 ? (
         <Text>No Documents Found</Text>
       ) : (
         <Stack spacing={4}>
-          {docs.map((doc) => (
+          {docs.map(doc => (
             <DocCard
               doc={doc}
               bulkMode={bulkMode}

@@ -33,7 +33,6 @@ export default function useDrawer() {
     onClose();
   }, [onClose]);
 
-  // TODO: not sure if I'll need to use references with useEffect to update their values
   const DrawerMenu = ({
     isOpen,
     drawerContent,

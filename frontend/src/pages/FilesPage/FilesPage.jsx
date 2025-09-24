@@ -11,8 +11,8 @@ import useFetch from '../../hooks/useFetch';
 import { getErrorMsg, plural, onDeleteSingle, onDownload } from '../../util/util';
 
 // TODO: move to centralized location 
-const baseUrl   = 'http://localhost:5000';
-const filesApi  = `${baseUrl}/api/files`;
+const baseUrl   = 'http://localhost:5000/api';
+const filesApi  = `${baseUrl}/files`;
 
 /**
  * 
@@ -89,12 +89,12 @@ const FilesPage = () => {
   const handleBulkDelete = async () => {
     try {
       // Attempt bulk delete
-      const deletedFiles = await onBulkDelete(filesApi);
-      const numDeleted = deletedFiles.length;
+      const res = await onBulkDelete(filesApi);
+      const numDel = res.data.length?? 0;
       notify({
         status: 'success',
-        title: `${plural('File', numDeleted)} Deleted`,
-        desc: `Successfully deleted (${numDeleted}) ${plural('File', numDeleted)}`
+        title: `${plural('File', numDel)} Deleted`,
+        desc: `Successfully deleted (${numDel}) ${plural('File', numDel)}`
       });
     } catch (err) {
       // Notify user if bulk delete fails

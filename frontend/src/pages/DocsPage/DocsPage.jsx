@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useToast, Text } from '@chakra-ui/react';
+import { Text } from '@chakra-ui/react';
 
 import DocsPageUI from './DocsPageUI';
 import CreateDocForm from './CreateDocForm';
@@ -12,9 +12,9 @@ import useFetch from '../../hooks/useFetch';
 import { getErrorMsg, plural, onDeleteSingle, onDownload } from '../../util/util';
 
 // TODO: move to centralized location 
-const baseUrl     = 'http://localhost:5000';
-const filesApi    = `${baseUrl}/api/files`;
-const docsApi     = `${baseUrl}/api/docs`;
+const baseUrl     = 'http://localhost:5000/api';
+const filesApi    = `${baseUrl}/files`;
+const docsApi     = `${baseUrl}/docs`;
 
 const DocsPage = () => {
 
@@ -39,8 +39,9 @@ const DocsPage = () => {
     // On failure to fetch, log to console
     if (errs.length > 0) {
       const numErrors = errs.length;
-      const msg = `Failed to fetch (${numErrors}) ${plural('resource', numErrors)}: ${errs.join(', ')}`;
-      console.error(msg);
+      console.error(
+        `Failed to fetch (${numErrors}) ${plural('resource', numErrors)}: ${errs.join(', ')}`
+      );
     }
   };
   
@@ -53,11 +54,11 @@ const DocsPage = () => {
 
   /**
    * 
-   * @param {*} id 
+   * @param {*} doc 
    */
   const handleDelete = async (doc) => {
-    const { name, _id } = doc;
     try {
+      const { name, _id } = doc;
       // Try to delete the Document, notify user on success
       await onDeleteSingle(`${docsApi}/${_id}`);
       notify({
@@ -73,7 +74,7 @@ const DocsPage = () => {
         desc: getErrorMsg(err)
       });
     }
-    // Refresh fetched Documents on successful delete (handle errors separately)
+    // Refresh fetched Documents on successful delete
     await handleFetch(['docs']);
   };
 
@@ -83,18 +84,20 @@ const DocsPage = () => {
   const handleBulkDelete = async () => {
     try {
       // Attempt bulk delete
-      const deletedDocs = await onBulkDelete(docsApi);
-      const numDeleted = deletedDocs.length;
+      const res = await onBulkDelete(docsApi);
+      const numDel = res.data.length;
+      const label = plural('Document', numDel);
       notify({
         status: 'success',
-        title: `${plural('Document', numDeleted)} Deleted`,
-        desc: `Successfully deleted (${numDeleted}) ${plural('Document', numDeleted)}`
+        title: `${label} Deleted`,
+        desc: `Successfully deleted (${numDel}) ${label}`
       });
     } catch (err) {
       notify({
         status: 'error',
         title: 'Error Deleting Documents',
-        desc: getErrorMsg(err) });
+        desc: getErrorMsg(err)
+      });
     }
     // Refresh fetched Documents on successful bulk delete
     await handleFetch(['docs']);
@@ -142,7 +145,7 @@ const DocsPage = () => {
   /* Handle opening drawer and rendering EditDocForm */
   const handleOpenEditForm = (doc) => {
     onDrawerOpen(
-      <Text>Edit {doc.name}</Text>,
+      <Text>Edit {doc?.name?? 'Document'}</Text>,
       <EditDocForm doc={doc} onUpdate={() => {
         handleFetch(['docs']);
         onDrawerClose();

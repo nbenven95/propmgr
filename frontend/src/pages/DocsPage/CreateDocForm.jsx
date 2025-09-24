@@ -11,10 +11,10 @@ import useFormData from '../../hooks/useFormData.jsx';
 import { getErrorMsg, truncateExt } from '../../util/util.js';
 
 // TODO: move to centralized location 
-const baseUrl   = 'http://localhost:5000';
-const filesApi  = `${baseUrl}/api/files`;
-const docsApi   = `${baseUrl}/api/docs`;
-const infoApi   = `${baseUrl}/api/info`;
+const baseUrl   = 'http://localhost:5000/api';
+const filesApi  = `${baseUrl}/files`;
+const docsApi   = `${baseUrl}/docs`;
+const infoApi   = `${baseUrl}/info`;
 const fileExtApi = `${infoApi}/allowed-file-ext`;
 const docTypesApi = `${infoApi}/document-types`;
 
@@ -71,12 +71,12 @@ const CreateDocForm = ({ onUpdate }) => {
     }
   };
 
-  // Handle side-effects
+  // Handle side effects
   useEffect(() => {
     handleFetch(['allowedFileExt', 'docTypes', 'files']);
   }, []); // No dependencies; only called on initial page render
 
-  // Handle side-effects (useDefaultName toggled or staged file change)
+  // Handle side effects (useDefaultName toggled or staged file change)
   // TODO: consider simplifying (e.g., just disable the input form when toggled on)
   useEffect(() => {
     const { stagedFiles } = formData;
@@ -141,7 +141,7 @@ const CreateDocForm = ({ onUpdate }) => {
       // Only need to update target.value with the new local date
       target: { ...e.target, value: dateLocal.toISOString() }
     });
-  }
+  };
 
   /* Handle opening drawer and rendering the UploadForm */
   const handleOpenForm = () => {
