@@ -1,9 +1,8 @@
 import React from 'react';
-import { Box, Flex, Stack, Text } from '@chakra-ui/react';
+import { Box, Flex, Heading, Spacer, Stack, Text } from '@chakra-ui/react';
 
-import UIHeader from '../../components/UIHeader';
 import CreateNewItemBtn from '../../components/buttons/CreateNewItemBtn';
-import PropertyProfileCard from '../../components/PropertyProfileCard';
+import PropertyProfileCard from '../../components/cards/PropertyProfileCard';
 
 
 const PropertyProfilesPageUI = ({

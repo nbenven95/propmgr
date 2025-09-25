@@ -272,6 +272,9 @@ const preSaveValidator = async function(next) { // Note: need to use a non-arrow
       });
     }
 
+    // TODO: make request to OSM geocoding API on creation or update to address field, set geocode field
+    // TODO: set up contingencies for failed geocode API requests (e.g., when a property is updated, if it does not have a geocode, attempt the API request again)
+
     // Pre-save validation passed, continue to save
     return next();
 

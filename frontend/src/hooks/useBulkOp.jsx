@@ -57,30 +57,30 @@ export default function useBulkOp({
     // If bulk mode disabled or nothing selected, return empty array
     if (!enabled || selected?.length === 0) return [];
 
-    /*
     const responses = await Promise.all(
       bulk.selected.map(id => fn(id))
     );
-    */
 
+    // TODO: test with Promise.allSettled
+    /*
     const responses = await Promise.allSettled(
       bulk.selected.map(id => fn(id))
     );
+    */
 
     // Disable bulk mode and clear selected items
     setBulk(prev => ({ ...prev, enabled: false, selected: [] }));
 
-    /*
     return responses.map(res => res.data);
-    */
 
     // Parse responses array to differentiate successful and failed requests
+    /*
     return responses.map(res => {
       return res.status === 'fulfilled'
         ? { success: true, data: res.value }
         : { success: false, error: res.reasons };
     });
-    
+    */
   }, []);
 
   const BulkSelector = ({
@@ -91,7 +91,7 @@ export default function useBulkOp({
       bulk.enabled && <Checkbox // Only display the checkbox if bulk mode is enabled
         position='absolute'
         top={2}
-        left={2}
+        right={2}
         isChecked={bulk.selected.includes(id)}
         onChange={() => onToggleSelect(id)}
       />

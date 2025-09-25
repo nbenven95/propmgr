@@ -4,32 +4,33 @@ import axios from 'axios';
 // TODO: write an async wrapper function similar to backend to cut down on try/catch boilerplate
 
 /**
+ * Given a whitespace-delimited string, returns a
+ * copy of the string with each word capitalized.
+ *  
+ * @param {*} str 
+ * @returns 
+ */
+export const capitalize = (str) => {
+  // Split input string on one or more whitespace
+  return String(str).split(/\s+/).map(token => {
+    if (token.length === 0) return '';
+    // Capitalize the first character of each token if it is a letter
+    const firstChar = token.charAt(0);
+    if (/[a-z]/.test(firstChar)) {
+      return `${firstChar.toUpperCase()}${token.slice(1)} `;
+    }
+    // First character not a letter (or already capitalized)
+    return token;
+  }).join(' ');
+};
+
+/**
  * 
  * @param {*} err 
  * @returns 
  */
 export const getErrorMsg = (err) => {
   return err.response?.data?.message || err.message || err.name || err.code;
-};
-
-/**
- * 
- * @param {*} name 
- * @param {*} count 
- * @returns 
- */
-export const plural = (name, count) => `${name}${count > 1 ? 's' : ''}`;
-
-/**
- * Truncate the file extension from the given filename
- * 
- * @param {} filename 
- * @returns 
- */
-export const truncateExt = (filename) => {
-  const lastDotIndex = filename?.lastIndexOf('.');
-  if (lastDotIndex === -1) return filename; // No extension
-  return filename?.substring(0, lastDotIndex);
 };
 
 /**
@@ -51,7 +52,7 @@ export const getLocalTimestamp = () => {
   const seconds = String(now.getSeconds()).padStart(2, '0');
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
   //return `${year}-${month}-${day}T00:00:00`;
-};
+}; // TODO: deprecate? 
 
 /**
  * Note: this assumes that the DELETE endpoint controller on the backend
@@ -96,4 +97,24 @@ export const onDownload = async (uri, fileName) => {
   // Remove the temp blob link from the DOM
   document.body.removeChild(blobLink);
   window.URL.revokeObjectURL(blobUrl);
+};
+
+/**
+ * 
+ * @param {*} name 
+ * @param {*} count 
+ * @returns 
+ */
+export const plural = (name, count) => `${name}${count > 1 ? 's' : ''}`;
+
+/**
+ * Truncate the file extension from the given filename
+ * 
+ * @param {} filename 
+ * @returns 
+ */
+export const truncateExt = (filename) => {
+  const lastDotIndex = filename?.lastIndexOf('.');
+  if (lastDotIndex === -1) return filename; // No extension
+  return filename?.substring(0, lastDotIndex);
 };

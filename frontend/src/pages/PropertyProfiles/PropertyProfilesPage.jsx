@@ -11,7 +11,7 @@ import useBulkOp from '../../hooks/useBulkOp';
 import useDrawer from '../../hooks/useDrawer';
 import useNotify from '../../hooks/useNotify';
 import useFetch from '../../hooks/useFetch';
-import { getErrorMsg, plural, onDeleteSingle } from '../../util/util';
+import { getErrorMsg, plural, onDeleteSingle } from '../../util/util'; // TODO: rename to 'helpers'
 
 import EndpointEnum from '../../util/EndpointEnum.js';
 
@@ -24,7 +24,7 @@ const PropertyProfilesPage = () => {
 
   const { onBulkOp, BulkSelector, BulkController } = useBulkOp({
     name: 'Delete',
-    fn: async (id) => axios.delete(`${PROPERTIES_API}/${id}`) // TODO: replace with onDeleteSingle after testing (need to account for different output format)
+    fn: async (id) => axios.delete(`${PROPERTIES_API}/${id}`) // Note: can't use onDeleteSingle; this returns the deleted item (not a full response object)
   });
 
   const { onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();

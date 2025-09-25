@@ -1,5 +1,5 @@
-import React from 'react'
-import { Box, Stack, Text } from '@chakra-ui/react'
+import { Box, Stack, Text } from '@chakra-ui/react';
+import { capitalize } from '../../util/util.js';
 
 /**
  * 
@@ -9,19 +9,21 @@ import { Box, Stack, Text } from '@chakra-ui/react'
 const AddressCard = ({
   address
 }) => {
+  // TODO: logic for formatting abbreviations like 'st', 'ave', 'rd', etc. (e.g., append a period)
+  const { streetNumber, streetName, city, state, postalCode, country } = address;
   return (
-    <Box border='1px solid' borderColor='gray.200' borderRadius='md' p={4} maxW='400px'>
-      <Stack spacing={2}>
+    <Box border='1px solid' borderColor='gray.200' borderRadius='md' p={4} maxW='400px' >
+      <Stack spacing={2} >
         {/* Combine street number and name */}
-        <Text fontWeight="bold">
-          {address.streetNumber} {address.streetName}
+        <Text fontWeight="bold" >
+          {streetNumber} {capitalize(streetName)} 
         </Text>
         {/* City, State, Postal Code */}
-        <Text>
-          {address.city}, {address.state} {address.postalCode}
+        <Text >
+          {capitalize(city)}, {capitalize(state)} {postalCode}
         </Text>
         {/* Country */}
-        <Text>{address.country}</Text>
+        <Text >{capitalize(country)}</Text>
       </Stack>
     </Box>
   );
