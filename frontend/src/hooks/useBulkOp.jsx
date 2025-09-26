@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, Checkbox, Flex } from '@chakra-ui/react';
+import { Box, Button, Checkbox, Flex } from '@chakra-ui/react';
 
 export default function useBulkOp({
   name, // Name of the bulk operation (e.g., delete, select, etc.)
@@ -86,15 +86,18 @@ export default function useBulkOp({
   const BulkSelector = ({
     id // The ObjectID of the item to select
   }) => {
+    const padSize = bulk.enabled ? 2 : 0;
     return (
-      // TODO: may need to adjust positioning parameters 
-      bulk.enabled && <Checkbox // Only display the checkbox if bulk mode is enabled
-        position='absolute'
-        top={2}
-        right={2}
-        isChecked={bulk.selected.includes(id)}
-        onChange={() => onToggleSelect(id)}
-      />
+      // Use Box as outer container so we can dynamically adjust top/bottom margin when bulk mode enabled to shift content down
+      <Box width='full' mt={padSize} mb={padSize} >
+        {bulk.enabled && <Checkbox // Only display the checkbox if bulk mode is enabled
+          position='absolute'
+          top={padSize + 1}
+          right={2}
+          isChecked={bulk.selected.includes(id)}
+          onChange={() => onToggleSelect(id)}
+        />}
+      </Box>
     );
   }
 
@@ -107,7 +110,7 @@ export default function useBulkOp({
         {enabled ? (
           // Controls to render if bulkMode is enabled
           <>
-            <Button size='sm' colorScheme='red' onClick={onToggleMode} >
+            <Button size='sm' colorScheme='red' mr={2} onClick={onToggleMode} >
               Cancel Bulk {name?? 'Operation'}
             </Button>
             <Button
@@ -131,9 +134,10 @@ export default function useBulkOp({
     );
   };
 
+  // TODO: add confirmation prompt
+
   return {
     onBulkOp,
-    // TODO: how to dynamically render these on items?
     BulkSelector: (props) => (
       <BulkSelector
         {...props}

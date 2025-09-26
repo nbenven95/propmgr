@@ -54,8 +54,8 @@ const CreateDocForm = ({ onUpdate }) => {
   // TODO: check if the date refs are actually being used 
   const refs = {
     name: useRef(),
-    useDefaultName: useRef(),
-    stagedFiles: useRef(formData.stagedFiles)
+    stagedFiles: useRef(formData.stagedFiles),
+    useDefaultName: useRef()
   };
 
   /**
@@ -101,7 +101,6 @@ const CreateDocForm = ({ onUpdate }) => {
     }
     setFormData(prev => ({ ...prev, name: nameUpdate }));
   }, [formState.useDefaultName, formData.stagedFiles]);
-
 
   /**
    * 

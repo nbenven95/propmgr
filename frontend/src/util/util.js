@@ -42,7 +42,7 @@ export const getErrorMsg = (err) => {
  * 
  * @returns The local timestamp as a String in the format 'yyyy-MM-ddThh:mm:ss'
  */
-export const getLocalTimestamp = () => {
+export const getLocalTimestamp = () => { // TODO: deprecate?
   const now     = new Date();
   const year    = now.getFullYear();
   const month   = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed, need to add 1
@@ -52,7 +52,32 @@ export const getLocalTimestamp = () => {
   const seconds = String(now.getSeconds()).padStart(2, '0');
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
   //return `${year}-${month}-${day}T00:00:00`;
-}; // TODO: deprecate? 
+};
+
+/**
+ * 
+ * @param {*} url 
+ * @param {*} timeout 
+ * @returns 
+ */
+export const isServerReachable = async (url, timeout = 5000) => {
+  try {
+    // Resolve Promise when as soon as fetch or timeout finishes (success or failure)
+    const response = await Promise.race([ // Note: Promise.race resolves as soon as the first Promise in this array resolves or rejects
+      fetch(url), 
+      new Promise((resolve, reject) => {
+        // Reject Promise if timeout is reached (throw error so we can catch/handle this condition separately)
+        setTimeout(() => reject(new Error(`Service Unreachable: ${url}`)), timeout)
+      })
+    ]);
+    // Timeout not exceeded: return response status (may still be false)
+    return response.ok;
+  } catch (err) {
+    // Timeout exceeded: server unreachable
+    console.error(err);
+    return false;
+  }
+};
 
 /**
  * Note: this assumes that the DELETE endpoint controller on the backend
@@ -70,10 +95,12 @@ export const getLocalTimestamp = () => {
  * @throws        Error if the API request fails
  * @returns       The deleted item
  */
+// TODO: consider refactoring delete logic into a hook that also returns a delete button component (possibly do this with edit and create?)
+// TODO: or, just deprecate this (pretty redundant)
 export const onDeleteSingle = async (uri) => {
   const res         = await axios.delete(uri);
   const httpRes     = res.data;
-  const deletedItem = httpRes.data; // TODO: how to handle cases where this is null/undefined? 
+  const deletedItem = httpRes.data;
   return deletedItem;
 };
 
@@ -82,6 +109,7 @@ export const onDeleteSingle = async (uri) => {
  * @param {*} uri 
  * @param {*} fileName 
  */
+// TODO: consider refactoring this into a hook that returns a download button component
 export const onDownload = async (uri, fileName) => {
   // Attempt API request, expect binary object (blob) response type
   const res = await axios.get(uri, { responseType: 'blob' });

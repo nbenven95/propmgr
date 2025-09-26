@@ -1,11 +1,10 @@
-import { Box, Button, Flex, HStack, IconButton, Text } from '@chakra-ui/react';
+import { Box, Button, Flex, HStack, IconButton, Spacer, Text, Tooltip } from '@chakra-ui/react';
 
 import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
 
-import { Map } from '@vis.gl/react-maplibre';
-
 import AddressCard from './AddressCard';
 import AgeCard from './AgeCard';
+import MapCard from './MapCard';
 
 // TODO: refactor to map card, look into more style sheet and styling options (e.g., put a box around the property)
 // TODO: set up geocoding support on backend (will probably need to access OSM geocoding API)
@@ -13,7 +12,6 @@ import AgeCard from './AgeCard';
 
 // TODO: look into how to properly use the public instance of openfreemap (local hosting takes 300-500 GB): https://github.com/hyperknot/openfreemap
 // TODO: example project using react-maplibre and OFM: https://github.com/w3cj/openfreemap-examples/tree/main/react-example
-const mapStyle = 'https://tiles.openfreemap.org/styles/liberty';
 
 const PropertyProfileCard =({
   property,
@@ -22,8 +20,24 @@ const PropertyProfileCard =({
   BulkSelector
 }) => {
   // De-structure fetched data
-  const { _id, updatedAt, name, geoCode, address, age, documents } = property;
-  const [lat, lon] = geoCode?.coordinates;
+  const {
+    _id,
+    updatedAt,
+    name,
+    address,
+    geoCode,
+    apn,
+    phone,
+    dateBuilt,
+    dateAcq,
+    age,
+    wastePickupSched,
+    notes,
+    insurancePolicy,
+    opSystems,
+    documents,
+    subunits
+  } = property;
 
   return (
     <Box
@@ -34,40 +48,66 @@ const PropertyProfileCard =({
       shadow='sm'
       p={4}
     >
-      {/* Display Property Profile data */}
-      <Flex
-        direction='column'
-        align='start'
-      >  
+      {/* Display Property Profile data (TODO: replace Flex with Stack components?) */}
+      <Flex direction='column' align='start' >  
         {/* Render bulk selector checkbox if one was provided */}
         {BulkSelector && <BulkSelector id={_id} />}
 
-        {/* Property name */}
-        <Text fontWeight='bold'>{name}</Text>
+        <HStack width='full' justify='space-between' align='center' mb={2} >
+          {/* Property name */}
+          <Text fontWeight='bold' fontSize='2xl'>{name}</Text>
+          {/* Date of last update */}
+          {updatedAt && <HStack >
+            <Text fontWeight='bold' > Last Updated: </Text>
+            <Text >{new Date(updatedAt).toDateString()}</Text>
+          </HStack>}
+        </HStack>
 
         {/* GPS Map View */}
-        {geoCode && <Map 
-          initialViewState={{
-            longitude: lon,
-            latitude: lat,
-            zoom: 15
-          }}
-          style={{ width: 200, height: 200 }}
-          mapStyle={mapStyle}
-          attributionControl={false}
-        />}
+        {geoCode && <>
+          <MapCard geoCode={geoCode} />
+          <Spacer padding={1} />
+        </>}
 
         {/* Property address */}
-        {address && <AddressCard address={address} />}
+        {address && <>
+          <AddressCard address={address} />
+          <Spacer padding={1} />
+        </>}
 
-        {/* Property age */}
-        {age && <AgeCard age={property.age} />}
+        {/* APN */}
+        {apn && <HStack spacing={2} >
+          <Tooltip label={'Assesor Parcel Number (Tax ID Number'} >
+            <Text fontWeight='bold' >APN: </Text>
+            <Text>{apn}</Text>
+          </Tooltip>
+          <Spacer padding={1} />
+        </HStack>}
+
+        {/* Date built */}
+
+        {/* Date of acquisition */}
+
+        {/* Age */}
+        {age && <>
+           <AgeCard age={age} />
+           <Spacer padding={1} />
+        </>}
+
+        {/* TODO Insurance policy */}
+
+        {/* TODO  Operational Systems */}
 
         {/* Property Profile attached Documents */}
-        {documents && <HStack spacing={2} >
-          <Text fontWeight='bold' >Attached Documents: </Text>
-          <Text >{documents.length}</Text>
-        </HStack>}
+        {documents && <>
+          <HStack spacing={2} >
+            <Text fontWeight='bold' >Attached Documents: </Text>
+            <Text >{documents.length}</Text>
+          </HStack>
+          <Spacer padding={1} />
+        </>}
+
+        {/* TODO Subunits */}
 
         {/* Edit/Delete controls */}
         <Flex width='full' justify='space-between' align='center' mt={2} >
@@ -89,9 +129,7 @@ const PropertyProfileCard =({
             onClick={() => onClickDelete(property)}
           />  
         </Flex>
-
-        {/* Display time of last update */}
-        {updatedAt && <Text>Last Updated: {new Date(updatedAt).toDateString()}</Text>}
+        <Spacer padding={1} />
       </Flex>
 
     </Box>

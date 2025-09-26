@@ -30,6 +30,8 @@ Details:
 So, to enforce the limit consistently, ensure you save/validate the document after mutations, and enable runValidators for any update operations you use.
 */
 
+// TODO: add logic/support for building inspections (talk to Lindsey/Stace about requirements)
+
 /**
  * Schema encapsulating property profile information
  */
@@ -51,7 +53,7 @@ const propertyProfileSchema = new mongoose.Schema({
   /**
    * Geocode corresponding to the property street address
    */
-  geoCode: { // TODO: set using react-maplibre geocoder on the frontend BEFORE the HTTP request is sent to the backend 
+  geoCode: {
     type    : geoCodeSchema, // Embedded schema; stores data directly in parent object
     required: false,
     validate: {
@@ -67,10 +69,14 @@ const propertyProfileSchema = new mongoose.Schema({
       message: props => `Invalid GeoCode: ${props.value}`
     }
   },
+
+  // TODO: bounding box for property (get from OSM API request)
+
   /**
    * Assessor's Parcel Number; AKA Property ID Number, Tax ID Number
    */
-  apn: { // TODO: look into viability of fetching via API request (e.g., try to auto-populate when user enters address) 
+  // TODO: fetch via API? 
+  apn: {
     type    : String,
     required: false
   },
@@ -81,6 +87,9 @@ const propertyProfileSchema = new mongoose.Schema({
     type    : phoneNumberSchema, // Embedded schema; stores data directly in parent object
     required: false
   },
+  /**
+   * Property date of construction
+   */
   dateBuilt: {
     type    : Date,
     required: false
@@ -222,6 +231,8 @@ const preSaveValidator = async function(next) { // Note: need to use a non-arrow
 
     // No changes: continue to save
     if (!insurancePolicyMod && !documentsMod && !opSystemsMod && !subunitsMod) return next();
+
+    // TODO: refactor to utilize error handling middleware (e.g., throw CustomError)
 
     // Ensure insurancePolicy (ObjectID) points to an existing InsurancePolicy
     if (insurancePolicyMod) {

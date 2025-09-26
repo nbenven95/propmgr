@@ -6,12 +6,11 @@ import PropertyProfilesPageUI from './PropertyProfilesPageUI';
 import CreatePropertyProfileForm from './CreatePropertyProfileForm';
 import EditPropertyProfileForm from './EditPropertyProfileForm';
 
-import useBulkMode from '../../hooks/useBulkMode';
 import useBulkOp from '../../hooks/useBulkOp';
 import useDrawer from '../../hooks/useDrawer';
 import useNotify from '../../hooks/useNotify';
 import useFetch from '../../hooks/useFetch';
-import { getErrorMsg, plural, onDeleteSingle } from '../../util/util'; // TODO: rename to 'helpers'
+import { getErrorMsg, onDeleteSingle, plural } from '../../util/util'; // TODO: rename to 'helpers'
 
 import EndpointEnum from '../../util/EndpointEnum.js';
 

@@ -5,6 +5,8 @@ import FileRef from '@models/fileRef.model.js'
 
 // TODO: implement some way to get list of all PropertyProfile, Subunit, OpSys, and InsurancePolicy documents that are associated with a given Document document
 
+// TODO: automated document expiration warnings
+
 const documentSchema = new mongoose.Schema({
   /**
    * Document name
