@@ -34,6 +34,22 @@ export const getErrorMsg = (err) => {
 };
 
 /**
+ * 
+ * @param {String} dateStr An ISO 8601 date string (UTC)
+ * @returns 
+ */
+export const formatDisplayDate = (dateStr) => {
+  if (!dateStr) return '';
+  // Use en-CA locale for 'yyyy-MM-dd' output formatting
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    year    : 'numeric',
+    month   : '2-digit',
+    day     : '2-digit'
+  }).format(new Date(dateStr));
+}; // TODO: look into alternatives to handle cases where Intl isn't supported by a browser
+
+/**
  * Get the current local date/time in ISOO 8601 format (yyyy-MM-ddThh:mm:ss).
  * 
  * Note: the difference between this and `new Date(Date.now()).toISOString()`

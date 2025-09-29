@@ -5,8 +5,7 @@ import App from './App.jsx'
 
 import './styles/global.css'
 
-const rootElement = document.getElementById('root');
-createRoot(rootElement).render(
+createRoot(document.getElementById('root'))?.render(
   <StrictMode>
     <ChakraProvider>
       <App />

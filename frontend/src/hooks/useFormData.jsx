@@ -10,13 +10,13 @@ export default function useFormData(fields) {
   // Can also build an efficient lookup table for required instead of relying on the original input
 
   const [formData, setFormData] = useState(Object.assign({}, ...fields.map(f => {
-    const [name, { init, required }] = Object.entries(f)[0];
+    const [name, { init, _ }] = Object.entries(f)[0];
     return { [name]: init };
   })));
 
   //const _required = Object.freeze(required);
   const required = Object.freeze(Object.assign({}, ...fields.map(f => {
-    const [name, { init, required }] = Object.entries(f)[0];
+    const [name, { _, required }] = Object.entries(f)[0];
     return { [name]: required };
   })));
 

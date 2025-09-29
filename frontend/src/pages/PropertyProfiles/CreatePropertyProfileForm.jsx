@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
 
 import CreatePropertyProfileFormUI from './CreatePropertyProfileFormUI';
@@ -7,11 +8,11 @@ import useNotify from '../../hooks/useNotify.jsx';
 import useDrawer from '../../hooks/useDrawer.jsx';
 import useFormData from '../../hooks/useFormData.jsx';
 
-import { getErrorMsg, truncateExt } from '../../util/util.js';
+import { getErrorMsg } from '../../util/util.js';
 
 import EndpointEnum from '../../util/EndpointEnum.js';
 
-const { DOCUMENTS_API } = EndpointEnum; // TODO: add POLICIES_API, OPSYS_API, SUBUNITS_API 
+const { DOCUMENTS_API, GEOCODING_API } = EndpointEnum; // TODO: add POLICIES_API, OPSYS_API, SUBUNITS_API 
 
 const CreatePropertyProfileForm = ({ onUpdate }) => {
 
@@ -22,11 +23,6 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
       are no Documents to choose from (or the user wishes to create a new one), the Create(+) link should still be functional when rendering
       the form, allowing the user to create new resources without leaving the main Property creation page. This functionality should
       be available for all resources that have non-embedded schema (i.e., they must be fetched separately): docs, opsys, subunits, policies
-
-      Make a new copy of useBulkMode (useBulkOp) that handles generic bulk operations, not just bulk delete. On init, the user should
-      provide the bulk operation that they wish to execute. The hook should also return a BulkController component (copy this functionality
-      from UIHeader). Bulk controller should somehow take a list of items (e.g., DocCard) and apply the bulk control components (i.e., the
-      selection checkbox).
   */
   const { formData, setFormData, submitting, onChange, onSubmit } = useFormData([
     { name            : { init: '', required: true } },
@@ -35,7 +31,7 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
     { dateAcq         : { init: '', required: false } }, // Date of Property acquisition (may be same as dateBuilt)
     { address         : { init: null, required: true } },
     { phone           : { init: null, required: false } },
-    { geoCode         : { init: null, required: false } }, // Latitude/longitude
+    { geoCode         : { init: [], required: false } }, // Longitude/latitude
     { wastePickupSched: { init: null, required: false } },
     { insurancePolicy : { init: null, required: false } }, // TODO: create endpoint
     { opSystems       : { init: [], required: false } }, // TODO: create endpoint
@@ -45,10 +41,10 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
   ]);
 
   const { loading, fetched, onFetchMany } = useFetch([
-    { properties: { init: [], url: PROPERTIES_API } }
+    { docs: { init: [], url: DOCUMENTS_API } }
   ]);
 
-  const { drawerContent, isOpen, onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();
+  //const { drawerContent, isOpen, onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();
 
   const notify = useNotify();
 
@@ -64,6 +60,15 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
 
   /**
    * 
+   * @param {String} field 
+   */
+  const toggleFormState = (field) => {
+    // TODO: how to ensure that 'field' is a boolean?
+    setFormState(prev => ({ ...prev, [field]: !prev.field }));
+  };
+
+  /**
+   * 
    * @param {Array} resources 
    */
   const handleFetch = async (resources) => {
@@ -75,10 +80,85 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
     }
   };
 
+  /**
+   * 
+   * @param {Event} e 
+   * @returns 
+   */
+  const handleChangeDate = (e) => {
+    // Get the raw value of the Date picker input ('yyyy-MM-dd')
+    const datePickerVal = e.target.value;
+    if (!datePickerVal) return;
+    // Get the date components
+    const [year, month, day] = datePickerVal.split('-');
+    // Create a new local date with time set to midnight
+    const dateLocal = new Date(year, month - 1, day);
+    // Pass a copy of e with updated target to onChange
+    onChange({ 
+      ...e,
+      // Only need to update target.value with the new local date
+      target: { ...e.target, value: dateLocal.toISOString() }
+    });
+  };
+
+  /**
+   * 
+   */
+  const handleSubmitForm = async () => {
+    try {
+      const res = await onSubmit(
+        `${PROPERTIES_API}/create`,
+        //{ headers: { 'Content-Type': 'multipart/form-data' } } // TODO: do we need these headers?
+      );
+      notify({ status: 'success', title: 'Property Profile Create', desc: res.message });
+    } catch (err) {
+      notify({ status: 'error', title: 'Error Creating Property Profile', desc: getErrorMsg(err) });
+    } finally {
+      if (onUpdate) onUpdate();
+    }
+  };
+
+  /**
+   * 
+   * @param {*} addr 
+   * @returns 
+   */
+  const handleFetchGeoCode = async (addr) => {
+    for (const value in Object.values(addr)) {
+      // If any of the fields are null, clear geocode + bounding box form data state and abort fetch
+      if (value === null || value === undefined) {
+        setFormState(prev => ({ ...prev, geoCode: [], /*boundingBox: []*/ }));
+        return;
+      }
+    }
+    const { streetNumber, streetName, city, state, postalCode, country } = address;
+    const query = `${streetNumber}, ${streetName}, ${city}, ${state}, ${postalCode}, ${country}`;
+    const params = { q: query, format: 'json', limit: 1, addressdetails: 1 };
+    const headers = { 'User-Agent': 'RisePropertyManager/1.0 (nbenveniste@riseservices.org)' }; // TODO: read user agent from env
+    try {
+      const response = await axios.get(GEOCODING_API, { params, headers });
+      console.log('Geocode fetch result:', response.data);
+      const { lat, lon, boundingbox } = response.data;
+      setFormData(prev => ({ ...prev, geoCode: [lon, lat], /*boundingBox: [...boundingbox]*/ })); // TODO: set boundingBox form state (need to update propertyprofile schema)
+    } catch (err) {
+      console.error('Error fetching geocode:', err);
+      // Clear form data state on failed API request
+      setFormState(prev => ({ ...prev, geoCode: [], /*boundingBox: []*/ }));
+    }
+  };
+
+
+  /*
   // Handle side effects of initial page render
   useEffect(() => {
-    handleFetch(['properties']);
+    handleFetch(['docs']);
   }, []);
+
+  // Handle effects of address field update
+  useEffect(() => {
+    handleFetchGeoCode(formData.address);
+  }, [formData.address]);
+
 
   // Handle side effects of toggling 'useDefaultDateAcq' on/off
   useEffect(() => {
@@ -103,118 +183,20 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
       return prev;
     });
   }, [formData.dateAcq]);
-
-  const handleChangeDate = (e) => {
-    // Get the raw value of the Date picker input ('yyyy-MM-dd')
-    const datePickerVal = e.target.value;
-    if (!datePickerVal) return;
-    // Get the date components
-    const [year, month, day] = datePickerVal.split('-');
-    // Create a new local date with time set to midnight
-    const dateLocal = new Date(year, month - 1, day);
-    // Pass a copy of e with updated target to onChange
-    onChange({ 
-      ...e,
-      // Only need to update target.value with the new local date
-      target: { ...e.target, value: dateLocal.toISOString() }
-    });
-  };
-
-  const handleToggleUseDefaultDateAcq = () => {
-    setFormState(prev => ({ ...prev, useDefaultDateAcq: !prev.useDefaultDateAcq }));
-  };
-
-  const handleSubmitForm = async () => {
-    try {
-      const res = await onSubmit(
-        `${PROPERTIES_API}/create`,
-        //{ headers: { 'Content-Type': 'multipart/form-data' } } // TODO: do we need these headers?
-      );
-      notify({ status: 'success', title: 'Property Profile Create', desc: res.message });
-    } catch (err) {
-      notify({ status: 'error', title: 'Error Creating Property Profile', desc: getErrorMsg(err) });
-    } finally {
-      if (onUpdate) onUpdate();
-    }
-  };
-
-  /**
-   * Handle form submission events.
-   * @param {*} e 
-   */
-  const handleSubmit = async (e) => {
-    // Validate mandatory fields
-    if (!name || !address) {
-      toastError('Validation Error', 'Please fill all required fields.');
-      return;
-    }
-    // Init form data
-    const formData = new FormData();
-
-    // Append data for mandatory fields
-    formData.append('name', name);
-    formData.append('address', address);
-
-    // Only append optional fields that have been filled out
-    if (apn) formData.append('apn', apn);
-    if (dateBuilt) formData.append('dateBuilt', dateBuilt);
-    if (dateAcq) formData.append('dateAcq', dateAcq);
-    if (phone) formData.append('phone', phone);
-    if (wastePickupSched) formData.append('wastePickupSched', wastePickupSched);
-    if (insurancePolicy) formData.append('insurancePolicy', insurancePolicy);
-    if (notes) formData.append('notes', notes);
-    if (opSystems) formData.append('opSystems', opSystems);
-    if (documents) formData.append('documents', documents);
-    if (subunits) formData.append('subunits', subunits);
-
-    try {
-      setSubmitting(true);
-      const res = await axios.post(api, formData); // TODO: set headers? 
-      // Request successful: fetch updated list of Property Profiles, close drawer
-      onUpdate();
-      toastSuccess(
-        'Property Profile Created',
-        `Successfully created Property Profile: ${res.data?.data?.name}`
-      );
-    } catch (err) {
-      console.error(err);
-      toastError('Error creating Property Profile', err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  */
 
   return (
     <CreatePropertyProfileFormUI
-      name={name}
-      setName={setName}
-      apn={apn}
-      setApn={setApn}
-      dateBuilt={dateBuilt}
-      dateBuiltRef={dateBuiltRef}
-      setDateBuilt={setDateBuilt}
-      toggleDefaultDate={toggleDefaultDate}
-      useDefaultDateOfAcq={useDefaultDateAcq}
-      dateAcq={dateAcq}
-      setDateAcq={setDateAcq}
-      address={address}
-      setAddress={setAddress}
-      phone={phone}
-      setPhone={setPhone}
-      wastePickupSched={wastePickupSched}
-      setWastePickupSched={setWastePickupSched}
-      insurancePolicy={insurancePolicy}
-      setInsurancePolicy={setInsurancePolicy}
-      notes={notes}
-      setNotes={setNotes}
-      opSystems={opSystems}
-      setOpSystems={setOpSystems}
-      documents={documents}
-      setDocuments={setDocuments}
-      subunits={subunits}
-      setSubunits={setSubunits}
+      refs={refs}
+      fetched={fetched}
+      loading={loading}
+      formData={formData}
+      formState={formState}
       submitting={submitting}
-      handleSubmit={handleSubmit}
+      onChangeField={onChange}
+      onChangeDate={handleChangeDate}
+      onSubmit={handleSubmitForm}
+      onToggleDefaultDate={() => toggleFormState('useDefaultDateAcq')}
     />
   )
 };
