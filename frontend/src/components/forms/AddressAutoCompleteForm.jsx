@@ -17,18 +17,19 @@ function AddressAutoCompleteForm ({
   bias = [],
   lang = 'en',
   limit = 5,
-  debounceMs = 400 // Time in milliseconds to wait before fetching more suggestions: number
+  debounceMs = 400, // Time in milliseconds to wait before fetching more suggestions: number
+  onSelect          // Callback to handle an address being selected
 }) {
   const [formState, setFormState] = useState({
-    query           : initQuery,
-    results         : [],
-    noResults       : false,
-    selectedAddr    : null,
-    highlightIndex : -1
+    query         : initQuery,
+    results       : [],
+    noResults     : false,
+    selectedAddr  : null,
+    highlightIndex: -1
   });
 
   const [loading, setLoading] = useState({
-    suggestedAddresses: false,
+    suggestedAddresses  : false,
     reverseGeocodeLookup: false
   });
 
@@ -38,7 +39,7 @@ function AddressAutoCompleteForm ({
     list: useRef(null)
   };
 
-  // TODO: not sure what this hook does
+  // TODO: I think this just handles what should happen if you click outside of the form (verify?)
   useOutsideClick({
     ref: refs.list,
     handler: () => setFormState(prev => ({ ...prev, 
@@ -46,6 +47,36 @@ function AddressAutoCompleteForm ({
       highlightIndex: -1 
     }))
   });
+
+  /**
+   * Parse address, geocode, and bounding box (extent) from a GeoJSON Feature
+   * @param {*} feature 
+   * @returns
+   */
+  const parseFeature = (feature) => {
+    if (!feature) return {};
+  
+    const props = feature.properties || {};
+  
+    // Construct address from components
+    const addr = {
+      streetNumber: props.housenumber || '',
+      streetName  : props.street || props.road || '',
+      city        : props.city || props.town || props.village || '',
+      state       : props.state || '',
+      postalCode  : props.postcode,
+      country     : props.country || props.countrycode,
+    };
+  
+    // The name of this field may change depending on the API (photon.komoot.io uses 'extent' for some reason)
+    const extent = props.extent || props.boundingbox || props.bbox;
+  
+    return {
+      address: addr,
+      geocode: [...feature.geometry?.coordinates] || [], // lon, lat
+      extent: [...extent] || [] // i.e., bounding box [west, south, east, north]
+    };
+  };
 
   /**
    * 
@@ -133,16 +164,18 @@ function AddressAutoCompleteForm ({
     const key = `${lon},${lat}`;
 
     if (cache.has(key)) {
-      const cachedAddr = cache.get(key); // Should be an address string
+      const cachedFeature = cache.get(key); // Should be an address string
       setFormState({
         query: '',
         results: [],
         noResults: false,
-        selectedAddr: cachedAddr,
+        selectedAddr: parseFeature(cachedFeature), // Get the address, geocode, and extent as a separate object
         highlightIndex: -1
       });
       setLoading(prev => ({ ...prev, reverseGeocodeLookup: false }));
-      console.log(`cache hit: \"${key}\", ${JSON.stringify(cachedAddr)}`)
+      console.log(`cache hit: \"${key}\", ${JSON.stringify(cachedFeature)}`)
+      // Call onSelect handler to expose state to parent component (address, geocode, extent)
+      onSelect?.(parseFeature(cachedFeature));
       return;
     }
 
@@ -156,19 +189,20 @@ function AddressAutoCompleteForm ({
       // Start fetch
       const cancelToken = source.token;
       const response = await axios.get(`${GEOCODE_API}/reverse`, { params, cancelToken });
-      const fetchedAddr = response.data?.features?.[0] || null;
-
-      console.log(fetchedAddr);
+      const fetchedFeature = response.data?.features?.[0] || null;
 
       // On success, update cache and form state
-      cache.set(key, fetchedAddr);
+      cache.set(key, fetchedFeature);
       setFormState(prev => ({ ...prev,
         query: '',
         results: [],
         noResults: false,
-        selectedAddr: fetchedAddr,
+        selectedAddr: parseFeature(fetchedFeature), // Get the address, geocode, and extent as a separate object
         highlightIndex: -1
       }));
+      // Call onSelect handler to expose state to parent component (address, geocode, extent)
+      onSelect?.(parseFeature(fetchedFeature));
+      
     } catch (err) {
       // Check if the error is due to a canceled request or a failed fetch
       if (axios.isCancel(err)) {
@@ -211,7 +245,6 @@ function AddressAutoCompleteForm ({
         break;
       }
       case 'Enter': {
-        // TODO: not sure if we need refs to formState.highlightIndex and formState.results
         e.preventDefault();
         const index = formState.highlightIndex;
         if (index >= 0) {

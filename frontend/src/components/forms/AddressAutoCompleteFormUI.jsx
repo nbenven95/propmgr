@@ -35,45 +35,6 @@ const HighlightMatch = ({
 
 /**
  * 
- * @param {*} feature 
- * @returns 
- */
-const parseAddrFromFeature = (feature) => {
-  if (!feature) return 'Undefined';
-
-  // 1. Use place_name if available (common with Mapbox/Nominatim)
-  if (feature.place_name) return feature.place_name;
-
-  const props = feature.properties || {};
-
-  // 2. Use 'label' or 'name' fields if available
-  if (props?.label) return props.label;
-  if (props?.name) return props.name;
-
-  // 3. Construct address from components, if available
-  const parts = [
-    props.housenumber,
-    props.street || props.road,
-    props.city || props.town || props.village,
-    props.state,
-    props.postcode,
-    props.country || props.countrycode
-  ].filter(Boolean); // remove null/undefined
-
-  if (parts.length > 0) {
-    const line1 = [props.housenumber, props.street || props.road].filter(Boolean).join(' ');
-    const line2 = [props.city || props.town || props.village, props.state].filter(Boolean).join(', ')
-      .concat(` ${props.postcode || ''}`);
-    const line3 = props.country || props.countrycode;
-    return [line1, line2, line3].filter(Boolean).join('\n');
-  }
-
-  // Fallback: couldn't parse anything meaningful
-  return 'Undefined';
-};
-
-/**
- * 
  * @param {*} props
  * @returns JSX.Element
  */
@@ -87,14 +48,16 @@ const AddressAutoCompleteFormUI = ({
 }) => {
   // De-structure form state
   const { query, results, highlightIndex, noResults, selectedAddr } = formState;
+  const { address, geocode, extent } = selectedAddr;
 
   const isLoading = loading.suggestedAddresses || loading.reverseGeocodeLookup;
+
 
   return (
     <Box position='relative' width='100%'>
       {/* Input Field */}
       <Input
-        placeholder='Search for an address. . .'
+        placeholder='Start typing an address, e.g. 123 Main. . .'
         value={query}
         onChange={onInputChange}
         onKeyDown={onKeyDown}
@@ -148,16 +111,6 @@ const AddressAutoCompleteFormUI = ({
               </Text>
             </Box>
           )}
-        </Box>
-      )}
-
-      {/* Selected address preview (optional) */}
-      {selectedAddr && (
-        <Box mt={2}>
-          <Text>Selected:</Text>
-          <Text fontSize='sm' color='green.600' whiteSpace='pre-line'>
-            {parseAddrFromFeature(selectedAddr)}
-          </Text>
         </Box>
       )}
     </Box>
