@@ -8,6 +8,7 @@ import {
   Text,
 } from '@chakra-ui/react';
 
+// TODO: restructure this so that it takes <Text/> as a child, use this as the target
 /**
  * 
  * @param {*} props
@@ -23,11 +24,52 @@ const HighlightMatch = ({
   // Query substring not found in target string 
   if (i === -1) return target;
   const queryLen = String(query).length;
-  return (<>
-    {String(target).slice(0, i)}
-    <b>{target.slice(i, i + queryLen)}</b>
-    {String(target).slice(i + queryLen)}
-  </>);
+  return (
+    <Text>
+      {String(target).slice(0, i)}
+      <b>{target.slice(i, i + queryLen)}</b>
+      {String(target).slice(i + queryLen)}
+    </Text>
+  );
+};
+
+/**
+ * 
+ * @param {*} feature 
+ * @returns 
+ */
+const parseAddrFromFeature = (feature) => {
+  if (!feature) return 'Undefined';
+
+  // 1. Use place_name if available (common with Mapbox/Nominatim)
+  if (feature.place_name) return feature.place_name;
+
+  const props = feature.properties || {};
+
+  // 2. Use 'label' or 'name' fields if available
+  if (props?.label) return props.label;
+  if (props?.name) return props.name;
+
+  // 3. Construct address from components, if available
+  const parts = [
+    props.housenumber,
+    props.street || props.road,
+    props.city || props.town || props.village,
+    props.state,
+    props.postcode,
+    props.country || props.countrycode
+  ].filter(Boolean); // remove null/undefined
+
+  if (parts.length > 0) {
+    const line1 = [props.housenumber, props.street || props.road].filter(Boolean).join(' ');
+    const line2 = [props.city || props.town || props.village, props.state].filter(Boolean).join(', ')
+      .concat(` ${props.postcode || ''}`);
+    const line3 = props.country || props.countrycode;
+    return [line1, line2, line3].filter(Boolean).join('\n');
+  }
+
+  // Fallback: couldn't parse anything meaningful
+  return 'Undefined';
 };
 
 /**
@@ -43,36 +85,25 @@ const AddressAutoCompleteFormUI = ({
   onResultClick,
   onKeyDown
 }) => {
-  const {
-    query,
-    results,
-    highlightIndex,
-    noResults,
-    selectedAddr
-  } = formState;
+  // De-structure form state
+  const { query, results, highlightIndex, noResults, selectedAddr } = formState;
 
   const isLoading = loading.suggestedAddresses || loading.reverseGeocodeLookup;
 
   return (
-    <Box position="relative" width="100%">
+    <Box position='relative' width='100%'>
       {/* Input Field */}
       <Input
-        placeholder="Search for an address..."
+        placeholder='Search for an address. . .'
         value={query}
         onChange={onInputChange}
         onKeyDown={onKeyDown}
-        autoComplete="off"
+        autoComplete='off'
       />
 
       {/* Loading Spinner */}
       {isLoading && (
-        <Spinner
-          size="sm"
-          position="absolute"
-          right="10px"
-          top="10px"
-          color="gray.500"
-        />
+        <Spinner size='sm' position='absolute' right='10px' top='10px' color='gray.500' />
       )}
 
       {/* Dropdown List */}
@@ -90,30 +121,29 @@ const AddressAutoCompleteFormUI = ({
           ref={refs.list}
         >
           {results.length > 0 ? (
-            <List spacing={0}>
+            <List spacing={0} ref={refs.list}>
               {results.map((feature, index) => {
-                const placeName = feature.place_name || feature.properties?.label || feature.properties?.name || 'Unknown';
-
                 return (
                   <ListItem
                     key={feature.id || index}
                     px={4}
                     py={2}
                     bg={highlightIndex === index ? 'gray.100' : 'white'}
-                    cursor="pointer"
+                    cursor='pointer'
                     _hover={{ bg: 'gray.50' }}
                     onClick={() => onResultClick(feature)}
                   >
-                    <Text fontSize="sm">
-                      <HighlightMatch target={placeName} query={query} />
-                    </Text>
+                    <HighlightMatch
+                      target={parseAddrFromFeature(feature)}
+                      query={query}
+                    />
                   </ListItem>
                 );
               })}
             </List>
           ) : (
             <Box px={4} py={2}>
-              <Text fontSize="sm" color="gray.500">
+              <Text fontSize='sm' color='gray.500'>
                 No results found.
               </Text>
             </Box>
@@ -124,8 +154,9 @@ const AddressAutoCompleteFormUI = ({
       {/* Selected address preview (optional) */}
       {selectedAddr && (
         <Box mt={2}>
-          <Text fontSize="sm" color="green.600">
-            Selected: {selectedAddr}
+          <Text>Selected:</Text>
+          <Text fontSize='sm' color='green.600' whiteSpace='pre-line'>
+            {parseAddrFromFeature(selectedAddr)}
           </Text>
         </Box>
       )}

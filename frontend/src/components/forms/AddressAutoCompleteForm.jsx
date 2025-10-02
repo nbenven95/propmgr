@@ -9,7 +9,7 @@ import EndpointEnum from '../../util/EndpointEnum';
 const { GEOCODE_API } = EndpointEnum;
 
 // Init cache
-const cache = new Map();
+const cache = new Map(); // TODO: how to use browser cache?
 
 // TODO: why is this non-arrow? Is it so we have proper 'this' context so caching works?
 function AddressAutoCompleteForm ({
@@ -54,14 +54,13 @@ function AddressAutoCompleteForm ({
     if (!query) return;
 
     // Check if there is a request that is still currently active; cancel if it is
-    const currReq = refs.cancelGetSuggAddrToken.current;
+    const currReq = refs.cancelGetSuggAddrToken.current; // TODO: should this be current.token?
     if (currReq) {
-      currReq.cancel('Canceling current fetch (suggested addresses): new request triggered');
+      currReq.cancel('Canceling GET address suggestions: new request triggered');
     }
     // Create a new cancel token
     const source = axios.CancelToken.source();
     refs.cancelGetSuggAddrToken.current = source;
-
 
     // Check cache for query before attempting API request
     if (cache.has(query)) {
@@ -71,6 +70,7 @@ function AddressAutoCompleteForm ({
         noResults: cached.length === 0 
       }));
       setLoading(prev => ({ ...prev, suggestedAddresses: false }));
+      console.log(`cache hit: \"${query}\", ${JSON.stringify(cached)}`);
       return;
     }
 
@@ -88,7 +88,7 @@ function AddressAutoCompleteForm ({
 
       // Start fetch
       const cancelToken = source.token; // TODO: not sure if this will work; may still need to do `cancelToken: source.token`
-      const response = await axios.get(GEOCODE_API, { params, cancelToken });
+      const response = await axios.get(`${GEOCODE_API}/api`, { params, cancelToken });
       const features = response.data?.features || []; // TODO: verify format; this should be an array of GeoJSON Features
 
       // On success, update cache and form state
@@ -131,6 +131,7 @@ function AddressAutoCompleteForm ({
 
     // Check cache for query before attempting API request
     const key = `${lon},${lat}`;
+
     if (cache.has(key)) {
       const cachedAddr = cache.get(key); // Should be an address string
       setFormState({
@@ -141,6 +142,7 @@ function AddressAutoCompleteForm ({
         highlightIndex: -1
       });
       setLoading(prev => ({ ...prev, reverseGeocodeLookup: false }));
+      console.log(`cache hit: \"${key}\", ${JSON.stringify(cachedAddr)}`)
       return;
     }
 
@@ -153,10 +155,13 @@ function AddressAutoCompleteForm ({
 
       // Start fetch
       const cancelToken = source.token;
-      const response = await axios.get(`${GEOCODE_API}reverse/`, { params, cancelToken });
-      const fetchedAddr = response.data?.address || null;
+      const response = await axios.get(`${GEOCODE_API}/reverse`, { params, cancelToken });
+      const fetchedAddr = response.data?.features?.[0] || null;
+
+      console.log(fetchedAddr);
 
       // On success, update cache and form state
+      cache.set(key, fetchedAddr);
       setFormState(prev => ({ ...prev,
         query: '',
         results: [],
@@ -194,6 +199,7 @@ function AddressAutoCompleteForm ({
           const indexCurr = Math.min(indexPrev + 1, resultsPrev.length - 1);
           return { ...prev, highlightIndex: indexCurr };
         });
+        break;
       }
       case 'ArrowUp': {
         e.preventDefault();
@@ -202,6 +208,7 @@ function AddressAutoCompleteForm ({
           const indexCurr = Math.max(indexPrev - 1, 0);
           return { ...prev, highlightIndex: indexCurr };
         });
+        break;
       }
       case 'Enter': {
         // TODO: not sure if we need refs to formState.highlightIndex and formState.results
@@ -211,6 +218,17 @@ function AddressAutoCompleteForm ({
           const feature = formState.results[index];
           handleSelect(feature);
         }
+        break;
+      }
+      case 'Escape': {
+        e.preventDefault();
+        setFormState(prev => ({ ...prev,
+          query: '',
+          results: [],
+          noResults: false,
+          highlightIndex: -1
+        }));
+        break;
       }
       default: {
         console.warn('Unrecognized key pressed:', key);
