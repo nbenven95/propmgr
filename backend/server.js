@@ -62,6 +62,7 @@ const corsOpt = { origin: `http://${REACT_HOST}:${REACT_PORT}`, optionsSuccessSt
 const app = express();
 
 // Define body-parsing middleware (must be before routes)
+// TODO: research request body parsing; I think this could be conflicting with multer and parsing multi-part form data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -77,7 +78,7 @@ const infoRoutes			= InfoRouter({
 	opSysTypes      : OpSysTypeEnum,
 	applianceTypes  : ApplianceTypeEnum
 });
-const propertyRoutes  = PropertyProfileRouter();
+const propertyRoutes  = PropertyProfileRouter(upload);
 const subunitRoutes 	= SubunitRouter();
 
 // Register Express routers

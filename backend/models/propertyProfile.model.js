@@ -5,7 +5,6 @@ import InsurancePolicy from '@models/insurancePolicy.model.js';
 import OpSys from '@models/opSys.model.js';
 
 import { addressSchema } from '@models/embedded/address.model.js';
-import { geoCodeSchema } from '@models/embedded/geoCode.model.js';
 import { noteSchema } from '@models/embedded/note.model.js';
 import { phoneNumberSchema } from '@models/embedded/phoneNumber.model.js';
 import { wastePickupSchedSchema } from '@models/embedded/wastePickupSched.model.js';
@@ -36,83 +35,60 @@ So, to enforce the limit consistently, ensure you save/validate the document aft
  * Schema encapsulating property profile information
  */
 const propertyProfileSchema = new mongoose.Schema({
-  /**
-   * Property name
-   */
-  name: { 
-    type    : String,
-    required: [true, 'Property name is required']
-  },
-  /**
-   * Property address (street number, name, unit (optional), city, state (conditional), postal code, country)
-   */
-  address: {
-    type    : addressSchema, // Embedded schema; stores data directly in parent object
-    required: [true, 'Property address is required']
-  },
-  /**
-   * Geocode corresponding to the property street address
-   */
-  geoCode: {
-    type    : geoCodeSchema, // Embedded schema; stores data directly in parent object
+
+  // Property name
+  name: { type: String, required: [true, 'Property name is required'] },
+  
+  // Property address (street number, name, unit (optional), city, state (conditional), postal code, country)
+  address: { type: addressSchema, required: [true, 'Property address is required'] },
+
+  // Assessor's Parcel Number; AKA Property ID Number, Tax ID Number
+  apn: { type: String, required: false }, // TODO: fetch via API? 
+
+  // Property phone #
+  phone: { type: phoneNumberSchema, required: false },
+
+  // Property date of construction
+  dateBuilt: { type: Date, required: false },
+  
+  // Property date of acquisition (may be same as dateBuilt)
+  dateAcq: { type: Date, required: false },
+
+  // Day and frequency of garbage pickup
+  wastePickupSched: { type: wastePickupSchedSchema, required: false },
+
+  // TODO: update this so it's just an array of two numbers; get rid of geoCodeSchema; (also, change to `geocode`)
+  geocode: { 
+    type    : [Number],
     required: false,
     validate: {
-      validator: function(geoCode) { 
-        const { type, coordinates } = geoCode;
-        const predicates = [ // Define predicates to test
-          String(type).toLowerCase() === 'point',
-          Array.isArray(coordinates),
-          coordinates.length === 2
-        ];
-        return predicates.every(pred => pred === true);
+      validator: function(geocode) { 
+        return Array.isArray(geocode)
+          && geocode.length == 2
+          && geocode.every(e => typeof e === 'number');
       },
-      message: props => `Invalid GeoCode: ${props.value}`
+      message: props => `Invalid geocode: ${props.value}`
+    }
+  },
+  
+  // Extent (bounding box)
+  // TODO: make this conditional on geocode being present
+  extent: {
+    type: [Number],
+    required: false,
+    default: [],
+    validate: {
+      validator: function(extent) {
+        if (!Array.isArray(extent) || extent.length !== 4) return false;
+        return extent.every(e => typeof e === 'number');
+      },
+      message: props => `Invalid extent (bounding box): ${props.value}`
     }
   },
 
-  // TODO: bounding box for property (get from OSM API request)
-
-  /**
-   * Assessor's Parcel Number; AKA Property ID Number, Tax ID Number
-   */
-  // TODO: fetch via API? 
-  apn: {
-    type    : String,
-    required: false
-  },
-  /**
-   * Property phone number
-   */
-  phone: {
-    type    : phoneNumberSchema, // Embedded schema; stores data directly in parent object
-    required: false
-  },
-  /**
-   * Property date of construction
-   */
-  dateBuilt: {
-    type    : Date,
-    required: false
-  },
-  /**
-   * Property date of acquisition
-   */
-  dateAcq: { 
-    type    : Date,
-    required: false
-  },
-  /**
-   * Day and frequency of garbage pickup
-   */
-  wastePickupSched: {
-    type    : wastePickupSchedSchema,
-    required: false
-  },
-  /**
-   * List of labeled notes (important neighbor information, etc.)
-   */
+  // List of labeled notes
   notes: {
-    type    : [noteSchema], // Embedded schema; stores data directly in parent object
+    type    : [noteSchema],
     default : [],
     validate: {
       validator: function(notes) {
@@ -121,27 +97,24 @@ const propertyProfileSchema = new mongoose.Schema({
       message: props => `${props.value}`
     }
   },
-  /**
-   * Property insurance policy information.
-   */
+
+  // Property insurance policy
   insurancePolicy: {
-    type    : mongoose.Schema.Types.ObjectId, // Store object ID, populate with data on request
+    type    : mongoose.Schema.Types.ObjectId,
     ref     : 'InsurancePolicy',
     required: false
   },
-  /**
-   * List of associated operating systems (HVAC, roofing, dishwashers, clotheswashers/driers, etc.)
-   */
+  
+  // List of associated operational systems (HVAC, roofing, dishwashers, clotheswashers/driers, etc.)
   opSystems: [{
-    type    : mongoose.Schema.Types.ObjectId, // Store object IDs, populate with data on request
+    type    : mongoose.Schema.Types.ObjectId,
     ref     : 'OpSys',
     required: false
   }],
-  /**
-   * List of associated property documents.
-   */
+  
+  // List of general documents associated with the property (lease, contract, workorder, etc.)
   documents: [{
-    type    : mongoose.Schema.Types.ObjectId, // Store object IDs, populate with data on request
+    type    : mongoose.Schema.Types.ObjectId,
     ref     : 'Document',
     required: false
   }]
@@ -282,9 +255,6 @@ const preSaveValidator = async function(next) { // Note: need to use a non-arrow
         });
       });
     }
-
-    // TODO: make request to OSM geocoding API on creation or update to address field, set geocode field
-    // TODO: set up contingencies for failed geocode API requests (e.g., when a property is updated, if it does not have a geocode, attempt the API request again)
 
     // Pre-save validation passed, continue to save
     return next();

@@ -49,6 +49,7 @@ const PropertyProfilesPage = () => {
 
   // Fetch resources from database during initial render
   useEffect(() => {
+    // TODO: fix edge case where deleting last property profile results in a 404 that prevents the page from updating properly
     handleFetch(['properties']);
     // TODO: fetch subunits, opsys, policies, docs?
   }, []);

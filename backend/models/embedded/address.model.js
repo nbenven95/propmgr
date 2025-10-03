@@ -1,5 +1,4 @@
 import mongoose from 'mongoose'
-import countries from 'i18n-iso-countries'
 
 //import states from '@util/state-validator/states.js'
 
@@ -77,32 +76,18 @@ const addressSchema = new mongoose.Schema({
     required: [true, 'City name is required']
   },
   /**
-   * State code
+   * State name/code
    */
   state: {
     type    : String,
-    required: function() {
-      return ['USA','US','840'].includes(this.country); // Only require state if country is USA/US/840
-    },
-    validate: {
-      validator: function(v) {
-        return true; // return states.isValid(v);
-      },
-      message: props => `Invalid state code: ${props.value}`
-    }
+    required: [true, 'State name/code is required']
   },
   /**
-   * ISO 3166 country code (2-letter, 3-letter, or numeric)
+   * Country name or ISO 3166 country code (2-letter, 3-letter, or numeric)
    */
   country: {
     type    : String,
-    required: [true, 'Country code is required'],
-    validate: {
-      validator: function(v) {
-        return countries.isValid(v);
-      },
-      message: props => `Invalid country code: ${props.value}`
-    }
+    required: [true, 'Country name/code is required']
   },
   /**
    * Postal/zip code

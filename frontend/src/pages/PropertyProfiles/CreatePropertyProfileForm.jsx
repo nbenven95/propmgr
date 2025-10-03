@@ -12,9 +12,14 @@ import { getErrorMsg } from '../../util/util.js';
 
 import EndpointEnum from '../../util/EndpointEnum.js';
 
-const { DOCUMENTS_API, GEOCODING_API } = EndpointEnum; // TODO: add POLICIES_API, OPSYS_API, SUBUNITS_API 
-
+/**
+ * 
+ * @param {*} props
+ * @returns 
+ */
 const CreatePropertyProfileForm = ({ onUpdate }) => {
+
+  const { DOCUMENTS_API, PROPERTIES_API } = EndpointEnum; // TODO: add POLICIES_API, OPSYS_API, SUBUNITS_API 
 
   /* Note: for any of the fetched resources (Documents, Policies, OpSys, Subunits), don't allow the user to create new ones directly.
       For simplicity, just have a dropdown menu (e.g., 'select documents to attach'); this should open a drawer that renders DocsPage,
@@ -26,18 +31,19 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
   */
   const { formData, setFormData, submitting, onChange, onSubmit } = useFormData([
     { name            : { init: '', required: true } },
+    { address         : { init: null, required: true } },
+    { geocode         : { init: [], required: false } }, // Longitude/latitude
+    { extent          : { init: [], required: false } }, // Bounding box [west, south, east, north]
     { apn             : { init: '', required: false } }, // Assessor Parcel Number (Tax ID #)
     { dateBuilt       : { init: '', required: false } }, // Date of Property construction
     { dateAcq         : { init: '', required: false } }, // Date of Property acquisition (may be same as dateBuilt)
-    { address         : { init: null, required: true } },
-    { phone           : { init: null, required: false } },
-    { geoCode         : { init: [], required: false } }, // Longitude/latitude
+    { phone           : { init: '', required: false } },
     { wastePickupSched: { init: null, required: false } },
+    { notes           : { init: [], required: false } },
+    { documents       : { init: [], required: false } }, 
     { insurancePolicy : { init: null, required: false } }, // TODO: create endpoint
     { opSystems       : { init: [], required: false } }, // TODO: create endpoint
-    { documents       : { init: [], required: false } }, 
     { subunits        : { init: [], required: false } }, // TODO: create endpoint
-    { notes           : { init: [], required: false } },
   ]);
 
   const { loading, fetched, onFetchMany } = useFetch([
@@ -54,18 +60,16 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
 
   // Init element references
   const refs = {
+    addressInput: useRef(),
     dateBuilt: useRef(),
-    useDefaultDateAcq: useRef() // TODO: assign this to checkbox
+    useDefaultDateAcq: useRef(),
   };
 
   /**
    * 
    * @param {String} field 
    */
-  const toggleFormState = (field) => {
-    // TODO: how to ensure that 'field' is a boolean?
-    setFormState(prev => ({ ...prev, [field]: !prev.field }));
-  };
+  const toggleFormState = field => setFormState(prev => ({ ...prev, [field]: !prev.field })); // TODO: how to ensure that 'field' is a boolean?
 
   /**
    * 
@@ -104,61 +108,75 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
   /**
    * 
    */
-  const handleSubmitForm = async () => {
-    try {
-      const res = await onSubmit(
-        `${PROPERTIES_API}/create`,
-        //{ headers: { 'Content-Type': 'multipart/form-data' } } // TODO: do we need these headers?
-      );
-      notify({ status: 'success', title: 'Property Profile Create', desc: res.message });
-    } catch (err) {
-      notify({ status: 'error', title: 'Error Creating Property Profile', desc: getErrorMsg(err) });
-    } finally {
-      if (onUpdate) onUpdate();
-    }
+  const handleSelectAddress = (locationData) => {
+    // Destructure location data from parseFeature
+    const { address, geocode, extent } = locationData;
+    setFormData(prev => ({ ...prev, address: address, geocode: geocode, extent: extent }));
   };
 
   /**
    * 
-   * @param {*} addr 
-   * @returns 
    */
-  const handleFetchGeoCode = async (addr) => {
-    for (const value in Object.values(addr)) {
-      // If any of the fields are null, clear geocode + bounding box form data state and abort fetch
-      if (value === null || value === undefined) {
-        setFormState(prev => ({ ...prev, geoCode: [], /*boundingBox: []*/ }));
-        return;
-      }
-    }
-    const { streetNumber, streetName, city, state, postalCode, country } = address;
-    const query = `${streetNumber}, ${streetName}, ${city}, ${state}, ${postalCode}, ${country}`;
-    const params = { q: query, format: 'json', limit: 1, addressdetails: 1 };
-    const headers = { 'User-Agent': 'RisePropertyManager/1.0 (nbenveniste@riseservices.org)' }; // TODO: read user agent from env
+  const handleClearAddress = () => {
+    setFormData(prev => ({ ...prev, address: null, geocode: [], extent: [] }));
+  };
+
+  /**
+   * 
+   */
+  const handleSubmitForm = async () => {
     try {
-      const response = await axios.get(GEOCODING_API, { params, headers });
-      console.log('Geocode fetch result:', response.data);
-      const { lat, lon, boundingbox } = response.data;
-      setFormData(prev => ({ ...prev, geoCode: [lon, lat], /*boundingBox: [...boundingbox]*/ })); // TODO: set boundingBox form state (need to update propertyprofile schema)
+      const {
+        address,
+        geocode,
+        extent,
+        wastePickupSched,
+        notes,
+        insurancePolicy,
+        documents,
+        opSystems,
+        subunits,
+        ...others // name, apn, phone, dateBuilt, dateAcq
+      } = formData;
+      const preparedData = {
+        ...others,
+        address: address ? JSON.stringify(address) : undefined,
+
+        geocode: Array.isArray(geocode) && geocode.length > 0 ? JSON.stringify(geocode) : undefined,
+
+        extent: Array.isArray(extent) && extent.length > 0 ? JSON.stringify(extent) : undefined,
+
+        wastePickupSched: wastePickupSched ? JSON.stringify(wastePickupSched) : undefined,
+
+        notes: Array.isArray(notes) && notes.length > 0 ? JSON.stringify(notes) : undefined,
+
+        insurancePolicy: insurancePolicy ? JSON.stringify(insurancePolicy) : undefined,
+
+        documents: Array.isArray(documents) && documents.length > 0 ? JSON.stringify(documents) : undefined,
+
+        opSystems: Array.isArray(opSystems) && opSystems.length > 0 ? JSON.stringify(opSystems) : undefined,
+        
+        subunits: Array.isArray(subunits) && subunits.length > 0 ? JSON.stringify(subunits) : undefined
+      }
+      console.log(preparedData);
+      const url = `${PROPERTIES_API}/create`;
+      const data = preparedData;
+      const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      const res = await axios.post(url, data, config);
+      console.log(res.data?.message);
+      //const res = await onSubmit(`${PROPERTIES_API}/create`, { headers: { 'Content-Type': 'multipart/form-data' } });
+      //notify({ status: 'success', title: 'Property Profile Create', desc: res.message });
     } catch (err) {
-      console.error('Error fetching geocode:', err);
-      // Clear form data state on failed API request
-      setFormState(prev => ({ ...prev, geoCode: [], /*boundingBox: []*/ }));
+      notify({ status: 'error', title: 'Error Creating Property Profile', desc: getErrorMsg(err) });
+    } finally {
+      onUpdate?.();
     }
   };
 
-
-  /*
   // Handle side effects of initial page render
   useEffect(() => {
     handleFetch(['docs']);
   }, []);
-
-  // Handle effects of address field update
-  useEffect(() => {
-    handleFetchGeoCode(formData.address);
-  }, [formData.address]);
-
 
   // Handle side effects of toggling 'useDefaultDateAcq' on/off
   useEffect(() => {
@@ -183,7 +201,6 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
       return prev;
     });
   }, [formData.dateAcq]);
-  */
 
   return (
     <CreatePropertyProfileFormUI
@@ -195,7 +212,9 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
       submitting={submitting}
       onChangeField={onChange}
       onChangeDate={handleChangeDate}
-      onSubmit={handleSubmitForm}
+      onClickSubmit={handleSubmitForm}
+      onSelectAddress={handleSelectAddress}
+      onClearAddress={handleClearAddress}
       onToggleDefaultDate={() => toggleFormState('useDefaultDateAcq')}
     />
   )

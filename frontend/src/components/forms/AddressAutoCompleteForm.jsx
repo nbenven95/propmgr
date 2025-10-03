@@ -11,6 +11,42 @@ const { GEOCODE_API } = EndpointEnum;
 // Init cache
 const cache = new Map(); // TODO: how to use browser cache?
 
+/**
+ * Parse address, geocode, and bounding box (extent) from a GeoJSON Feature
+ * @param {*} feature 
+ * @returns
+ */
+export const parseFeature = (feature) => {
+  if (!feature) return {};
+
+  const props = feature.properties || {};
+
+  // Construct address from components
+  const addr = {
+    streetNumber: props.housenumber,
+    streetName  : props.street || props.road || '',
+    city        : props.city || props.town || props.village || '',
+    state       : props.state || '',
+    postalCode  : props.postcode,
+    country     : props.country || props.countrycode,
+  };
+
+  // The name of this field may change depending on the API (photon.komoot.io uses 'extent' for some reason)
+  const extent = props.extent || props.boundingbox || props.bbox || [];
+
+  const locationData = {
+    address: addr,
+    geocode: [...feature.geometry?.coordinates], // lon, lat
+    extent: [...extent] // i.e., bounding box [west, south, east, north]
+  };
+
+  console.log('address:', locationData.address);
+  console.log('geocode:', locationData.geocode);
+  console.log('extent:', locationData.extent);
+
+  return locationData;
+};
+
 // TODO: why is this non-arrow? Is it so we have proper 'this' context so caching works?
 function AddressAutoCompleteForm ({
   initQuery = '',
@@ -47,36 +83,6 @@ function AddressAutoCompleteForm ({
       highlightIndex: -1 
     }))
   });
-
-  /**
-   * Parse address, geocode, and bounding box (extent) from a GeoJSON Feature
-   * @param {*} feature 
-   * @returns
-   */
-  const parseFeature = (feature) => {
-    if (!feature) return {};
-  
-    const props = feature.properties || {};
-  
-    // Construct address from components
-    const addr = {
-      streetNumber: props.housenumber || '',
-      streetName  : props.street || props.road || '',
-      city        : props.city || props.town || props.village || '',
-      state       : props.state || '',
-      postalCode  : props.postcode,
-      country     : props.country || props.countrycode,
-    };
-  
-    // The name of this field may change depending on the API (photon.komoot.io uses 'extent' for some reason)
-    const extent = props.extent || props.boundingbox || props.bbox;
-  
-    return {
-      address: addr,
-      geocode: [...feature.geometry?.coordinates] || [], // lon, lat
-      extent: [...extent] || [] // i.e., bounding box [west, south, east, north]
-    };
-  };
 
   /**
    * 
@@ -123,6 +129,8 @@ function AddressAutoCompleteForm ({
       const features = response.data?.features || []; // TODO: verify format; this should be an array of GeoJSON Features
 
       // On success, update cache and form state
+      // TODO: filter invalid results (e.g., no street number/name, not in the US, etc.)
+      // TODO: ensure a 'no results found' message displays in reasonable cases so garbage suggestions aren't displayed
       cache.set(query, features);
       setFormState(prev => ({ ...prev,
         results: features,

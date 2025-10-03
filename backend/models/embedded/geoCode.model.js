@@ -1,5 +1,7 @@
 import mongoose from 'mongoose'
 
+// TODO: can probably deprecate this and just store geocode as a [lon, lat] pair directly
+
 const geoCodeSchema = new mongoose.Schema({
 
   type: {

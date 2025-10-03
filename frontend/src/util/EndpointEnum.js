@@ -2,7 +2,8 @@ const BASE_URL = 'http://localhost:5000/api';
 const INFO_API = `${BASE_URL}/info`;
 
 const EndpointEnum = Object.freeze({
-  GEOCODING_API : 'https://nominatim.openstreetmap.org/search',
+  //GEOCODING_API : 'https://nominatim.openstreetmap.org/search',
+  GEOCODE_API   : 'https://photon.komoot.io',
   FILES_API     : `${BASE_URL}/files`,
   DOCS_API      : `${BASE_URL}/docs`,
   PROPERTIES_API: `${BASE_URL}/properties`,

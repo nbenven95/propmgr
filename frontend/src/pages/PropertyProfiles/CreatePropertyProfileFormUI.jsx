@@ -1,5 +1,19 @@
-import { Box, FormControl, FormLabel, Heading, VStack, Tooltip, Checkbox, Input } from "@chakra-ui/react";
+import React from 'react';
+import {
+  Box,
+  FormControl,
+  FormLabel,
+  Heading,
+  VStack,
+  Checkbox,
+  Input,
+  IconButton,
+  Flex,
+  Button
+} from '@chakra-ui/react';
+import { CloseIcon } from '@chakra-ui/icons';
 
+import AddressAutoCompleteForm from '../../components/forms/AddressAutoCompleteForm';
 import { formatDisplayDate } from '../../util/util';
 
 const CreatePropertyProfileFormUI = ({
@@ -9,9 +23,11 @@ const CreatePropertyProfileFormUI = ({
   formData,
   formState,
   submitting,
-  onSubmit,
+  onClickSubmit,
   onChangeField,
   onChangeDate,
+  onSelectAddress,
+  onClearAddress,
   onToggleDefaultDate,
 }) => {
 
@@ -25,22 +41,24 @@ const CreatePropertyProfileFormUI = ({
   const {
     name,
     address,
-    geoCode, // TODO: when address state updates, make API call to fetch this. On success, preview with Map3D view, asking if this is correct. If not, (or the geocode fetch fails), inform user and allow them to input the geocode manually 
+    geocode,
+    extent,
     apn, // TODO: look for APIs to reliably fetch this
-    phone,
     dateBuilt,
     dateAcq,
+    phone,
     wastePickupSched, // TODO: implement event scheduler/manager using daypilot-lite-react
     notes, // TODO: implement basic notepad-style text editor (look for pkgs)
 
+    documents, // TODO: add new document type: inspection (use dateEff/expiry to auto-schedule an inspection event (by default, 1 wk before expiry))
     insurancePolicy,
     opSystems,
-    documents, // TODO: add new document type: inspection (use dateEff/expiry to auto-schedule an inspection event (by default, 1 wk before expiry))
     subunits
   } = formData;
 
   const { useDefaultDateAcq } = formState;
 
+  const addressInputRef = refs?.addressInput;
   const dateBuiltRef = refs?.dateBuilt;
   const useDefaultDateAcqRef = refs?.useDefaultDateAcq;
 
@@ -50,20 +68,51 @@ const CreatePropertyProfileFormUI = ({
       <Heading mb={4} textAlign='center'>Create New Property Profile</Heading>
 
       <VStack spacing={4} ailgn='stretch'>
-        {/* Name input */}
+        {/* Use approx. geocode for Saratoga Springs as bias to narrow down search results */}
+        <FormControl isRequired>
+          <FormLabel>Address</FormLabel>
+          {address ? (
+            <Box display='flex' alignItems='center' gap={2}>
+            <Input
+              isReadOnly
+              value={(() => {
+                const { streetNumber, streetName, city, state, postalCode, country } = address;
+                const line1 = `${streetNumber} ${streetName}`
+                const line2 = `${city}, ${state} ${postalCode}`
+                const line3 = country;
+                return [line1, line2, line3].join(', ');
+              })()}
+              whiteSpace='pre-line'
+            />
+            <IconButton
+              aria-label='Clear address'
+              icon={<CloseIcon />}
+              onClick={onClearAddress}
+              size='sm'
+            />
+          </Box>
+          ) : (
+            <AddressAutoCompleteForm bias={[-73.77, 44.08]} onSelect={onSelectAddress} />
+          )}
+        </FormControl>
+
+        {/* Name input TODO: read from API response, give user the option to overwrite */}
         <FormControl isRequired>
           <FormLabel>Name</FormLabel>
           <Input
+            name='name'
+            type='text'
             placeholder='Property Name'
             value={name}
-            onChange={onChangeField}
+            onChange={e => onChangeField(e)}
           />
         </FormControl>
 
-        {/* Date built input */}
+        {/* 
         <FormControl>
           <FormLabel>Date Built</FormLabel>
           <Input
+            name='dateBuilt'
             type='date'
             value={dateBuilt}
             onChange={onChangeDate}
@@ -71,9 +120,9 @@ const CreatePropertyProfileFormUI = ({
           />
         </FormControl>
         
-        {/* Date acquired same as date built? */}
         <FormControl>
           <Checkbox
+            name='useDefaultDateAcq'
             disabled={!dateBuilt}
             defaultChecked={false}
             onChange={onToggleDefaultDate}
@@ -83,27 +132,26 @@ const CreatePropertyProfileFormUI = ({
           </Checkbox>
         </FormControl>
         
-        {/* Date acquired input */}
         <FormControl>
           <FormLabel>Date Acquired</FormLabel>
           <Input
-            placeholder={useDefaultDateAcq ? dateBuilt : ''}
+            name='dateAcq'
             type='date'
+            placeholder={useDefaultDateAcq ? formatDisplayDate(dateBuilt) : ''}
             value={dateAcq}
             onChange={onChangeDate}
           />
         </FormControl>
-        
-        {/* APN input */}
+
         <FormControl>
           <Tooltip label={'Assessor\'s Parcel Number (Tax ID Number)'}>
             <FormLabel>APN</FormLabel>
           </Tooltip>
-          <Input />
+          <Input
+            name='apn'
+          />
         </FormControl>
-        
-        {/* Address input */}
-        <FormControl></FormControl>
+        */}
         
         {/* Phone number input */}
         <FormControl></FormControl>
@@ -125,6 +173,19 @@ const CreatePropertyProfileFormUI = ({
         
         {/* Subunits selector */}
         <FormControl></FormControl>
+
+        {/* Submit button */}
+        <Flex justify='center' mt={4}>
+          <Button
+            colorScheme='teal'
+            onClick={onClickSubmit}
+            isLoading={submitting}
+            loadingText='Submitting. . .'
+            width='100%'
+          >
+            Create Property Profile
+          </Button>
+        </Flex>
       </VStack>
     </Box>
   );

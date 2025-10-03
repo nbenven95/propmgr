@@ -72,50 +72,6 @@ const getPropertyByID = async (req, res) => {
 };
 
 /**
- * Get geocode from address using OpenStreetMap/Nominatim API
- * @param {*} address
- */
-const getGeoCode = async (address, next) => {
-  if (!address) throw new Error('address cannot be null');
-  const {
-    streetNumber,
-    streetName,
-    city,
-    state,
-    postalCode,
-    country
-  } = address;
-  const baseUrl = 'https://nominatim.openstreetmap.org/search';
-  const params = new URLSearchParams({
-    format        : 'json',
-    limit         : '1',
-    addressdetails: '1',
-    q             : `${streetNumber}, ${streetName}, ${city}, ${state}, ${postalCode}, ${country}`
-  });
-  const uri = `${baseUrl}?${params.toString()}`
-  try {
-    const res = await fetch(uri, {
-      headers: {
-        'User-Agent': 'RisePropertyManager/1.0 (nbenveniste@riseservices.org)'
-      }
-    });
-    if (!res.ok) {
-      throw new Error(`Failed to get geocode for address: ${addr}: Nominatum API responded with status: ${res.status}`);
-    }
-    // Get response data in JSON
-    const data = await res.json();
-    if (!Array.isArray(data) || data.length === 0) {
-      throw new Error(`Address not found: ${addr}`);
-    }
-    // Get latitude and longitude from response data (should only be one element in 'data')
-    return [data[0].lat, data[0].lon];
-  } catch (err) {
-    console.error(err);
-    next(err);
-  }
-};
-
-/**
  * Create a PropertyProfile from request body data.
  * 
  * @param {*} req 
@@ -123,15 +79,20 @@ const getGeoCode = async (address, next) => {
  * @returns 
  */
 const createProperty = async (req, res, next) => {
+
+  console.log(req.body.address);
+
   /* Destructure fields from request body */
   const {
     name,
     address,
-    apn,              // Assessor's Parcel Number (Tax ID)
+    apn,
     phone,
-    dateAcq,
     dateBuilt,
+    dateAcq,
     wastePickupSched,
+    geocode,
+    extent,
     notes,            // List of note key/value pairs (embedded)
     insurancePolicy,  // Object ID corresponding to an InsurancePolicy document
     opSystems,        // Array of object IDs corresponding to OpSys documents
@@ -139,39 +100,19 @@ const createProperty = async (req, res, next) => {
     subunits          // Array of object IDs corresponding to Subunit documents
   } = req.body;
 
-  // Try to get geocode from address
-  let coords = null;
-  try {
-    // On success, returns a 2-element array: [lat, lon]
-    coords = await getGeoCode(address, next);
-  } catch(err) {
-    console.error(err);
-    next(err);
-  }
-
-  /* Create mongoose PropertyProfile document instance */
-  const newProperty = new PropertyProfile({
-    name            : name,
-    address         : address,
-    geoCode         : coords ? { type: 'Point', coordinates: coords } : null,
-    apn             : apn,
-    phone           : phone,
-    dateAcq         : dateAcq
-      ? new Date(dateAcq) // Init Date object from ISO date string passed in request body
-      : null,
-    dateBuilt       : dateBuilt
-      ? new Date(dateBuilt)
-      : null,
-    wastePickupSched: wastePickupSched,
-    notes           : notes,
-    insurancePolicy : insurancePolicy,
-    opSystems       : opSystems,
-    documents       : documents,
-    subunits        : subunits
-  });
-
   /* Attempt async save */
   try {
+  /* Note: when using multer to parse requests with header 'multipart/form-data', 
+     every field value is parsed as a string. This means that we need to manually
+     parse every field to get the expected value (unless it is a string) */
+    const newProperty = new PropertyProfile({
+      name,
+      address: JSON.parse(address),
+      geocode: JSON.parse(geocode),
+      extent: JSON.parse(extent)
+    });
+    console.log(newProperty);
+
     await newProperty.save();
     return res.status(CREATED).send({
       success: true,
@@ -190,12 +131,10 @@ const createProperty = async (req, res, next) => {
 };
 
 /**
- * Delete a PropertyProfile given its MongoDB ObjectID.
- * // TODO: verify the types of req and res 
- * @param {Request} req The HTTP request object.
- *  Contains the ObjectID of the PropertyProfile
- *  to delete in req.params.id
- * @param {Response} res The HTTP response object.
+ * 
+ * @param {*} req 
+ * @param {*} res 
+ * @returns 
  */
 const deleteProperty = async (req, res) => {
   const { id } = req.params; // Destructure URL parameters // TODO: what if req.params is null/undefined?
