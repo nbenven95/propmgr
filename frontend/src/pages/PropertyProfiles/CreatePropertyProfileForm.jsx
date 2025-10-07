@@ -29,7 +29,14 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
       the form, allowing the user to create new resources without leaving the main Property creation page. This functionality should
       be available for all resources that have non-embedded schema (i.e., they must be fetched separately): docs, opsys, subunits, policies
   */
-  const { formData, setFormData, submitting, onChange, onSubmit } = useFormData([
+  const {
+    formData,
+    setFormData,
+    required,
+    ready,
+    submitting,
+    onChange
+  } = useFormData([
     { name            : { init: '', required: true } },
     { address         : { init: null, required: true } },
     { geocode         : { init: [], required: false } }, // Longitude/latitude
@@ -46,12 +53,14 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
     { subunits        : { init: [], required: false } }, // TODO: create endpoint
   ]);
 
+  // Init hook for fetching resources
   const { loading, fetched, onFetchMany } = useFetch([
     { docs: { init: [], url: DOCUMENTS_API } }
   ]);
 
   //const { drawerContent, isOpen, onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();
 
+  // Init hook for rendering popup messages
   const notify = useNotify();
 
   const [formState, setFormState] = useState({
@@ -121,11 +130,11 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
     setFormData(prev => ({ ...prev, address: null, geocode: [], extent: [] }));
   };
 
-  /**
-   * 
-   */
+  // TODO: find a way to use onSubmit from useFormData so we can use its `submitting` state.
+  // TODO: e.g., for simplicity, maybe just add an optional parameter to directly provide the payload for cases like this?
   const handleSubmitForm = async () => {
     try {
+      // De-structure form data state
       const {
         address,
         geocode,
@@ -138,38 +147,49 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
         subunits,
         ...others // name, apn, phone, dateBuilt, dateAcq
       } = formData;
+
+      /* Helper function: parses an object into a JSON string */
+      function parseJson(obj) {
+        // If null, return undefined instead of parsing null to string 'null'
+        return obj ? JSON.stringify(obj) : undefined;
+      }
+
+      /* Helper function: parses an array into a JSON string */
+      function parseArray(obj) {
+        // If empty, return undefined instead of parsing [] to string '[]'
+        return Array.isArray(obj) && obj.length > 0
+          ? JSON.stringify(obj)
+          : undefined
+      }
+
+      // Manually parse all nested JSON objects and arrays to JSON strings
       const preparedData = {
         ...others,
-        address: address ? JSON.stringify(address) : undefined,
+        address         : parseJson(address),
+        insurancePolicy : parseJson(insurancePolicy),
+        wastePickupSched: parseJson(wastePickupSched),
+        geocode         : parseArray(geocode),
+        extent          : parseArray(extent),
+        notes           : parseArray(notes),
+        documents       : parseArray(documents),
+        opSystems       : parseArray(opSystems),
+        subunits        : parseArray(subunits)
+      };
 
-        geocode: Array.isArray(geocode) && geocode.length > 0 ? JSON.stringify(geocode) : undefined,
-
-        extent: Array.isArray(extent) && extent.length > 0 ? JSON.stringify(extent) : undefined,
-
-        wastePickupSched: wastePickupSched ? JSON.stringify(wastePickupSched) : undefined,
-
-        notes: Array.isArray(notes) && notes.length > 0 ? JSON.stringify(notes) : undefined,
-
-        insurancePolicy: insurancePolicy ? JSON.stringify(insurancePolicy) : undefined,
-
-        documents: Array.isArray(documents) && documents.length > 0 ? JSON.stringify(documents) : undefined,
-
-        opSystems: Array.isArray(opSystems) && opSystems.length > 0 ? JSON.stringify(opSystems) : undefined,
-        
-        subunits: Array.isArray(subunits) && subunits.length > 0 ? JSON.stringify(subunits) : undefined
-      }
-      console.log(preparedData);
       const url = `${PROPERTIES_API}/create`;
-      const data = preparedData;
+
+      // Headers needed for backend middleware to correctly parse payload
       const config = { headers: { 'Content-Type': 'multipart/form-data' } };
-      const res = await axios.post(url, data, config);
-      console.log(res.data?.message);
-      //const res = await onSubmit(`${PROPERTIES_API}/create`, { headers: { 'Content-Type': 'multipart/form-data' } });
-      //notify({ status: 'success', title: 'Property Profile Create', desc: res.message });
+  
+      // Submit POST request
+      const res = await axios.post(url, preparedData, config);
+      // TODO: fix formatting of backend success/error messages to match with Document controller
+      const msg = res.data?.message?? 'Success';
+      notify({ status: 'success', title: 'Property Profile Created', desc: msg });
     } catch (err) {
       notify({ status: 'error', title: 'Error Creating Property Profile', desc: getErrorMsg(err) });
     } finally {
-      onUpdate?.();
+      onUpdate?.(); // Call onUpdate to handle cleanup (if defined)
     }
   };
 
@@ -207,9 +227,11 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
       refs={refs}
       fetched={fetched}
       loading={loading}
+      ready={ready}
+      submitting={submitting}
+      required={required}
       formData={formData}
       formState={formState}
-      submitting={submitting}
       onChangeField={onChange}
       onChangeDate={handleChangeDate}
       onClickSubmit={handleSubmitForm}

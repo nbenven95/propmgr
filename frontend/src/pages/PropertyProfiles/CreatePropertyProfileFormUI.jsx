@@ -16,18 +16,24 @@ import { CloseIcon } from '@chakra-ui/icons';
 import AddressAutoCompleteForm from '../../components/forms/AddressAutoCompleteForm';
 import { formatDisplayDate } from '../../util/util';
 
+// Lon/lat bias for Saratoga Springs
+const SARATOGA_SPRINGS = [-73.77, 44.08];
+
 const CreatePropertyProfileFormUI = ({
   refs,
   fetched,
   loading,
+  ready,
+  submitting,
+  required,
   formData,
   formState,
-  submitting,
   onClickSubmit,
   onChangeField,
   onChangeDate,
   onSelectAddress,
   onClearAddress,
+  onValidateFormData,
   onToggleDefaultDate,
 }) => {
 
@@ -69,7 +75,7 @@ const CreatePropertyProfileFormUI = ({
 
       <VStack spacing={4} ailgn='stretch'>
         {/* Use approx. geocode for Saratoga Springs as bias to narrow down search results */}
-        <FormControl isRequired>
+        <FormControl isRequired={required.address}>
           <FormLabel>Address</FormLabel>
           {address ? (
             <Box display='flex' alignItems='center' gap={2}>
@@ -92,20 +98,14 @@ const CreatePropertyProfileFormUI = ({
             />
           </Box>
           ) : (
-            <AddressAutoCompleteForm bias={[-73.77, 44.08]} onSelect={onSelectAddress} />
+            <AddressAutoCompleteForm bias={SARATOGA_SPRINGS} onSelect={onSelectAddress} />
           )}
         </FormControl>
 
         {/* Name input TODO: read from API response, give user the option to overwrite */}
-        <FormControl isRequired>
+        <FormControl isRequired={required.name}>
           <FormLabel>Name</FormLabel>
-          <Input
-            name='name'
-            type='text'
-            placeholder='Property Name'
-            value={name}
-            onChange={e => onChangeField(e)}
-          />
+          <Input name='name' placeholder='Property Name' value={name} onChange={e => onChangeField(e)} />
         </FormControl>
 
         {/* 
@@ -180,6 +180,7 @@ const CreatePropertyProfileFormUI = ({
             colorScheme='teal'
             onClick={onClickSubmit}
             isLoading={submitting}
+            disabled={!ready}
             loadingText='Submitting. . .'
             width='100%'
           >

@@ -1,26 +1,56 @@
 import axios from 'axios';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export default function useFormData(fields) {
-  
-  // TODO: refactor to take one parameter: fields
-  // fields will be an array of key/value pairs:
-  // { <field_name>: { init: <init_value>, required: <is the field required? (true/false)> } }
-  // Build our formData and submitting state from this
-  // Can also build an efficient lookup table for required instead of relying on the original input
 
-  const [formData, setFormData] = useState(Object.assign({}, ...fields.map(f => {
-    const [name, { init, _ }] = Object.entries(f)[0];
+  // Ensure input is an array
+  if (!Array.isArray(fields)) {
+     throw new Exception(`Invalid type for argument \`fields\`: ${typeof fields}`);
+  }
+
+  // Map `fields` to an array of key/value pairs (key=fieldName, value=initValue)
+  const formDataArray = fields.map(field => {
+    // Note: for some reason this returns a two-element array; only the first elem has valid data
+    const [name, { init, _ }] = Object.entries(field)[0];
+    // Return the corresponding key/value pair (to be used with formData state)
     return { [name]: init };
-  })));
+  });
 
-  //const _required = Object.freeze(required);
-  const required = Object.freeze(Object.assign({}, ...fields.map(f => {
-    const [name, { _, required }] = Object.entries(f)[0];
+  // Map `fields` to an array of key/value pairs (key=fieldName, value=isFieldRequired)
+  const requiredArray = fields.map(field => {
+    // Unpack the row from the input object
+    const [name, { _, required }] = Object.entries(field)[0];
+    // Return the key/value pair to be used in our isFieldRequired lookup table
     return { [name]: required };
-  })));
+  });
 
+  // State to track current data that has been input into form fields
+  const [formData, setFormData] = useState(Object.assign({}, ...formDataArray));
+
+  // Lookup table to check if a given field is required for form submission
+  const required = Object.freeze(Object.assign({}, ...requiredArray));
+
+  // State to track if the form is ready to submit (i.e., all required fields are filled out)
+  const [ready, setReady] = useState(false);
+
+  // State to track if the form is currently submitting
   const [submitting, setSubmitting] = useState(false);
+
+  // Validate form data on state change, set validation flag (e.g., disable submit button until all req fields are filled)
+  useEffect(() => {
+    for (const [field, data] of Object.entries(formData)) {
+      //console.log(`${field} ${required[field] ? '(required)' : ''}: ${data}`);
+      // Check for any empty required fields
+      if (required[field] && (data === null || data === undefined || data === '')) {
+        console.log(`Missing required field: ${field}`);
+        setReady(false);
+        return;
+      }
+      // TODO: other validation? (e.g., check for garbage input)
+    }
+    console.log('Ready to submit');
+    setReady(true);
+  }, [formData]);
 
   /**
    * Update state when the value of a form field changes,
@@ -34,9 +64,9 @@ export default function useFormData(fields) {
    *        for <input/> forms; e.g., onChange={handleChange},
    *        onChange={e => handleChange(e)}
    * 
-   * @note  You must add a 'name' property to your file input element
-   *        with the same value as the name of your state variable
-   *        (e.g., stagedFiles).
+   * @note  YOU MUST ADD A 'name' PROPERTY TO YOUR INPUT ELEMENTS
+   *        WITH THE SAME NAME YOU PROVIDE THE FIELD ON INIT.
+   *        (e.g., name='stagedFiles').
    */
   const onChange = useCallback(e => {
     // De-structure target element
@@ -79,25 +109,33 @@ export default function useFormData(fields) {
   }, []);
 
   /**
-   * Combine and de-duplicate two FileLists.
+   * Combine and de-duplicate two File arrays
    * 
-   * @param {*} stagedFiles
-   * @param {*} filesToStage
-   * @returns An updated FileList containing all elements of files1 with non-duplicate elements from files2 inserted
+   * @param {array} stagedFiles
+   * @param {array} filesToStage
+   * @returns An updated array containing all elements from files1
+   *          with non-duplicate elements from files2 inserted.
    */
   function combineAndDeduplicate(stagedFiles, filesToStage) {
-    // TODO: is there a Set data structure that could do this for us?
-    if (!Array.isArray(stagedFiles) || !Array.isArray(filesToStage)) {
-      throw new Error(`${!Array.isArray(stagedFiles) ? 'stagedFiles' : 'filesToStage'} must be an array`);
+    if (!Array.isArray(stagedFiles)) {
+      throw new Error(`Invalid type for argument \`stagedFiles\`: ${typeof stagedFiles}`);
     }
-    // Define helper functions  
+    if (!Array.isArray(filesToStage)) {
+      throw new Error(`Invalid type for argument \`filesToStage\`: ${typeof filesToStage}`);
+    }
+
+    /* Helper function: check if two files are the same */  
     function isSameFile(file, other) {
       return file?.name === other?.name && file?.size === other?.size;
     }
+
+    /* Helper function: check if a file is already staged */
     function isAlreadyStaged(file) {
       return stagedFiles.some(f => isSameFile(file, f));
     }
+
     const deduplicated = [...stagedFiles];
+
     // Append all files to the new list that are not already present
     filesToStage.forEach(file => !isAlreadyStaged(file) && deduplicated.push(file));
     return deduplicated;
@@ -110,32 +148,35 @@ export default function useFormData(fields) {
    * @returns A FormData object containing all non-empty fields
    */
   function getPayload() {
-    // Construct payload (FormData object) from current form data state
     const payload = new FormData();
-    Object.keys(formData).forEach(field => {
-      // Check if the field is required
-      if (required[field] && !formData[field]) {
-          // Throw an error if the field is required but empty
-          throw new Error(`Field \"${field}\" is required`);
-      }
+
+    // TODO: change this to `for (const [field, data] of Object.entries(formData))`
+    Object.keys(formData).forEach(field => {   
+      // Value of the current form field
       const value = formData[field];
-      // Check if the field is a File or array of Files
-      const isFile = (obj) => obj instanceof File || (obj instanceof Blob && obj.size > 0);
-      const isFileArray = (obj) => {
+      
+      /* Helper function: check if input is a File/Blob */
+      function isFile(obj) {
+        return obj instanceof File || (obj instanceof Blob && obj.size > 0);
+      }
+      
+      /* Helper function: check if input is an array of Files */
+      function isFileArray(obj) {
         if (!Array.isArray(obj)) return false;
         return obj.every(item => isFile(item));
       }
+      
+      // TODO: try to generalize more; e.g., handle FileList objects directly, single Files, etc.
+
+      // Append field and corresponding value depending on the field type
       if (isFileArray(value) && value.length > 0) {
-        /* The 'files' field is needed by Multer on the backend.
-           If we append multiple files to the FormData object
-           under the same key, it will be interpretted as an
-           array by the server. */
-        /* Note: this requires that you use {headers: { 'Content-Type': 'multipart/form-data' }}
-           in your POST request so axios knows how to construct (I think? TODO: look into this) */
-        value.forEach(file => payload.append('files', file));
+        // Handle appending array of Files
+        value.forEach(file => {
+          // Note: if appending multiple Files to the same key (`files`), this key is parsed as an array by Multer
+          payload.append('files', file);
+        });
       } else if (value !== undefined && value !== null) {
-        /* Else, append the value if non-empty (will always
-           be non-empty at this point if it is required) */
+        // Handle appending generic data (only fields that are non-null)
         payload.append(field, value);
       }
     });
@@ -143,16 +184,20 @@ export default function useFormData(fields) {
   };
 
   /**
-   * @param {String} type Can be either 'POST' (e.g., creating a new item using data from a form submission),
+   * @param {string} type Can be either 'POST' (e.g., creating a new item using data from a form submission),
    *                      or 'PUT' (e.g., updating an existing item using data from a form submission)
-   * @param {String} url
+   * @param {string} url
    */
   const onSubmit = useCallback(async (url, config = {}, type = 'POST') => {
-    try {
+    try {      
+      // Ensure current form state is valid before continuing
+      if (!ready) throw new Error(``)
+
       // Set submission state `submitting=true` to indicate submission in progress
       setSubmitting(true);
       // Init FormData payload from the current state
       const payload = getPayload();
+
       // Perform the request depending on the submission type
       switch (type.toUpperCase()) {
         case 'POST': {
@@ -163,30 +208,24 @@ export default function useFormData(fields) {
           var res = await axios.put(url, payload, config);
           break;
         }
-        default: throw new Error(`Invalid value \"${type}\" for argument \`type\` (must be string \'POST\' or \'PUT\')`);
+        default: {
+          // Print a meaningful error message
+          throw new Error(`Invalid value for argument \`type\`: ${type}`);
+        }
       }
+
     } catch (err) {
-      // Propagate errors
-      throw err;
+      throw err; // Propagate errors
     } finally {
-      // Reset submission state on success or failure
-      setSubmitting(false);
+      setSubmitting(false); // Reset submission state on success or failure
     }
 
-    // TODO: refactor this to just return res.data so we can access the response message and not just the resource
-    // Return response data; if undefined/null and no error was thrown already, throw one now
-    /*
-    return res?.data?.data?? (() => {
-      throw new Error(`${type.toUpperCase()} request received null/undefined response`)
-    })();
-    */
+    // Return response data: { success, message, data }
     return res?.data?? (() => {
       throw new Error(`${type.toUpperCase()} request received null/undefined response`)
     })();
   });
 
-  // TODO: add an onClear callback to clear all fields
-
   // Return relevant state/callbacks for the hook
-  return { formData, setFormData, submitting, onChange, onSubmit };
+  return { formData, setFormData, required, ready, submitting, onChange, onSubmit };
 }
