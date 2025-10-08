@@ -1,24 +1,41 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Box, Button, Checkbox, Flex } from '@chakra-ui/react';
 
-export default function useBulkOp({
-  name, // Name of the bulk operation (e.g., delete, select, etc.)
-  // Note: fn must be declared async, even if no await is called 
-  fn    // Callback func that executes operation on a single item; takes item's ObjectID as an arg
-}) {
+// TODO: allow specifying multiple operations on init
+// TODO: handle non-async fn arg so user doesn't always have to declare fn as async
+
+/**
+ * 
+ * @param {*} props
+ *    name  The name of the bulk operation (e.g., 'Delete')
+ *    fn    Callback function that defines an operation that takes
+ *          a single ObjectID as an argument and operates solely on
+ *          the corresponding element. Must ALWAYS be declared async.
+ * @returns 
+ */
+export default function useBulkOp({ name, fn }) {
+
   const [bulk, setBulk] = useState({
     name: name,
     enabled: false,
     selected: []
   });
 
-  const bulkRef = useRef();
+  // Boolean state to track bulk mode enabled status (for end-user to access)
+  const [bulkOpEnabled, setBulkOpEnabled] = useState(false);
+
+  // Reference to bulk state so we can get non-stale value in onBulkOp
+  const bulkRef = useRef(bulk);
   
-  // update bulkRef when state of 'bulk' changes (prevent stale references)
+  // Handle side effects of bulk state change
   useEffect(() => {
+    // Update bulk ref to prevent stale references
     bulkRef.current = bulk;
+    // Update bulkOpEnabled with current value of bulk.enabled
+    setBulkOpEnabled(bulk.enabled);
   }, [bulk]);
 
+  // TODO: I don't think onToggleMode and onToggleSelect need to use `useCallback`
   /**
    * Handle toggling bulk mode on/off
    */
@@ -42,7 +59,7 @@ export default function useBulkOp({
         // Already present, remove the item's ObjectID to un-toggle
         ? current.filter(_id => id !== _id)
         // Not present, add the item's ObjectID to toggle
-        : [...current, id]  
+        : [...current, id]
       return { ...prev, selected: updated };
     });
   }, []);
@@ -57,24 +74,22 @@ export default function useBulkOp({
     // If bulk mode disabled or nothing selected, return empty array
     if (!enabled || selected?.length === 0) return [];
 
-    const responses = await Promise.all(
-      bulk.selected.map(id => fn(id))
-    );
-
-    // TODO: test with Promise.allSettled
-    /*
-    const responses = await Promise.allSettled(
-      bulk.selected.map(id => fn(id))
-    );
-    */
+    const responses = await Promise.all(selected.map(id => fn(id)));
 
     // Disable bulk mode and clear selected items
     setBulk(prev => ({ ...prev, enabled: false, selected: [] }));
 
+    // Return the response data for each request
+    console.log(responses.map(res => res.data));
     return responses.map(res => res.data);
 
-    // Parse responses array to differentiate successful and failed requests
+    // TODO: test with Promise.allSettled
     /*
+    const responses = await Promise.allSettled(
+      selected.map(id => fn(id))
+    );
+
+    // Parse responses array to differentiate successful and failed requests
     return responses.map(res => {
       return res.status === 'fulfilled'
         ? { success: true, data: res.value }
@@ -83,52 +98,48 @@ export default function useBulkOp({
     */
   }, []);
 
-  const BulkSelector = ({
-    id // The ObjectID of the item to select
-  }) => {
-    const padSize = bulk.enabled ? 2 : 0;
+  /**
+   * 
+   * @param {*} props 
+   * @returns 
+   */
+  const BulkSelector = ({ id }) => {
+    if (!bulk.enabled) return null;
     return (
-      // Use Box as outer container so we can dynamically adjust top/bottom margin when bulk mode enabled to shift content down
-      <Box width='full' mt={padSize} mb={padSize} >
-        {bulk.enabled && <Checkbox // Only display the checkbox if bulk mode is enabled
-          position='absolute'
-          top={padSize + 1}
-          right={2}
-          isChecked={bulk.selected.includes(id)}
-          onChange={() => onToggleSelect(id)}
-        />}
-      </Box>
+      <Checkbox
+        position='absolute'
+        top={2}
+        right={2}
+        isChecked={bulk.selected.includes(id)}
+        onChange={() => onToggleSelect(id)}
+      />
     );
   }
 
-  const BulkController = ({
-    onBulkOp
-  }) => {
+  /**
+   * 
+   * @param {*} props 
+   * @returns 
+   */
+  const BulkController = ({ onBulkOp }) => {
     const { name, enabled, selected } = bulk;
     return (
       <Flex mb={4} align='center' >
         {enabled ? (
           // Controls to render if bulkMode is enabled
-          <>
-            <Button size='sm' colorScheme='red' mr={2} onClick={onToggleMode} >
+          <Box>
+            <Button size='sm' colorScheme='red' mr={2} onClick={onToggleMode}>
               Cancel Bulk {name?? 'Operation'}
             </Button>
-            <Button
-              size='sm'
-              colorScheme='red'
-              onClick={onBulkOp}
-              isDisabled={selected?.length === 0}
-            >
+            <Button size='sm' colorScheme='red' onClick={onBulkOp} isDisabled={selected?.length === 0}>
               {name?? 'Select'} Items
             </Button>
-          </>
+          </Box>
         ) : (
           // Controls to render is bulkMode is disabled
-          <>
-            <Button size='sm' colorScheme='blue' onClick={onToggleMode} >
-              Enable Bulk {name?? 'Operation'} Mode
-            </Button>
-          </>
+          <Button size='sm' colorScheme='blue' onClick={onToggleMode} >
+            Enable Bulk {name?? 'Operation'} Mode
+          </Button>
         )}
       </Flex>
     );
@@ -138,6 +149,7 @@ export default function useBulkOp({
 
   return {
     onBulkOp,
+    bulkOpEnabled,
     BulkSelector: (props) => (
       <BulkSelector
         {...props}

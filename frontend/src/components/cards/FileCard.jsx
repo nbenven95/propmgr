@@ -7,27 +7,31 @@ import iconMap from '../../util/iconMap.js'
 
 /**
  * 
- * @param {*} param0 
+ * @param {*} props
  * @returns 
  */
 const FileCard = ({
   file,
-  bulkMode,
-  onClickDelete: handleDelete,
-  onClickBulkSelect: handleBulkSelect,
-  onClickDownload: handleDownload // TODO: add download button
+  onClickRemove,
+  onClickDownload, // TODO: add download button
+  bulkOpEnabled,
+  BulkSelector // TODO: add secondary bulk mode for bulk downloading
 }) => {
 
+  // Note: these are for an already uploaded file that has a corresponding FileRef object;
+  // A file that is currently staged for upload will not have _id or documents.
+  const { _id, name, documents } = file;
+
   // Get the file extension (or the final extension, in the case of multiple)
-  let ext = String(file?.name).split('.').pop();
+  let ext = String(name).split('.').pop();
   // If no extension, replace with ''
-  if (ext === file.name) ext = '';
+  if (ext === name) ext = '';
 
   // Try to get a style for the extension provided by the library
-  const defaultStyle  = defaultStyles[ext];
+  const defaultStyle = defaultStyles[ext];
   // Get a backup style from our custom map, in case the library doesn't have one for this extension type
-  const backupStyle   = iconMap(ext);
-  const style         = defaultStyle?? backupStyle;
+  const backupStyle = iconMap(ext);
+  const style = defaultStyle?? backupStyle;
 
   return (
     <Box
@@ -37,39 +41,36 @@ const FileCard = ({
       bg='white'
       shadow='sm'
       p={4}
-      width='200px' // fixed width for consistency, adjust as needed
-      height='250px' // fixed height, adjust as needed
+      width='200px'
+      height='250px'
       display='flex'
       flexDirection='column'
       alignItems='center'
     >
-      {/* Render bulkMode select checkbox if enabled and file has no attached documents */}
-      {bulkMode?.enabled && file.documents?.length === 0 && (
-        <Checkbox
-          position='absolute'
-          top={2}
-          left={2}
-          size='md'
-          isChecked={bulkMode?.selected.includes(file._id)}
-          onChange={() => handleBulkSelect(file._id)}
-        />
-      )}
+      {/* Render bulk selector if one was provided and the file is not linked to any docs */}
+      {BulkSelector && <BulkSelector id={_id} />}
 
-      {/* Display delete/remove from staging button as long as the file has no attached Documents */}
+      {/* Display delete button as long as the file has no attached Documents */}
       <IconButton
         position='absolute'
         top={2}
-        right={2}
+        left={2}
         size='sm'
         aria-label='Delete File'
         icon={<DeleteIcon />}
         colorScheme='red'
-        disabled={bulkMode?.enabled || file?.documents?.length > 0}
-        onClick={() => handleDelete(file)}
+        disabled={bulkOpEnabled || documents?.length > 0}
+        onClick={onClickRemove}
       />
 
       {/* File Icon in center */}
-      <Box flex='1' display='flex' alignItems='center' justifyContent='center' my={4} width='40%'>
+      <Box
+        flex='1'
+        display='flex'
+        alignItems='center'
+        justifyContent='center'
+        width='40%'
+      >
         <FileIcon extension={ext} {...style} />
       </Box>
 
@@ -84,7 +85,6 @@ const FileCard = ({
       >
         {file.name}
       </Text>
-      <Text>{file._id}</Text>
     </Box>
   );
 };

@@ -13,32 +13,30 @@ import { WiCloudUp } from 'react-icons/wi';
 import FileCard from '../../components/cards/FileCard';
 
 const UploadFormUI = ({
-  loading,
-  dragging,
-  submitting,
-  
   refs,
   fetched,
   formData,
-
-  onStageFiles: handleStageFiles,
-  onClickRemove: handleClickRemove,
-  onClickBrowse: handleClickBrowse,
-  onClickSubmit: handleClickSubmit,
-
+  loading,
+  dragging,
+  submitting,
+  onClickBrowse,
+  onStageFiles,
+  onClickUnstage,
+  onClickSubmit,
   dropzoneRootProps,
   dropzoneInputProps
 }) => {
 
+  // TODO: enforce file extension restrictions
+  const { allowedFileExt } = fetched;
   const { stagedFiles } = formData;
-  const { allowedFileExt } = fetched; // TODO: enforce file extension restrictions
 
   const borderColor = useColorModeValue('gray.300', 'gray.600');
   const draggingBorderColor = '#1e40af';
 
+  // TODO: add this to useFetch as a component to return
   // Get an array of resource names that are still loading
   const resources = Object.keys(loading).filter(key => loading[key])
-
   if (resources.length > 0) {
     return (
       <Flex justify="center" align="center" minH="100vh">
@@ -76,14 +74,14 @@ const UploadFormUI = ({
           boxShadow: '0 0 10px rgba(30, 64, 175, 0.2)',
         }}
         mb={4}
-        onClick={handleClickBrowse}
+        onClick={onClickBrowse}
       >
         <VStack spacing={4} textAlign='center' {...dropzoneRootProps} >
           <WiCloudUp size={40} />
           <Text>Drop files here or</Text>
           <Button
             variant='outline'
-            onClick={handleClickBrowse}
+            onClick={onClickBrowse}
             _hover={{
               transform: 'scale(1.025)',
             }}
@@ -99,21 +97,25 @@ const UploadFormUI = ({
             multiple
             style={{ display: 'none' }}
             ref={refs.fileInput}
-            onChange={files => handleStageFiles(files)}
+            onChange={() => onStageFiles(files)}
             {...dropzoneInputProps}
           />
         </VStack>
       </Box>
 
       {/* Files Staged for Upload */}
-      <Text alignSelf="flex-start" mb={2} ml={4} fontWeight="bold">
+      <Text alignSelf='flex-start' mb={2} ml={4} fontWeight='bold'>
         {stagedFiles.length === 0 ? 'No files staged for upload' : 'Files staged for upload:'}
       </Text>
       <Box w="100%" px={4} mb={4}>
         {stagedFiles.length > 0 ? (
           <SimpleGrid columns={[1, 2, 3]} spacing={4}>
             {stagedFiles.map((file, index) => (
-              <FileCard key={index} file={file} onClickDelete={handleClickRemove} />
+              <FileCard
+                file={file}
+                onClickRemove={() => onClickUnstage(file.name)}
+                key={index}
+              />
             ))}
           </SimpleGrid>
         ) : (
@@ -125,7 +127,7 @@ const UploadFormUI = ({
       <Button
         colorScheme='blue'
         size='lg'
-        onClick={handleClickSubmit}
+        onClick={onClickSubmit}
         isLoading={submitting}
         loadingText='Submitting. . .'
         disabled={stagedFiles.length === 0}

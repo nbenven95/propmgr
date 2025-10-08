@@ -1,129 +1,115 @@
 import { useEffect } from 'react';
 import { Text } from '@chakra-ui/react';
+import axios from 'axios';
 
 import FilesPageUI from './FilesPageUI';
 import UploadForm from './UploadForm';
 
-import useBulkMode from '../../hooks/useBulkMode';
+import useBulkOp from '../../hooks/useBulkOp';
 import useDrawer from '../../hooks/useDrawer';
 import useNotify from '../../hooks/useNotify';
 import useFetch from '../../hooks/useFetch';
-import { getErrorMsg, plural, onDeleteSingle, onDownload } from '../../util/util';
+import { getErrorMsg, plural, onDownload } from '../../util/util';
 
-// TODO: move to centralized location 
-const baseUrl   = 'http://localhost:5000/api';
-const filesApi  = `${baseUrl}/files`;
+import EndpointEnum from '../../util/EndpointEnum.js';
 
-/**
- * 
- * @returns 
- */
+const { FILES_API } = EndpointEnum;
+
 const FilesPage = () => {
-
-  /* Init hooks */
-  
-  const { bulkMode, onBulkModeToggle, onBulkSelectToggle, onBulkDelete } = useBulkMode();
-  
-  const { onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();
-
-  const { loading, fetched, onFetchMany } = useFetch([
-    { files: { init: [], url: filesApi } }
-  ]); 
 
   const notify = useNotify();
 
-  /**
-   * 
-   * @param {Array} resrcs
-   */
-  const handleFetch = async (resrcs) => {
-    // TODO: is there a way to get the names of resources that failed to fetch?
-    const errs = await onFetchMany(resrcs);
+  const { onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();
+
+  const { loading, fetched, onFetchMany } = useFetch([
+    { files: { init: [], url: FILES_API } }
+  ]); 
+
+  const { onBulkOp, bulkOpEnabled, BulkSelector, BulkController } = useBulkOp({
+    name: 'Delete',
+    fn: async (id) => axios.delete(`${FILES_API}/${id}`)
+  });
+
+  // TODO: get names of specific resources that failed to fetch?
+  const handleFetch = async (resources) => {
+    const errs = await onFetchMany(resources);
     // On failure to fetch, log to console
     if (errs.length > 0) {
       const numErrors = errs.length;
-      const msg = `Failed to fetch (${numErrors}) ${plural('resource', numErrors)}: ${errs.join(', ')}`;
-      console.error(msg);
+      const label = plural('resource', numErrors);
+      console.error(`Failed to fetch (${numErrors}) ${label}: ${errs.join(', ')}`);
     }
   };
 
-  /* Handle side effects */
+  // TODO: use this as fn for useBulkOp, deprecate handleBulkDelete, pass onBulkOp to BulkController instead?
+  const handleDelete = async (id) => {
+    if (!id) throw new Error(`Invalid ObjectID \"${id}\"`);
+    if (fetched.files?.length === 0) return;
 
-  // Fetch resources (no dependencies; only called on initial page render)
-  useEffect(() => {
-    handleFetch(['files']);
-  }, []);
+    // Try to find a fetched File with ObjectID (_id) matching argument `id`
+    const file = fetched.files?.find(file => file._id === id);
+    if (!file) throw new Error(`Could not locate File with ObjectID \"${id}\"`);
 
-  /**
-   * @param {*} file 
-   */
-  const handleDelete = async (file) => {
+    // De-structure input
     const { name, documents, _id } = file;
-    const numLinked = documents?.length?? 0;
+
     try {
       // Check if the File has any attached Documents before attempting delete
+      const numLinked = documents?.length?? 0;
       if (numLinked > 0) {
-        const msg = `File \"${name}\" has (${numLinked}) linked ${plural('Document', numLinked)}`;
-        throw new Error(msg);
+        const label = plural('Document', numLinked);
+        throw new Error(`File \"${name}\" has (${numLinked}) linked ${label}`);
       }
       // Try to delete the File, notify user on success
-      await onDeleteSingle(`${filesApi}/${_id}`);
+      await axios.delete(`${FILES_API}/${_id}`);
       notify({
         status: 'success',
         title: 'File Deleted',
         desc: `Successfully deleted File \"${name}\"`
       });
     } catch (err) {
-      // Notify user if delete fails
       notify({
         status: 'error',
         title: `Error Deleting File \"${name}\"`,
         desc: getErrorMsg(err)
       });
     }
-    // Refresh fetched Files on successful delete (handle errors separately)
+
+    // Refresh fetched Files
     await handleFetch(['files']);
   };
 
-  /** */
   const handleBulkDelete = async () => {
     try {
       // Attempt bulk delete
-      const res = await onBulkDelete(filesApi);
-      const numDel = res.data.length?? 0;
+      const res   = await onBulkOp();
+      const label = plural('File', res.length);
       notify({
         status: 'success',
-        title: `${plural('File', numDel)} Deleted`,
-        desc: `Successfully deleted (${numDel}) ${plural('File', numDel)}`
+        title: `${label} Deleted`,
+        desc: `Successfully deleted (${res.length}) ${label}`
       });
     } catch (err) {
-      // Notify user if bulk delete fails
-      notify({ status: 'error', title: 'Error Deleting Files', desc: getErrorMsg(err) });
+      notify({
+        status: 'error',
+        title: 'Error Deleting Files',
+        desc: getErrorMsg(err)
+      });
     }
     // Refresh fetched Files on successful bulk delete
     await handleFetch(['files']);
   };
 
-  /**
-   * Download a File from the /api/files endpoint given its FileRef ObjectID
-   * Essentially just a wrapper for the utility function handleDownload given
-   * inputs id and fileName with known/constant URL (filesApi); also displays
-   * success/error toasts.
-   * 
-   * @param {*} id 
-   * @param {*} filename 
-   */
   const handleDownload = async (id, fileName) => {
     try {
       // Attempt File download, notify user on success
-      await onDownload(`${filesApi}/download/${id}`, fileName);
+      await onDownload(`${FILES_API}/download/${id}`, fileName);
       notify({
         status: 'success',
         title: 'File Downloaded',
         desc: `Successfully downloaded File \"${fileName}\"`
       });
     } catch (err) {
-      // Notify user of failed download
       notify({
         status: 'error',
         title: 'Error Downloading File',
@@ -132,40 +118,35 @@ const FilesPage = () => {
     }
   };
 
-  /* Handle opening the drawer and rendering UploadForm */
   const handleOpenForm = () => {
     onDrawerOpen(
       <Text>Upload New File</Text>,
-      <UploadForm onUpdate={() => { // Only need to pass onUpdate if UploadForm is being rendered in Drawer
-        /* Note: because handleFetch is async and we are
-          calling it without await, the function will start
-          the fetch and then immediately close the form without
-          waiting for the promise to be fulfilled. This should
-          then allow 'Loading Files. . .' to display when the
-          drawer closes if the fetch is still ongoing.  */
+      <UploadForm onUpdate={() => {
+        // Initiate fetch, don't await
         handleFetch(['files']);
-        onDrawerClose(); // Close the form immediately after initiating the fetch
+        // Close drawer immediately so resource loading indicator displays
+        onDrawerClose();
       }} />
     );
   };
+
+  // Handle side effects of initial page render
+  useEffect(() => {
+    handleFetch(['files']);
+  }, []);
 
   // Return presentational component with injected controller elements
   return (
     <FilesPageUI
       loading={loading}
       fetched={fetched}
-
-      drawerMenu={<DrawerMenu />}
-
       onClickDelete={handleDelete}
       onClickUpload={handleOpenForm}
       onClickDownload={handleDownload}
-
-      // TODO: refactor useBulkMode
-      bulkMode={bulkMode}
-      onBulkDelete={handleBulkDelete} // Custom bulk delete handler
-      onBulkModeToggle={onBulkModeToggle}
-      onBulkSelectToggle={onBulkSelectToggle}
+      DrawerMenu={DrawerMenu}
+      bulkOpEnabled={bulkOpEnabled}
+      BulkSelector={BulkSelector}
+      BulkController={<BulkController onBulkOp={handleBulkDelete} />}
     />
   );
 };

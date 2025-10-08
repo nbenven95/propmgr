@@ -1,27 +1,24 @@
 import React from 'react';
-import { Box, Flex, Text, Tooltip } from '@chakra-ui/react';
+import { Box, Flex, Heading, Spacer, Text, Tooltip } from '@chakra-ui/react';
 
-import UIHeader from '../../components/UIHeader';
+import CreateNewItemBtn from '../../components/buttons/CreateNewItemBtn';
 import FileCard from '../../components/cards/FileCard';
 
 /**
  * 
- * @param {*} param0 
+ * @param {*} props
  * @returns 
  */
 const FilesPageUI = ({
   loading,
   fetched,
-  drawerMenu,
-
   onClickUpload,
   onClickDelete,
   onClickDownload,
-
-  bulkMode,
-  onBulkDelete,
-  onBulkModeToggle,
-  onBulkSelectToggle
+  DrawerMenu,
+  bulkOpEnabled,
+  BulkSelector,
+  BulkController
 }) => {
   // Destructure fetched resources
   const { files } = fetched;
@@ -38,35 +35,37 @@ const FilesPageUI = ({
   {/* Display fetched Files in a grid */}
   return (
     <Box maxW='100vw' mx='auto' p={4} >
-      {/* Bulk delete controls, button link to UploadForm via drawer */}
-      <UIHeader 
-        title='Files'
-        bulkMode={bulkMode}
-        onClickCreate={onClickUpload}
-        onClickDelete={onBulkDelete}
-        onClickBulkModeToggle={onBulkModeToggle}
-      />
+      
+      {/* Page header */}
+      <Flex mb={4} align='center'>
+        {/* Button to open UploadForm drawer */}
+        <CreateNewItemBtn label='Upload New File' onClick={onClickUpload} />
+        <Heading size='lg'>Files</Heading>
+        <Spacer />
+        {/* Bulk delete controls */}
+        {BulkController}
+      </Flex>
 
-      {/* Drawer menu */}
-      {drawerMenu}
+      {/* Drawer menu: render UploadForm on open */}
+      {DrawerMenu && <DrawerMenu />}
 
-      {/* FileCard grid */}
+      {/* Display uploaded Files */}
       {files.length === 0 ? (
         <Text>No Files Found</Text>
       ) : (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '20px' }} >
-          {files.map((file, i) => (
-            <Tooltip key={i} label={
+          {files.map(file => (
+            <Tooltip key={file._id} label={
               file.documents?.length === 0
                 ? 'No Linked Documents'
-                : `Linked documents (${file.documents?.length}): ${file.documents.map(d => d.name).join(', ')}`
-            } >
+                : `Linked documents (${file.documents?.length}): ${file.documents.map(doc => doc.name).join(', ')}`
+            }>
               <FileCard 
                 file={file}
-                bulkMode={bulkMode}
-                onClickDelete={onClickDelete}
-                onClickBulkSelect={onBulkSelectToggle}
+                onClickRemove={() => onClickDelete(file._id)}
                 onClickDownload={onClickDownload}
+                bulkOpEnabled={bulkOpEnabled}
+                BulkSelector={BulkSelector}
                 key={file._id}
               />
             </Tooltip>

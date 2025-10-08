@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from 'react';
-//import { useToast } from '@chakra-ui/react';
 import { useDropzone } from 'react-dropzone';
 
 import UploadFormUI from './UploadFormUI';
@@ -45,30 +44,16 @@ const UploadForm = ({ onUpdate }) => {
     onDropAccepted: () => setDragging(false),
   });
 
-  /**
-   * 
-   * @param {Array} resources 
-   */
   const handleFetch = async (resources) => {
     const errs = await onFetchMany(resources);
     // On failure to fetch, just log to console
     if (errs.length > 0) {
-      console.error(`Failed to fetch (${errs.length})`.concat(
-        `${plural('resource', errs.length)}: ${errs.join(', ')}`));
+      const numErrors = errs.length;
+      const label = plural('resource', numErrors);
+      console.error(`Failed to fetch (${numErrors}) ${label}: ${errs.join(', ')}`);
     }
   };
 
-  /* Handle side effects */
-
-  // Fetch resources (no dependencies; only called on initial page render)
-  useEffect(() => {
-    handleFetch(['allowedFileExt']);
-  }, []);
-
-  /**
-   * 
-   * @param {*} files
-   */
   const handleStageFiles = (files) => {
     // Make sure input is an array of Files and not a FileList
     const filesToStage = Array.from(files);
@@ -76,21 +61,24 @@ const UploadForm = ({ onUpdate }) => {
     onChange({ target: { name: 'stagedFiles', type: 'file', files: filesToStage } });
   };
 
-  /* Handle removing a staged file */
-  const handleRemoveFile = (file) => {
+  /**
+   * Remove a File that is staged for upload.
+   * @param {*} name The name of the File
+   */
+  const handleUnstageFile = (name) => {
+    console.log(name)
     setFormData(prev => {
-      const stagedFilesUpdated = prev.stagedFiles.filter(f => {
-        return f.name !== file.name
-      });
+      // De-structure previous state
+      const { stagedFiles } = prev;
+      // If no files staged, abort update
+      if (stagedFiles.length === 0) return prev;
+      // Remove the file with the specified ObjectID from the stagedFiles array
+      const stagedFilesUpdated = stagedFiles.filter(file => file.name !== name);
       return { ...prev, stagedFiles: stagedFilesUpdated };
     });
   };
 
-  /* Trigger file input from 'select files' button */
-  const handleBrowseFiles = () => refs.fileInput.current?.click();
-
-  /* */
-  const handleSubmitForm = async () => {
+  const handleUpload = async () => {
     try {
       // Await POST request (default for onSubmit)
       const res = await onSubmit(`${filesApi}/upload`);
@@ -107,29 +95,38 @@ const UploadForm = ({ onUpdate }) => {
           : `Successfully uploaded File \"${files[0].name}\"`
       });
     } catch (err) {
-      // Notify user of failed upload
-      notify({ status: 'error', title: 'Error Uploading File(s)', desc: getErrorMsg(err) });
+      notify({
+        status: 'error',
+        title: 'Error Uploading File(s)',
+        desc: getErrorMsg(err)
+      });
     } finally {
-      // Call onUpdate (sync) to start fetch and close drawer immediately; loading indicator should display if fetch is ongoing
-      if (onUpdate) onUpdate();
+      // TODO: should this be called on success and failure, or just success?
+      onUpdate?.();
     }
   };
 
+  // Handle side effects of initial page render
+  useEffect(() => {
+    handleFetch(['allowedFileExt']);
+  }, []);
+
   return (
     <UploadFormUI
+      refs={refs}
+      fetched={fetched}
+      formData={formData}
       loading={loading}
       dragging={dragging}
       submitting={submitting}
 
-      refs={refs}
-      fetched={fetched}
-      formData={formData}
-
+      // Triggers File Input component from clicking 'Browse Files' button
+      onClickBrowse={() => refs.fileInput.current?.click()}
       onStageFiles={handleStageFiles}
-      onClickRemove={handleRemoveFile}
-      onClickBrowse={handleBrowseFiles}
-      onClickSubmit={handleSubmitForm}
+      onClickUnstage={handleUnstageFile}
+      onClickSubmit={handleUpload}
 
+      // react-dropzone props
       dropzoneRootProps={getRootProps()}
       dropzoneInputProps={getInputProps()}
     />
