@@ -26,17 +26,9 @@ const UploadFormUI = ({
   dropzoneRootProps,
   dropzoneInputProps
 }) => {
-
-  // TODO: enforce file extension restrictions
-  const { allowedFileExt } = fetched;
-  const { stagedFiles } = formData;
-
-  const borderColor = useColorModeValue('gray.300', 'gray.600');
-  const draggingBorderColor = '#1e40af';
-
   // TODO: add this to useFetch as a component to return
   // Get an array of resource names that are still loading
-  const resources = Object.keys(loading).filter(key => loading[key])
+  const resources = Object.keys(loading).filter(resource => loading[resource] === true)
   if (resources.length > 0) {
     return (
       <Flex justify="center" align="center" minH="100vh">
@@ -44,6 +36,13 @@ const UploadFormUI = ({
       </Flex>
     );
   }
+
+  // TODO: enforce file extension restrictions
+  const { allowedFileExt } = fetched;
+  const { stagedFiles } = formData;
+
+  const borderColor = useColorModeValue('gray.300', 'gray.600');
+  const draggingBorderColor = '#1e40af';
 
   return (
     <Flex

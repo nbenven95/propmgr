@@ -1,31 +1,30 @@
-import '../../styles/doccard.css'
+import React from 'react';
+import { Box, Button, Flex, HStack, IconButton, Text } from '@chakra-ui/react';
+import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
 
-import {
-  Box,
-  Button,
-  Checkbox,
-  Flex,
-  IconButton,
-  Text
-} from '@chakra-ui/react'
-
-import {
-  DeleteIcon,
-  DownloadIcon,
-  EditIcon
-} from '@chakra-ui/icons'
+import FileCard from './FileCard';
 
 const DocCard = ({
   doc,
-  bulkMode,
-  onClickEdit: handleEdit,
-  onClickDelete: handleDelete,
-  onClickDownload: handleDownload,
-  onClickBulkSelect: handleBulkSelect
+  onClickEdit,
+  onClickDelete,
+  onClickDownload,
+  bulkOpEnabled,
+  BulkSelector
 }) => {
+  // De-structure Document data
+  const { 
+    name,
+    docType,
+    dateCreate,
+    dateEff,
+    expiry,
+    fileRef,
+    _id,
+    updatedAt
+  } = doc;
 
   return (
-    // TODO: display appropriate icon type for the attached file
     <Box
       position='relative'
       borderWidth='1px'
@@ -34,81 +33,92 @@ const DocCard = ({
       shadow='sm'
       p={4}
     >
-      
-      {/* Display bulk mode selection checkbox if bulk mode is enabled */}
-      {bulkMode.enabled && (
-        <Checkbox
-          position='absolute'
-          top={2}
-          left={2}
-          isChecked={bulkMode.selected.includes(doc._id)}
-          onChange={() => handleBulkSelect(doc._id)}
-        />
-      )}
-
-      {/* Display Document data */}
-      <Flex
-        direction='column'
-        align='start'
-        pl={bulkMode.enabled ? 6 : 0}
-      >
-
-        {/* Display mandatory fields */}
-        <Text fontWeight='bold'>Name: {doc.name}</Text>
-        <Text>Type: { String(doc.docType).replace(/^./, c => c.toUpperCase()) }</Text>
+      {/* Render main content */}
+      <Flex direction='column' align='start'>
         
-        {/* Display optional fields only if they have data */}
-        {doc.dateCreate && <Text>Date Created: {new Date(doc.dateCreate).toDateString()}</Text>}
-        {doc.dateEff && <Text>Date Effective: {new Date(doc.dateEff).toDateString()}</Text>}
-        {doc.expiry && <Text>Expires: {new Date(doc.expiry).toDateString()}</Text>}
-        
-        {/* Display attached file + download controls */}
-        <Flex
-          width='full'
-          justify='space-between'
-          align='center'
-          mt={2}
-        >
-          <Text>Attached file: {doc.fileRef ? doc.fileRef.name : 'NONE'}</Text>
-          <IconButton
-            icon={<DownloadIcon />}
-            size='sm'
-            aria-label='Download'
-            colorScheme='purple'
-            onClick={() => handleDownload(doc.fileRef?._id, doc.fileRef?.name)}
-          />
-        </Flex>
+        {/* If defined, render bulk selector */}
+        {BulkSelector && <BulkSelector id={_id} />}
 
-        {/* Edit/Delete controls */}
-        <Flex
-          width='full'
-          justify='space-between'
-          align='center'
-          mt={2}
-        >
-          {/* Edit Document button */}
-          <Button
-            size='sm'
-            leftIcon={<EditIcon />}
-            aria-label='Edit Document'
-            colorScheme='teal'
-            onClick={() => handleEdit(doc)}
-          >
-            Edit
-          </Button>
-          {/* Delete Document button */}
-          <IconButton
-            icon={<DeleteIcon />}
-            size='sm'
-            aria-label='Delete Document'
-            colorScheme='red'
-            onClick={() => handleDelete(doc)}
-          />          
-        </Flex>
+        {/* Card header */}
+        <HStack width='full' justify='space-between' align='center' mb={2}>
+          {/* Document name */}
+          <Text fontWeight='bold' fontSize='2xl'>{name?? 'Document Name Not Found'}</Text>
+          {/* Date of last update */}
+          {updatedAt && 
+            <HStack spacing={2}>
+              <Text fontWeight='bold'>Last Updated:</Text>
+              <Text>{new Date(updatedAt).toDateString()}</Text>
+            </HStack>
+          }
+        </HStack>
 
-        {/* Display time of last update */}
-        {doc.updatedAt && <Text>Last Updated: {new Date(doc.updatedAt).toDateString()}</Text>}
-      
+        {/* Document type */}
+        {docType &&
+          <HStack width='full' justify='space-between' align='center' mb={2}>
+            <Text fontWeight='bold'>Type:</Text>
+            <Text>{docType.replace(/^./, ch => ch.toUpperCase())}</Text>
+          </HStack>
+        }
+
+        {/* Attached file */}
+        <HStack width='full' justify='space-between' align='center' mb={2}>
+          <Text fontWeight='bold'>Attached File:</Text>
+          {fileRef ? (
+            <FileCard file={fileRef} onClickDownload={onClickDownload} />
+          ) : (
+            <Text>None</Text>
+          )}
+        </HStack>
+
+        {/* Date of creation (optional) */}
+        {dateCreate &&
+          <HStack width='full' justify='space-between' align='center' mb={2}>
+            <Text fontWeight='bold'>Date Created:</Text>
+            <Text>{new Date(dateCreate).toDateString()}</Text>
+          </HStack>
+        }
+
+        {/* Date effective (optional) */}
+        {dateEff && 
+          <HStack width='full' justify='space-between' align='center' mb={2}>
+            <Text fontWeight='bold'>Date Effective:</Text>
+            <Text>{new Date(dateEff).toDateString()}</Text>
+          </HStack>
+        }
+
+        {/* Date of expiration (optional) */}
+        {expiry && 
+          <HStack width='full' justify='space-between' align='center' mb={2}>
+            <Text fontWeight='bold'>Expiry:</Text>
+            <Text>{new Date(expiry).toDateString()}</Text>
+          </HStack>
+        }
+
+        {/* Edit/delete controls */}
+        <HStack width='full' justify='space-between' align='center' mt={2}>
+          {onClickEdit && 
+            <Button
+              size='sm'
+              leftIcon={<EditIcon />}
+              aria-label='Edit Document'
+              colorScheme='teal'
+              onClick={onClickEdit}
+            >
+              Edit Document
+            </Button>
+          }
+          {onClickDelete && 
+            <IconButton
+              icon={<DeleteIcon />}
+              size='sm'
+              aria-label='Delete Document'
+              colorScheme='red'
+              disabled={bulkOpEnabled} // Disable if bulkOp mode is enabled
+              onClick={onClickDelete}
+            />
+          }
+        </HStack>
+
       </Flex>
     </Box>
   );

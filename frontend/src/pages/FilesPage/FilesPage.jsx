@@ -21,7 +21,7 @@ const FilesPage = () => {
 
   const { onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();
 
-  const { loading, fetched, onFetchMany } = useFetch([
+  const { loading, isFetching, fetched, onFetchMany, LoadingIndicator } = useFetch([
     { files: { init: [], url: FILES_API } }
   ]); 
 
@@ -46,21 +46,32 @@ const FilesPage = () => {
     if (!id) throw new Error(`Invalid ObjectID \"${id}\"`);
     if (fetched.files?.length === 0) return;
 
-    // Try to find a fetched File with ObjectID (_id) matching argument `id`
-    const file = fetched.files?.find(file => file._id === id);
-    if (!file) throw new Error(`Could not locate File with ObjectID \"${id}\"`);
+    // Try to find a fetched File with ObjectID matching argument `id`
+    const file = fetched.files.find(file => file._id === id);
+    // Handle non-operational (unexpected) error
+    if (!file) {
+      // Log detailed error to console
+      console.error(`Could not locate File with ObjectID \"${id}\"`);
+      // Notify user with a generic error
+      notify({
+        status: 'error',
+        title: 'Error deleting File',
+        desc: 'Encountered an unexpected error'
+      });
+      return;
+    }
 
-    // De-structure input
     const { name, documents, _id } = file;
 
+    // Try to delete the File, notify user of success/failure
     try {
-      // Check if the File has any attached Documents before attempting delete
+      // Handle operational (expected) error: user attempts to delete File linked to Document(s)
       const numLinked = documents?.length?? 0;
       if (numLinked > 0) {
         const label = plural('Document', numLinked);
+        // Notify user with a detailed error
         throw new Error(`File \"${name}\" has (${numLinked}) linked ${label}`);
       }
-      // Try to delete the File, notify user on success
       await axios.delete(`${FILES_API}/${_id}`);
       notify({
         status: 'success',
@@ -80,9 +91,10 @@ const FilesPage = () => {
   };
 
   const handleBulkDelete = async () => {
+    // Try bulk deleting Files, notify user of success/failure
+    // TODO: refactor onBulkOp to handle cases where some requests succeed and some fail
     try {
-      // Attempt bulk delete
-      const res   = await onBulkOp();
+      const res = await onBulkOp();
       const label = plural('File', res.length);
       notify({
         status: 'success',
@@ -96,13 +108,14 @@ const FilesPage = () => {
         desc: getErrorMsg(err)
       });
     }
-    // Refresh fetched Files on successful bulk delete
+
+    // Refresh fetched Files
     await handleFetch(['files']);
   };
 
   const handleDownload = async (id, fileName) => {
+    // Try to download the file, notify the user on success/failure
     try {
-      // Attempt File download, notify user on success
       await onDownload(`${FILES_API}/download/${id}`, fileName);
       notify({
         status: 'success',
@@ -138,8 +151,10 @@ const FilesPage = () => {
   // Return presentational component with injected controller elements
   return (
     <FilesPageUI
-      loading={loading}
+      //loading={loading}
       fetched={fetched}
+      isFetching={isFetching}
+      LoadingIndicator={LoadingIndicator}
       onClickDelete={handleDelete}
       onClickUpload={handleOpenForm}
       onClickDownload={handleDownload}

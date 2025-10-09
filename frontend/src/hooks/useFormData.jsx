@@ -38,18 +38,19 @@ export default function useFormData(fields) {
 
   // Validate form data on state change, set validation flag (e.g., disable submit button until all req fields are filled)
   useEffect(() => {
+    let ready = true;
+
     for (const [field, data] of Object.entries(formData)) {
-      //console.log(`${field} ${required[field] ? '(required)' : ''}: ${data}`);
-      // Check for any empty required fields
+      // Check missing required fields
       if (required[field] && (data === null || data === undefined || data === '')) {
         console.log(`Missing required field: ${field}`);
-        setReady(false);
-        return;
+        ready = false;
       }
       // TODO: other validation? (e.g., check for garbage input)
     }
-    console.log('Ready to submit');
-    setReady(true);
+
+    if (ready) console.log('Ready to submit!');
+    setReady(ready)
   }, [formData]);
 
   /**
@@ -191,9 +192,9 @@ export default function useFormData(fields) {
   const onSubmit = useCallback(async (url, config = {}, type = 'POST') => {
     try {      
       // Ensure current form state is valid before continuing
-      if (!ready) throw new Error(``)
+      if (!ready) throw new Error('Missing required field(s)');
 
-      // Set submission state `submitting=true` to indicate submission in progress
+      // Set submission state to true
       setSubmitting(true);
       // Init FormData payload from the current state
       const payload = getPayload();
@@ -215,9 +216,11 @@ export default function useFormData(fields) {
       }
 
     } catch (err) {
-      throw err; // Propagate errors
+      // Propagate errors
+      throw err;
     } finally {
-      setSubmitting(false); // Reset submission state on success or failure
+      // Clean up: set submission state to false on success or failure
+      setSubmitting(false);
     }
 
     // Return response data: { success, message, data }

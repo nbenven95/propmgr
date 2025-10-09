@@ -13,26 +13,32 @@ import {
   Text
 } from '@chakra-ui/react';
 
+import { formatDisplayDate } from '../../util/util';
+
 const CreateDocFormUI = ({
   refs,
-  fetched,
-  formData,
   formState,
-  loading,
-  submitting,
 
-  drawerMenu,
+  fetched,
+  isFetching,
+  LoadingIndicator,
+
+  formData,
+  required,
+  ready,
+  submitting,
+  
+  DrawerMenu,
+  onClickUpload,
+  onStageFiles,
 
   onChangeField,
   onChangeDate,
-  onStageFiles,
-  onDatePickerFocus,
-  onDatePickerFocusLost,
-
-  onClickUpload, // Open drawer to display the file dropzone 
   onClickSubmit,
   onClickToggle
 }) => {
+  // If defined, display loading indicator if still fetching
+  if (LoadingIndicator && isFetching) return <LoadingIndicator />;
 
   // De-structure fetched data
   const { allowedFileExt, docTypes, files } = fetched;
@@ -43,43 +49,27 @@ const CreateDocFormUI = ({
   // De-structure form state
   const { useDefaultName } = formState;
 
-  // Get an array of resource names that are still loading
-  const resources = Object.keys(loading).filter(key => loading[key])
-
-  if (resources.length > 0) {
-    return (
-      <Flex justify="center" align="center" minH="100vh">
-        <Text fontSize="xl">Loading {resources.join(', ')}. . .</Text>
-      </Flex>
-    );
-  }
-
-  /**
-   * 
-   * @param {String} dateStr An ISO 8601 date string (UTC)
-   * @returns 
-   */
-  const formatDisplayDate = (dateStr) => {
-    if (!dateStr) return '';
-    // Use en-CA locale for 'yyyy-MM-dd' output formatting
-    return new Intl.DateTimeFormat('en-CA', {
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      year    : 'numeric',
-      month   : '2-digit',
-      day     : '2-digit'
-    }).format(new Date(dateStr));
-  }; // TODO: look into alternatives to handle cases where Intl isn't supported by a browser
-
   return (
-    <Box maxW='600px' mx='auto' p={4} borderWidth='1px' borderRadius='8px' boxShadow='xl' bg='white'>
+    <Box
+      maxW='600px'
+      mx='auto'
+      p={4}
+      borderWidth='1px'
+      borderRadius='8px'
+      boxShadow='xl'
+      bg='white'
+    >
+      {/* Page header */}
       <Heading mb={4} textAlign='center'>Create New Document</Heading>
-      <VStack spacing={4} align='stretch'>       
-
-        {/* Drawer to render dropzone component for File staging */}
-        {drawerMenu}
+      
+      {/* Init drawer menu (if defined) */}
+      {DrawerMenu && <DrawerMenu />}
+      
+      {/* Render main content */}
+      <VStack spacing={4} align='stretch'>  
 
         {/* Name input */}
-        <FormControl isRequired>
+        <FormControl isRequired={required?.name}>
           <FormLabel>Name</FormLabel>
           <Input
             name='name'
@@ -91,19 +81,18 @@ const CreateDocFormUI = ({
         </FormControl>
 
         {/* Toggle use default document name */}
-        <FormControl>
-          <Checkbox
-            name='useDefaultName'
-            isChecked={useDefaultName}
-            onChange={onClickToggle}
-            ref={refs.useDefaultName} // TODO: check if this ref is needed anymore 
-          >
-            Use file name as document name
-          </Checkbox>
-        </FormControl>
+        <Checkbox
+          name='useDefaultName'
+          isChecked={useDefaultName}
+          onChange={onClickToggle}
+          // TODO: is this ref needed anymore?
+          ref={refs.useDefaultName}
+        >
+          Use file name as document name
+        </Checkbox>
 
         {/* Document type selector (drop-down) */}
-        <FormControl isRequired>
+        <FormControl isRequired={required?.docType}>
           <FormLabel>Document Type</FormLabel>
           <Select
             name='docType'
@@ -111,19 +100,16 @@ const CreateDocFormUI = ({
             value={docType}
             onChange={onChangeField}
           >
-            {loading.docTypes
-              ? <>Loading docTypes. . .</>
-              : Object.entries(docTypes).map(([k, v])=> 
-                <option key={k} value={v}>
-                  {String(v).replace(/^./, c => c.toUpperCase())}
-                </option>
-              )
-            }
+            {Object.entries(docTypes).map(([k, v])=> 
+              <option key={k} value={v}>
+                {String(v).replace(/^./, c => c.toUpperCase())}
+              </option>
+            )}
           </Select>
         </FormControl>
 
         {/* Date created picker */}
-        <FormControl>
+        <FormControl isRequired={required?.dateCreate}>
           <Tooltip label={'Document date of creation'}>
             <FormLabel>Date Created</FormLabel>
           </Tooltip>
@@ -136,7 +122,7 @@ const CreateDocFormUI = ({
         </FormControl>
 
         {/* Date effective picker */}
-        <FormControl>
+        <FormControl isRequired={required?.dateEff}>
           <Tooltip label={'Date the document comes into effect'}>
             <FormLabel>Date Effective</FormLabel>
           </Tooltip>
@@ -149,7 +135,7 @@ const CreateDocFormUI = ({
         </FormControl>
 
         {/* Expiration date picker */}
-        <FormControl>
+        <FormControl isRequired={required?.expiry}>
           <Tooltip label={'Document expiration date'}>
             <FormLabel>Expiration Date</FormLabel>
           </Tooltip>
@@ -186,7 +172,7 @@ const CreateDocFormUI = ({
           // TODO: Add onClick handler for FileCards to handle clicking/selecting them
         }
         {/* File input field (old) */}
-        <FormControl isRequired>
+        <FormControl isRequired={true}>
           <FormLabel>Upload File</FormLabel>
           <Input
             name='stagedFiles'
@@ -197,7 +183,6 @@ const CreateDocFormUI = ({
             }}
           />
         </FormControl>
-        
 
         {/* New file upload controls (opens drawer with dropzone)
         <FormControl>
@@ -219,14 +204,13 @@ const CreateDocFormUI = ({
             colorScheme='teal'
             onClick={onClickSubmit}
             isLoading={submitting}
+            disabled={!ready}
             loadingText='Submitting. . .'
             width='100%'
           >
             Create Document
           </Button>
         </Flex>
-
-        {/* TODO: add 'clear form' button */}
 
       </VStack>
 

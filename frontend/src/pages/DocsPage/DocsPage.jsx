@@ -1,96 +1,97 @@
 import { useEffect } from 'react';
 import { Text } from '@chakra-ui/react';
+import axios from 'axios';
 
 import DocsPageUI from './DocsPageUI';
 import CreateDocForm from './CreateDocForm';
 import EditDocForm from './EditDocForm';
 
-import useBulkMode from '../../hooks/useBulkMode';
+import useBulkOp from '../../hooks/useBulkOp';
 import useDrawer from '../../hooks/useDrawer';
 import useNotify from '../../hooks/useNotify';
 import useFetch from '../../hooks/useFetch';
-import { getErrorMsg, plural, onDeleteSingle, onDownload } from '../../util/util';
+import { getErrorMsg, plural, onDownload } from '../../util/util';
 
-// TODO: move to centralized location 
-const baseUrl     = 'http://localhost:5000/api';
-const filesApi    = `${baseUrl}/files`;
-const docsApi     = `${baseUrl}/docs`;
+import EndpointEnum from '../../util/EndpointEnum';
+
+const { DOCS_API, FILES_API } = EndpointEnum;
 
 const DocsPage = () => {
 
-  //const toast = useToast();
   const notify = useNotify();
 
-  const { drawerContent, isOpen, onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();
+  const { onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();
 
-  const { bulkMode, onBulkModeToggle, onBulkSelectToggle, onBulkDelete } = useBulkMode();
-
-  const { loading, fetched, onFetchMany } = useFetch([
-    { docs: { init: [], url: docsApi } }
+  const { loading, isFetching, fetched, onFetchMany, LoadingIndicator } = useFetch([
+    { docs: { init: [], url: DOCS_API } }
   ]);
 
-  /**
-   * 
-   * @param {Array} resources 
-   */
+  const { onBulkOp, bulkOpEnabled, BulkSelector, BulkController } = useBulkOp({
+    name: 'Delete',
+    fn: async (id) => axios.delete(`${DOCS_API}/${id}`)
+  });
+
   const handleFetch = async (resources) => {
-    // TODO: is there a way to get the names of resources that failed to fetch?
     const errs = await onFetchMany(resources);
     // On failure to fetch, log to console
     if (errs.length > 0) {
       const numErrors = errs.length;
-      console.error(
-        `Failed to fetch (${numErrors}) ${plural('resource', numErrors)}: ${errs.join(', ')}`
-      );
+      const label = plural('resource', numErrors);
+      console.error(`Failed to fetch (${numErrors}) ${label}: ${errs.join(', ')}`);
     }
   };
-  
-  /* Handle side effects */
 
-  // Fetch resources (no dependencies; only called on initial page render)
-  useEffect(() => {
-    handleFetch(['docs']);
-  }, []);
+  const handleDelete = async (id) => {
+    if (!id) throw new Error(`Invalid ObjectID \"${id}\"`);
+    // If no fetched documents, don't bother searching
+    if (fetched.docs?.length === 0) return;
 
-  /**
-   * 
-   * @param {*} doc 
-   */
-  const handleDelete = async (doc) => {
+    // Try to find a Document with ObjectID matching argument `id`
+    const doc = fetched.docs.find(doc => doc._id === id);
+    // Handle non-operational (unexpected) error
+    if (!doc) {
+      // Log detailed error msg to console
+      console.error(`Could not locate Document with ObjectID \"${id}\"`);
+      // Notify user with a generic error
+      notify({
+        status: 'error',
+        title: 'Error deleting Document',
+        desc: 'Encountered an unexpected error'
+      });
+      return;
+    }
+
+    // Try to delete the Document, notify user of success/failure
+    const { name, _id } = doc;
     try {
-      const { name, _id } = doc;
-      // Try to delete the Document, notify user on success
-      await onDeleteSingle(`${docsApi}/${_id}`);
+      await axios.delete(`${DOCS_API}/${_id}`);
       notify({
         status: 'success',
         title: 'Document Deleted',
         desc: `Successfully deleted Document \"${name}\"`
       });
     } catch (err) {
-      // Notify user if delete fails
       notify({
         status: 'error',
-        title: `Error Deleting Document \"${name}\"`,
+        title: `Error deleting Document \"${name}\"`,
         desc: getErrorMsg(err)
       });
     }
-    // Refresh fetched Documents on successful delete
+
+    // Refresh fetched Documents
     await handleFetch(['docs']);
   };
 
-  /**
-   * Handle deleting all Documents selected for bulk delete.
-   */
   const handleBulkDelete = async () => {
+    // Try bulk deleting Documents, notify user of success/failure
+    // TODO: refactor onBulkOp to handle cases where some requests succeed and some fail
     try {
-      // Attempt bulk delete
-      const res = await onBulkDelete(docsApi);
-      const numDel = res.data.length;
-      const label = plural('Document', numDel);
+      const res = await onBulkOp();
+      const label = plural('Document', res.length);
       notify({
         status: 'success',
         title: `${label} Deleted`,
-        desc: `Successfully deleted (${numDel}) ${label}`
+        desc: `Successfully deleted (${res.length}) ${label}`
       });
     } catch (err) {
       notify({
@@ -99,30 +100,22 @@ const DocsPage = () => {
         desc: getErrorMsg(err)
       });
     }
-    // Refresh fetched Documents on successful bulk delete
+
+    // Refresh fetched Documents
     await handleFetch(['docs']);
   };
 
-  /**
-   * Download a File from the /api/files endpoint given its FileRef ObjectID
-   * Essentially just a wrapper for the utility function handleDownload given
-   * inputs id and fileName with known/constant URL (filesApi); also displays
-   * success/error toasts.
-   * 
-   * @param {*} id 
-   * @param {*} filename 
-   */
+  // TODO: refactor onDownload into a hook; just pass this as an anon func prop
   const handleDownload = async (id, fileName) => {
+    // Try to download the file, notify user of success/failure
     try {
-      // Attempt File download, notify user on success
-      await onDownload(`${filesApi}/download/${id}`, fileName);
+      await onDownload(`${FILES_API}/download/${id}`, fileName);
       notify({
         status: 'success',
         title: 'File Downloaded',
         desc: `Successfully downloaded File \"${fileName}\"`
       });
     } catch (err) {
-      // Notify user of failed download
       notify({
         status: 'error',
         title: 'Error Downloading File',
@@ -131,18 +124,18 @@ const DocsPage = () => {
     }
   };
 
-  /* Handle opening drawer and rendering CreateDocForm */
   const handleOpenCreateForm = () => {
     onDrawerOpen(
       <Text>Create New Document</Text>,
       <CreateDocForm onUpdate={() => {
+        // Initiate fetch, don't await
         handleFetch(['docs']);
+        // Close drawer immediately so resource loading indicator displays
         onDrawerClose();
       }} />
     );
   };
 
-  /* Handle opening drawer and rendering EditDocForm */
   const handleOpenEditForm = (doc) => {
     onDrawerOpen(
       <Text>Edit {doc?.name?? 'Document'}</Text>,
@@ -153,23 +146,28 @@ const DocsPage = () => {
     );
   };
 
+  // Handle side effects of initial page render
+  useEffect(() => {
+    handleFetch(['docs']);
+  }, []);
+
   // Return presentational component with injected controller elements
   return (
     <DocsPageUI
-      loading={loading}
+      //loading={loading}
       fetched={fetched}
-      
-      drawerMenu={<DrawerMenu />}
+      isFetching={isFetching}
+      LoadingIndicator={LoadingIndicator}
 
+      DrawerMenu={DrawerMenu}
       onClickEdit={handleOpenEditForm}
       onClickCreate={handleOpenCreateForm}
       onClickDelete={handleDelete}
       onClickDownload={handleDownload}
 
-      bulkMode={bulkMode}
-      onBulkDelete={handleBulkDelete} // Custom bulk delete handler
-      onBulkModeToggle={onBulkModeToggle}
-      onBulkSelectToggle={onBulkSelectToggle}
+      bulkOpEnabled={bulkOpEnabled}
+      BulkSelector={BulkSelector}
+      BulkController={<BulkController onBulkOp={handleBulkDelete} />}
     />
   );
 };

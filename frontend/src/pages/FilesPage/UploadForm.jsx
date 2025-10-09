@@ -8,14 +8,17 @@ import useNotify from '../../hooks/useNotify';
 import useFormData from '../../hooks/useFormData';
 import { getErrorMsg, plural } from '../../util/util';
 
-// TODO: move to centralized location 
-const baseUrl   = 'http://localhost:5000/api';
-const filesApi  = `${baseUrl}/files`;
-const infoApi   = `${baseUrl}/info`;
-const fileExtApi = `${infoApi}/allowed-file-ext`;
+import EndpointEnum from '../../util/EndpointEnum';
+
+const { FILES_API, FILE_EXT_API } = EndpointEnum;
 
 // TODO: refactor file staging state and logic to Dropzone
 
+/**
+ * 
+ * @param {*} props 
+ * @returns 
+ */
 const UploadForm = ({ onUpdate }) => {
 
   const notify = useNotify();
@@ -25,7 +28,7 @@ const UploadForm = ({ onUpdate }) => {
   ]);
 
   const { loading, fetched, onFetchMany } = useFetch([
-    { allowedFileExt: { init: [], url: fileExtApi } }
+    { allowedFileExt: { init: [], url: FILE_EXT_API } }
   ]);
 
   // Init component references
@@ -81,7 +84,7 @@ const UploadForm = ({ onUpdate }) => {
   const handleUpload = async () => {
     try {
       // Await POST request (default for onSubmit)
-      const res = await onSubmit(`${filesApi}/upload`);
+      const res = await onSubmit(`${FILES_API}/upload`);
       const files = Array.from(res.data);
       // Clear staged files
       setFormData({ stagedFiles: [] });

@@ -1,6 +1,6 @@
 import React from 'react'
-import { Box, Flex, Checkbox, IconButton, Text } from '@chakra-ui/react'
-import { DeleteIcon } from '@chakra-ui/icons'
+import { Box, IconButton, Text } from '@chakra-ui/react'
+import { DeleteIcon, DownloadIcon } from '@chakra-ui/icons'
 import { defaultStyles, FileIcon } from 'react-file-icon'
 
 import iconMap from '../../util/iconMap.js'
@@ -13,9 +13,9 @@ import iconMap from '../../util/iconMap.js'
 const FileCard = ({
   file,
   onClickRemove,
-  onClickDownload, // TODO: add download button
+  onClickDownload,
   bulkOpEnabled,
-  BulkSelector // TODO: add secondary bulk mode for bulk downloading
+  BulkSelector,
 }) => {
 
   // Note: these are for an already uploaded file that has a corresponding FileRef object;
@@ -47,23 +47,40 @@ const FileCard = ({
       flexDirection='column'
       alignItems='center'
     >
-      {/* Render bulk selector if one was provided and the file is not linked to any docs */}
+      {/* If defined, render bulk selector */}
+      {/* TODO: disable if attached to any docs */}
       {BulkSelector && <BulkSelector id={_id} />}
 
-      {/* Display delete button as long as the file has no attached Documents */}
-      <IconButton
-        position='absolute'
-        top={2}
-        left={2}
-        size='sm'
-        aria-label='Delete File'
-        icon={<DeleteIcon />}
-        colorScheme='red'
-        disabled={bulkOpEnabled || documents?.length > 0}
-        onClick={onClickRemove}
-      />
+      {/* Render delete button */}
+      {onClickRemove && 
+        <IconButton
+          position='absolute'
+          top={2}
+          left={2}
+          size='sm'
+          aria-label='Delete File'
+          icon={<DeleteIcon />}
+          colorScheme='red'
+          disabled={bulkOpEnabled || documents?.length > 0} // Disable 
+          onClick={onClickRemove}
+        />
+      }
 
-      {/* File Icon in center */}
+      {/* Render download button */}
+      {onClickDownload &&
+        <IconButton
+          position='absolute'
+          top={2}
+          right={2}
+          size='sm'
+          aria-label={'Download File'}
+          icon={<DownloadIcon />}
+          colorScheme='purple'
+          onClick={onClickDownload}
+        />
+      }
+
+      {/* Render file icon in center of card */}
       <Box
         flex='1'
         display='flex'
@@ -75,6 +92,7 @@ const FileCard = ({
       </Box>
 
       {/* Filename, truncated */}
+      {/* TODO: fix positioning */}
       <Text
         fontSize='sm'
         fontWeight='medium'

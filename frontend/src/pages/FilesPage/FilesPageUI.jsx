@@ -10,46 +10,42 @@ import FileCard from '../../components/cards/FileCard';
  * @returns 
  */
 const FilesPageUI = ({
-  loading,
   fetched,
-  onClickUpload,
-  onClickDelete,
-  onClickDownload,
+  isFetching,
+  LoadingIndicator,
   DrawerMenu,
+  onClickUpload,
+  onClickDownload, // TODO: implement
+  onClickDelete,
   bulkOpEnabled,
   BulkSelector,
   BulkController
 }) => {
-  // Destructure fetched resources
+  // If defined, display loading indicator if still fetching
+  if (LoadingIndicator && isFetching) return <LoadingIndicator />;
+
+  // De-structure fetched resources
   const { files } = fetched;
 
-  {/* Display loading indicator while fetching */}
-  if (loading.files) {
-    return (
-      <Flex justify='center' align='center' minH='100vh'>
-        <Text fontSize='xl'>Loading Files. . .</Text>
-      </Flex>
-    );
-  }
-
-  {/* Display fetched Files in a grid */}
+  // Display fetched files in a grid
   return (
-    <Box maxW='100vw' mx='auto' p={4} >
-      
+    <Box maxW='100vw' mx='auto' p={4}>
+
       {/* Page header */}
       <Flex mb={4} align='center'>
         {/* Button to open UploadForm drawer */}
         <CreateNewItemBtn label='Upload New File' onClick={onClickUpload} />
         <Heading size='lg'>Files</Heading>
         <Spacer />
-        {/* Bulk delete controls */}
+        {/* Render bulk delete controls */}
         {BulkController}
       </Flex>
 
-      {/* Drawer menu: render UploadForm on open */}
+      {/* Init drawer menu (if defined) */}
       {DrawerMenu && <DrawerMenu />}
 
-      {/* Display uploaded Files */}
+      {/* TODO: update to use flex container (include 'not found' text) */}
+      {/* Render main content when fetch completes */}
       {files.length === 0 ? (
         <Text>No Files Found</Text>
       ) : (
@@ -63,7 +59,7 @@ const FilesPageUI = ({
               <FileCard 
                 file={file}
                 onClickRemove={() => onClickDelete(file._id)}
-                onClickDownload={onClickDownload}
+                onClickDownload={() => onClickDownload(file._id, file.name)}
                 bulkOpEnabled={bulkOpEnabled}
                 BulkSelector={BulkSelector}
                 key={file._id}
