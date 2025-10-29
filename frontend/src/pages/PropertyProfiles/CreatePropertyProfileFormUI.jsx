@@ -14,6 +14,8 @@ import {
 import { CloseIcon } from '@chakra-ui/icons';
 
 import AddressAutoCompleteForm from '../../components/forms/AddressAutoCompleteForm';
+import PhoneInputForm from '../../components/forms/PhoneInputForm';
+
 import { formatDisplayDate } from '../../util/util';
 
 // Lon/lat bias for Saratoga Springs
@@ -29,18 +31,21 @@ const CreatePropertyProfileFormUI = ({
   formData,
   formState,
   onClickSubmit,
+  onToggleDefaultDate,
   onChangeField,
   onChangeDate,
-  onSelectAddress,
+  onChangeAddress,
   onClearAddress,
-  onValidateFormData,
-  onToggleDefaultDate,
+  onChangePhone,
+  onClearPhone,
+  onValidateFormData, // ???
+  
 }) => {
 
   // TODO: add images*, events**, and boundingBox*** fields to mongoose schema
   //* for images, refactor Dropzone component (possibly into a hook)
   //** for events, look at how daypilot structures event objects before creating schema (embedded should be fine)
-  //*** for boundingBox, set on creation from geocode fetch (just an array of four floats); additionally, store geocode as lon, lat instead of lat, lon from now on
+  //*** for boundingBox, set on creation from geocode fetch (just an array of four floats)
 
   const { docs } = fetched; // TODO: fetch policy, opsys, subunits
 
@@ -82,6 +87,7 @@ const CreatePropertyProfileFormUI = ({
             <Input
               isReadOnly
               value={(() => {
+                // Format the address for display
                 const { streetNumber, streetName, city, state, postalCode, country } = address;
                 const line1 = `${streetNumber} ${streetName}`
                 const line2 = `${city}, ${state} ${postalCode}`
@@ -98,7 +104,7 @@ const CreatePropertyProfileFormUI = ({
             />
           </Box>
           ) : (
-            <AddressAutoCompleteForm bias={SARATOGA_SPRINGS} onSelect={onSelectAddress} />
+            <AddressAutoCompleteForm bias={SARATOGA_SPRINGS} onSelect={onChangeAddress} />
           )}
         </FormControl>
 
@@ -108,8 +114,24 @@ const CreatePropertyProfileFormUI = ({
           <Input name='name' placeholder='Property Name' value={name} onChange={e => onChangeField(e)} />
         </FormControl>
 
-        {/* 
-        <FormControl>
+        {/* Phone number input */}
+        <FormControl isRequired={required.phone}>
+          <FormLabel>Phone Number</FormLabel>
+          <Box display='flex' alignItems='center' gap={2}>
+            
+            <IconButton
+              disabled={!phone}
+              aria-label='Clear Phone Number'
+              icon={<CloseIcon />}
+              onClick={onClearPhone}
+              size='sm'
+            />
+          </Box>
+        </FormControl>
+
+        {/*
+
+        <FormControl isRequired={required.dateBuilt}>
           <FormLabel>Date Built</FormLabel>
           <Input
             name='dateBuilt'
@@ -120,7 +142,7 @@ const CreatePropertyProfileFormUI = ({
           />
         </FormControl>
         
-        <FormControl>
+        <FormControl isRequired={false}>
           <Checkbox
             name='useDefaultDateAcq'
             disabled={!dateBuilt}
@@ -132,7 +154,7 @@ const CreatePropertyProfileFormUI = ({
           </Checkbox>
         </FormControl>
         
-        <FormControl>
+        <FormControl isRequired={required.dateAcq}>
           <FormLabel>Date Acquired</FormLabel>
           <Input
             name='dateAcq'
@@ -143,35 +165,35 @@ const CreatePropertyProfileFormUI = ({
           />
         </FormControl>
 
-        <FormControl>
+        <FormControl isRequired={required.apn}>
           <Tooltip label={'Assessor\'s Parcel Number (Tax ID Number)'}>
             <FormLabel>APN</FormLabel>
           </Tooltip>
           <Input
             name='apn'
+            value={apn}
+            onChange={onChangeField}
           />
         </FormControl>
+
         */}
-        
-        {/* Phone number input */}
-        <FormControl></FormControl>
         
         {/* Waste pickup schedule input */}
         <FormControl></FormControl>
         
-        {/* Insurance policy selector */}
+        {/* Text input for notes -- TODO: more functional notepad-like UI*/}
         <FormControl></FormControl>
-        
-        {/* Property notes input */}
-        <FormControl></FormControl>
-        
-        {/* Property opSystems selector */}
-        <FormControl></FormControl>
-        
+
         {/* Property documents selector */}
         <FormControl></FormControl>
         
-        {/* Subunits selector */}
+        {/* Insurance policy selector -- TODO: implement insurancePolicies backend */}
+        <FormControl></FormControl>
+
+        {/* opSystems selector -- TODO: implement opSystems backend */}
+        <FormControl></FormControl>
+        
+        {/* Subunits selector -- TODO: implement subunits backend */}
         <FormControl></FormControl>
 
         {/* Submit button */}

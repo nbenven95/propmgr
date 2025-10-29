@@ -8,11 +8,9 @@ import PropertyProfileCard from '../../components/cards/PropertyProfileCard';
 const PropertyProfilesPageUI = ({
   loading,
   fetched,
-  
   onClickEdit,
   onClickCreate,
   onClickDelete,
-
   DrawerMenu,
   BulkSelector,
   BulkController,
@@ -35,15 +33,15 @@ const PropertyProfilesPageUI = ({
 
       {/* Page header */}
       <Flex mb={4} align='center'>
+        {/* Button to open CreatePropertyProfileForm drawer */}
+        <CreateNewItemBtn label='Create New Property Profile' onClick={onClickCreate} />
         <Heading size='lg'>Property Profiles</Heading>
-        {/* Create new item button */}
-        <CreateNewItemBtn label='Create new Property Profile' onClick={onClickCreate} />
         <Spacer />
         {/* Bulk delete controls */}
         {BulkController}
       </Flex>
 
-      {/* Drawer menu (render Create/Edit form) on open */}
+      {/* Drawer menu: render CreateForm/EditForm on open */}
       {DrawerMenu && <DrawerMenu />}
 
       {/* Display Property Profiles */}

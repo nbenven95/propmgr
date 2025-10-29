@@ -1,60 +1,89 @@
-import axios from 'axios';
-import { useEffect, useState } from 'react';
-import { useToast } from '@chakra-ui/react';
+import { useEffect, useRef, useState } from 'react';
 
-import useFetch from '../../hooks/useFetch.jsx';
+import useFetch from '../../hooks/useFetch';
+import useNotify from '../../hooks/useNotify';
+import useDrawer from '../../hooks/useDrawer';
+import useFormData from '../../hooks/useFormData';
+import EditDocFormUI from './EditDocFormUI';
+import EndpointEnum from '../../util/EndpointEnum';
+import { getLocalTimestamp } from '../../util/util';
 
-import EditDocFormUI from './EditDocFormUI.jsx';
+const { DOCS_API, DOC_TYPE_API, FILES_API, FILE_EXT_API } = EndpointEnum;
 
-import {
-  getLocalTimestamp
-} from '../../util/util.js';
+/**
+ * 
+ * @param {*} props 
+ * @returns 
+ */
+const EditDocForm = ({ doc, onUpdate }) => {
 
-const baseUrl   = 'http://localhost:5000';
-const filesApi  = `${baseUrl}/api/files`;
-const docsApi   = `${baseUrl}/api/docs`;
-const infoApi   = `${baseUrl}/api/info`;
+  if (!doc) throw Error(`Invalid value for \"doc\": ${doc}`);
 
-const EditDocForm = ({
-  doc,
-  onUpdate
-}) => {
-  const toast = useToast();
+  const notify = useNotify();
 
-  const [loading, setLoading] = useState({
-    docTypes: false,
-    files   : false
-  });
-  const [fetched, setFetched] = useState({
-    docTypes: [],
-    files   : []
-  });
-  const [formData, setFormData] = useState({
-    name: doc.name,
-    file: null,   // If user wishes to upload a new file
-    fileRef: '',  // If user wishes to select a new, existing file
-    docType: doc.docType,
-    //dateCreate: doc.dateCreate ? new Date(doc.dateCreate).toISOString().substr(0, 10),
-    dateCreate: doc.dateCreate ? new Date(doc.dateCreate).toDateString() : getLocalTimestamp(),
-    dateEff: doc.dateEff ? new Date(doc.dateEff).toDateString() : '',
-    expiry: doc.expiry ? new Date(doc.expiry).toDateString() : ''
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [name, setName] = useState(document.name);
-  const [docType, setDocType] = useState(document.docType);
-  const [docTypes, setDocTypes] = useState([]);
-  //const [loading, setLoading] = useState(false);
-  const [dateCreate, setDateCreate] = useState(
-    document.dateCreate ? new Date(document.dateCreate).toISOString().substr(0,10) : ''
-  );
-  const [dateEff, setDateEff] = useState(
-    document.dateEff ? new Date(document.dateEff).toISOString().substr(0,10) : ''
-  );
-  const [expiry, setExpiry] = useState(
-    document.expiry ? new Date(document.expiry).toISOString().substr(0,10) : ''
-  );
+  const { onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();
 
-  /* Data to fetch during initial render */
+  const { 
+    isFetching,
+    fetched,
+    onFetchMany,
+    LoadingIndicator
+  } = useFetch([
+    { allowedFileExt: { init: [], url: FILE_EXT_API } },
+    { docTypes      : { init: [], url: DOC_TYPE_API } },
+    { files         : { init: [], url: FILES_API } }
+  ]);
+
+  // De-structure doc fields
+  const {
+    name,
+    docType,
+    stagedFiles,
+    dateCreate,
+    dateEff,
+    expiry,
+    fileRef
+  } = doc;
+
+  const {
+    formData,
+    setFormData,
+    required,
+    ready,
+    submitting,
+    onChange,
+    onSubmit
+  } = useFormData([
+    { name        : { init: name, required: true } },
+    { docType     : { init: docType, required: true } },
+    { dateCreate  : { init: dateCreate?? new Date().toISOString(), required: false } },
+    { dateEff     : { init: dateEff?? '', required: false} },
+    { expiry      : { init: expiry?? '', required: false } },
+    { fileRef     : { init: fileRef?? '', required: false } },
+    { stagedFiles : { init: [], required: false } }
+  ]);
+
+  const [formState, setFormState] = useState({ useDefaultName: true });
+
+  const refs = {
+    name: useRef(),
+    stagedFiles: useRef(formData.stagedFiles),
+    useDefaultName: useRef()
+  };
+
+  const toggleFormState = field => setFormState(prev => ({ ...prev, [field]: !prev.field }));
+
+  const handleFetch = async (resources) => {
+    const errs = await onFetchMany(resources);
+    // On failure to fetch, just log to console
+    if (errs.length > 0) {
+      const numErrors = errs.length;
+      const label = plural('resource', numErrors);
+      console.error(`Failed to fetch (${numErrors}) ${label}: ${errs.join(', ')}`);
+    }
+  };
+
+  // Handle side effects of initial page render
   useEffect(() => {
     setLoading(true);
     axios.get(infoApi + '/document-types').then(res => {
@@ -78,7 +107,7 @@ const EditDocForm = ({
     }).finally(
       setLoading(false)
     );
-  }, []); // Pass empty dependency array to only run during initial render
+  }, []);
 
   const handleSave = async () => {
     setLoading(true);

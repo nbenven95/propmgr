@@ -1,5 +1,6 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { useEffect, useRef, useState } from 'react';
+import { PhoneNumberUtil } from 'google-libphonenumber';
 
 import CreatePropertyProfileFormUI from './CreatePropertyProfileFormUI';
 
@@ -18,6 +19,8 @@ import EndpointEnum from '../../util/EndpointEnum.js';
  * @returns 
  */
 const CreatePropertyProfileForm = ({ onUpdate }) => {
+
+  console.count('CreatePropertyForm render');
 
   const { DOCUMENTS_API, PROPERTIES_API } = EndpointEnum; // TODO: add POLICIES_API, OPSYS_API, SUBUNITS_API 
 
@@ -58,14 +61,17 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
     { docs: { init: [], url: DOCUMENTS_API } }
   ]);
 
+  // Init hook for rendering forms in collapsable drawer
   //const { drawerContent, isOpen, onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();
+
+  // General form state
+  const [formState, setFormState] = useState({
+    useDefaultDateAcq: false, // Is dateAcq the same as dateBuilt? (If true, set dateBuilt to dateAcq)
+    isPhoneValid: false
+  });
 
   // Init hook for rendering popup messages
   const notify = useNotify();
-
-  const [formState, setFormState] = useState({
-    useDefaultDateAcq: false // Is dateAcq the same as dateBuilt? (If true, set dateBuilt to dateAcq)
-  });
 
   // Init element references
   const refs = {
@@ -74,22 +80,29 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
     useDefaultDateAcq: useRef(),
   };
 
-  /**
-   * 
-   * @param {String} field 
-   */
-  const toggleFormState = field => setFormState(prev => ({ ...prev, [field]: !prev.field })); // TODO: how to ensure that 'field' is a boolean?
+  // Phone number validator
+  const phoneUtil = PhoneNumberUtil.getInstance();
 
-  /**
-   * 
-   * @param {Array} resources 
-   */
+  /* Helper function: wrapper for PhoneNumberUtil.isValidNumber */
+  const isPhoneValid = (phone) => {
+    try {
+      return phoneUtil.isValidNumber(phoneUtil.parseAndKeepRawInput(phone));
+    } catch(err) {
+      console.error(getErrorMsg(err));
+      return false;
+    }
+  };
+
+  /* Toggles the state of boolean form fields */
+  const toggleFormState = (field) => setFormState(prev => ({ ...prev, [field]: !prev.field }));
+
   const handleFetch = async (resources) => {
     const errs = await onFetchMany(resources);
     // On failure to fetch, just log to console
     if (errs.length > 0) {
-      console.error(`Failed to fetch (${errs.length})`.concat(
-        `${plural('resource', errs.length)}: ${errs.join(', ')}`));
+      const numErrors = errs.length;
+      const label = plural('resource', numErrors);
+      console.error(`Failed to fetch (${numErrors}) ${label}: ${errs.join(', ')}`);
     }
   };
 
@@ -114,21 +127,25 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
     });
   };
 
-  /**
-   * 
-   */
-  const handleSelectAddress = (locationData) => {
-    // Destructure location data from parseFeature
-    const { address, geocode, extent } = locationData;
-    setFormData(prev => ({ ...prev, address: address, geocode: geocode, extent: extent }));
+  const handleChangeAddress = (data) => {
+    const { address, geocode, extent } = data;
+    setFormData(prev => ({ ...prev, address, geocode, extent }));
   };
 
-  /**
-   * 
-   */
   const handleClearAddress = () => {
     setFormData(prev => ({ ...prev, address: null, geocode: [], extent: [] }));
   };
+
+  /**
+   * Note: need to wrap with 'useCallback' b/c PhoneInputForm is memoized
+   */
+  const handleChangePhone = useCallback((phone) => {
+    setFormData(prev => ({ ...prev, phone }));
+  }, []);
+
+  const handleClearPhone = useCallback(() => {
+    setFormData(prev => ({ ...prev, phone: '' }));
+  }, []);
 
   // TODO: find a way to use onSubmit from useFormData so we can use its `submitting` state.
   // TODO: e.g., for simplicity, maybe just add an optional parameter to directly provide the payload for cases like this?
@@ -232,14 +249,16 @@ const CreatePropertyProfileForm = ({ onUpdate }) => {
       required={required}
       formData={formData}
       formState={formState}
+      onClickSubmit={handleSubmitForm}
+      onToggleDefaultDate={() => toggleFormState('useDefaultDateAcq')}
       onChangeField={onChange}
       onChangeDate={handleChangeDate}
-      onClickSubmit={handleSubmitForm}
-      onSelectAddress={handleSelectAddress}
+      onChangePhone={handleChangePhone}
+      onClearPhone={handleClearPhone}
+      onChangeAddress={handleChangeAddress}
       onClearAddress={handleClearAddress}
-      onToggleDefaultDate={() => toggleFormState('useDefaultDateAcq')}
     />
-  )
+  );
 };
 
 export default CreatePropertyProfileForm;

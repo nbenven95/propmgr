@@ -57,7 +57,8 @@ const propertyProfileSchema = new mongoose.Schema({
   // Day and frequency of garbage pickup
   wastePickupSched: { type: wastePickupSchedSchema, required: false },
 
-  // TODO: update this so it's just an array of two numbers; get rid of geoCodeSchema; (also, change to `geocode`)
+  // Longitude, latitude
+  // TODO: deprecate geoCode.model (embedded schema)
   geocode: { 
     type    : [Number],
     required: false,

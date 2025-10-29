@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Text } from '@chakra-ui/react';
 
 import CreateDocFormUI from './CreateDocFormUI';
 import UploadForm from '../../pages/FilesPage/UploadForm';
 
-import useFetch from '../../hooks/useFetch.jsx';
-import useNotify from '../../hooks/useNotify.jsx';
-import useDrawer from '../../hooks/useDrawer.jsx';
-import useFormData from '../../hooks/useFormData.jsx';
+import useFetch from '../../hooks/useFetch';
+import useNotify from '../../hooks/useNotify';
+import useDrawer from '../../hooks/useDrawer';
+import useFormData from '../../hooks/useFormData';
 import EndpointEnum from '../../util/EndpointEnum';
-import { getErrorMsg, truncateExt } from '../../util/util.js';
+import { getErrorMsg, truncateExt } from '../../util/util';
 
 const { DOCS_API, DOC_TYPE_API, FILES_API, FILE_EXT_API } = EndpointEnum;
 
@@ -50,12 +50,12 @@ const CreateDocForm = ({ onUpdate }) => {
   } = useFormData([
     { name        : { init: '', required: true } },
     { docType     : { init: '', required: true } },
-    { stagedFiles : { init: [], required: false } }, // If uploading a new file
     // TODO: fix dateCreate init value so time portion is set to midnight
     { dateCreate  : { init: new Date().toISOString(), required: false } },
     { dateEff     : { init: '', required: false } },
     { expiry      : { init: '', required: false } },
     { fileRef     : { init: '', required: false } }, // If selecting an existing file
+    { stagedFiles : { init: [], required: false } } // If uploading a new file
   ]);
 
   // TODO: either stagedFiles or fileRef is required

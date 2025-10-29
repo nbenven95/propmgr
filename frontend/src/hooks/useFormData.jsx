@@ -38,19 +38,18 @@ export default function useFormData(fields) {
 
   // Validate form data on state change, set validation flag (e.g., disable submit button until all req fields are filled)
   useEffect(() => {
-    let ready = true;
-
+    let isReady = true;
     for (const [field, data] of Object.entries(formData)) {
       // Check missing required fields
       if (required[field] && (data === null || data === undefined || data === '')) {
-        console.log(`Missing required field: ${field}`);
-        ready = false;
+        isReady = false;
+        //console.log(`Missing required field: ${field}`);
+        break; // Break as soon as a missing field is found
       }
       // TODO: other validation? (e.g., check for garbage input)
     }
-
-    if (ready) console.log('Ready to submit!');
-    setReady(ready)
+    //if (isReady) console.log('Ready to submit!');
+    setReady(prev => prev !== isReady ? isReady : prev); // Only update if changed (avoid redundant re-renders)
   }, [formData]);
 
   /**

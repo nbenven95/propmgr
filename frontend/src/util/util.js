@@ -35,8 +35,8 @@ export const getErrorMsg = (err) => {
 
 /**
  * 
- * @param {String} dateStr An ISO 8601 date string (UTC)
- * @returns 
+ * @param {*} dateStr An ISO 8601 date string (UTC)
+ * @returns A date string in the following format: yyyy-MM-dd
  */
 export const formatDisplayDate = (dateStr) => {
   if (!dateStr) return '';
@@ -111,8 +111,7 @@ export const isServerReachable = async (url, timeout = 5000) => {
  * @throws        Error if the API request fails
  * @returns       The deleted item
  */
-// TODO: consider refactoring delete logic into a hook that also returns a delete button component (possibly do this with edit and create?)
-// TODO: or, just deprecate this (pretty redundant)
+// TODO: deprecate
 export const onDeleteSingle = async (uri) => {
   const res         = await axios.delete(uri);
   const httpRes     = res.data;
@@ -120,12 +119,12 @@ export const onDeleteSingle = async (uri) => {
   return deletedItem;
 };
 
+// TODO: refactor this into a hook that returns a download button
 /**
  * 
  * @param {*} uri 
  * @param {*} fileName 
  */
-// TODO: consider refactoring this into a hook that returns a download button component
 export const onDownload = async (uri, fileName) => {
   // Attempt API request, expect binary object (blob) response type
   const res = await axios.get(uri, { responseType: 'blob' });

@@ -42,5 +42,6 @@
     // foo bar fizz buzz
 
     /* note: can have multiple blocks without interference :) */
-  }
+  },
+  "postman.settings.dotenv-detection-notification-visibility": false
 }

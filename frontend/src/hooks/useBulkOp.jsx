@@ -79,11 +79,12 @@ export default function useBulkOp({ name, fn }) {
     // Disable bulk mode and clear selected items
     setBulk(prev => ({ ...prev, enabled: false, selected: [] }));
 
-    // Return the response data for each request
-    console.log(responses.map(res => res.data));
+    // On success, return an array of response data 
     return responses.map(res => res.data);
 
-    // TODO: test with Promise.allSettled
+    // NOTE: when using Promise.all(), if any promise is rejected, Promise.all() is rejected.
+
+    // TODO: test with Promise.allSettled() to get an array of success and failure responses, let user handle the rest
     /*
     const responses = await Promise.allSettled(
       selected.map(id => fn(id))

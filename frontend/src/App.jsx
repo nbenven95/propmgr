@@ -10,9 +10,10 @@ import CreateDocForm from './pages/DocsPage/CreateDocForm';
 import PropertyProfilesPage from './pages/PropertyProfiles/PropertyProfilesPage';
 import CreatePropertyProfileForm from './pages/PropertyProfiles/CreatePropertyProfileForm';
 
-import MapTest from './pages/MapTest';
+import MapTest from './pages/MapTest'; // TODO: remove this
+import PhoneTest from './pages/PhoneTest';
 
-// TODO: add a landing page
+// TODO: landing page
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path='/properties' element={<PropertyProfilesPage />} />
           <Route path='/properties/create' element={<CreatePropertyProfileForm />} />
           <Route path='/map' element={<MapTest />} />
+          <Route path='/phone' element={<PhoneTest />} />
         </Routes>
       </Router>
     </Box>

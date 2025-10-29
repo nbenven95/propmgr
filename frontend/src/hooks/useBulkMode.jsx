@@ -1,8 +1,7 @@
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-// TODO: refactor this component in a similar manner to useDrawer to return a BulkDeleteControls component
-
+// TODO: deprecate this hook; update any components that still use this hook to use 'useBulkOp' instead
 /**
  * 
  * @returns

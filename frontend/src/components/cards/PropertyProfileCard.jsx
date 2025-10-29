@@ -19,10 +19,8 @@ const PropertyProfileCard =({
   onClickDelete,
   BulkSelector
 }) => {
-  // De-structure fetched data
+  // De-structure PropertyProfile data
   const {
-    _id,
-    updatedAt,
     name,
     address,
     geoCode,
@@ -36,7 +34,9 @@ const PropertyProfileCard =({
     insurancePolicy,
     opSystems,
     documents,
-    subunits
+    subunits,
+    _id,
+    updatedAt
   } = property;
 
   return (
@@ -48,18 +48,20 @@ const PropertyProfileCard =({
       shadow='sm'
       p={4}
     >
-      {/* Display Property Profile data (TODO: replace Flex with Stack components?) */}
+      {/* Render main content */}
       <Flex direction='column' align='start' >  
-        {/* Render bulk selector checkbox if one was provided */}
+        
+        {/* If defined, render bulk selector */}
         {BulkSelector && <BulkSelector id={_id} />}
 
-        <HStack width='full' justify='space-between' align='center' mb={2} >
+        {/* Card header */}
+        <HStack width='full' justify='space-between' align='center' mb={2}>
           {/* Property name */}
           <Text fontWeight='bold' fontSize='2xl'>{name}</Text>
           {/* Date of last update */}
-          {updatedAt && <HStack >
-            <Text fontWeight='bold' > Last Updated: </Text>
-            <Text >{new Date(updatedAt).toDateString()}</Text>
+          {updatedAt && <HStack>
+            <Text fontWeight='bold'>Last Updated: </Text>
+            <Text>{new Date(updatedAt).toDateString()}</Text>
           </HStack>}
         </HStack>
 

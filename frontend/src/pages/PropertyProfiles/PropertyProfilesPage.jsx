@@ -1,6 +1,6 @@
-import axios from 'axios';
 import { useEffect } from 'react';
 import { Text } from '@chakra-ui/react';
+import axios from 'axios';
 
 import PropertyProfilesPageUI from './PropertyProfilesPageUI';
 import CreatePropertyProfileForm from './CreatePropertyProfileForm';
@@ -10,20 +10,19 @@ import useBulkOp from '../../hooks/useBulkOp';
 import useDrawer from '../../hooks/useDrawer';
 import useNotify from '../../hooks/useNotify';
 import useFetch from '../../hooks/useFetch';
-import { getErrorMsg, onDeleteSingle, plural } from '../../util/util'; // TODO: rename to 'helpers'
+import { getErrorMsg, plural } from '../../util/util'; // TODO: rename to 'helpers'
 
 import EndpointEnum from '../../util/EndpointEnum.js';
 
 const { PROPERTIES_API } = EndpointEnum; // TODO: add POLICIES_API, OPSYS_API, SUBUNITS_API 
 
 const PropertyProfilesPage = () => {
+  /* Init hooks */
   const notify = useNotify();
-
-  //const { bulkMode, onBulkModeToggle, onBulkSelectToggle, onBulkDelete } = useBulkMode(); // TODO: deprecate
 
   const { onBulkOp, BulkSelector, BulkController } = useBulkOp({
     name: 'Delete',
-    fn: async (id) => axios.delete(`${PROPERTIES_API}/${id}`) // Note: can't use onDeleteSingle; this returns the deleted item (not a full response object)
+    fn: async (id) => axios.delete(`${PROPERTIES_API}/${id}`)
   });
 
   const { onDrawerOpen, onDrawerClose, DrawerMenu } = useDrawer();
@@ -34,7 +33,7 @@ const PropertyProfilesPage = () => {
 
   /**
    * 
-   * @param {Array} resources 
+   * @param {*} resources 
    */
   const handleFetch = async (resources) => {
     const errs = await onFetchMany(resources);
@@ -60,16 +59,15 @@ const PropertyProfilesPage = () => {
    */
   const handleDelete = async (property) => {
     try {
-      const { name, _id } = property;
       // Try to delete the PropertyProfile, notify user on success
-      await onDeleteSingle(`${PROPERTIES_API}/${_id}`);
+      const { name, _id } = property;
+      await axios.delete(`${PROPERTIES_API}/${_id}`);
       notify({
         status: 'success',
         title: 'Property Profile Deleted',
         desc: `Successfully deleted Property Profile \"${name}\"`
       });
     } catch (err) {
-      // Notify user if delete fails
       notify({
         status: 'error',
         title: `Error Deleting Property Profile \"${name}\"`,
@@ -83,9 +81,8 @@ const PropertyProfilesPage = () => {
   const handleBulkDelete = async () => {
     try {
       // Try bulk delete
-      //const res = await onBulkDelete(propertiesApi);
       const res     = await onBulkOp();
-      const numDel  = res.data.length;
+      const numDel  = res.data.length?? 0;
       const label   = plural('Property Profile', numDel);
       notify({
         status: 'success',
@@ -106,7 +103,14 @@ const PropertyProfilesPage = () => {
   const handleOpenCreateForm = () => {
     onDrawerOpen(
       <Text>Create New Property Profile</Text>,
-      <></> // TODO: render CreatePropertyProfileForm
+      <CreatePropertyProfileForm
+        onUpdate={() => {
+          // Inititate fetch, don't await
+          handleFetch('properties');
+          // Close drawer immediately so resource loading indicator displays
+          onDrawerClose();
+        }}
+      />
     )
   };
 
@@ -121,11 +125,9 @@ const PropertyProfilesPage = () => {
     <PropertyProfilesPageUI
       loading={loading}
       fetched={fetched}
-
       onClickEdit={handleOpenEditForm}
       onClickCreate={handleOpenCreateForm}
       onClickDelete={handleDelete}
-
       DrawerMenu={DrawerMenu}
       BulkSelector={BulkSelector}
       BulkController={<BulkController onBulkOp={handleBulkDelete} />}
